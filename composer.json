@@ -1,4 +1,6 @@
 {
+    "name": "positron48/budget-bot",
+    "description": "Telegram bot for tracking expenses and income using Google Spreadsheets",
     "type": "project",
     "license": "MIT",
     "minimum-stability": "stable",
