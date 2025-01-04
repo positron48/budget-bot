@@ -22,10 +22,10 @@ permissions:
 ci: cs-check phpstan test
 
 cs-check:
-	docker-compose exec php composer cs-check
+	docker-compose exec php composer cs-check -- --allow-risky=yes
 
 cs-fix:
-	docker-compose exec php composer cs-fix
+	docker-compose exec php composer cs-fix -- --allow-risky=yes
 
 phpstan:
 	docker-compose exec php composer phpstan

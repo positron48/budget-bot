@@ -4,15 +4,15 @@ namespace App\Service;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
-use Longman\TelegramBot\Telegram;
-use Longman\TelegramBot\Request;
-use Longman\TelegramBot\Entities\Update;
 use Longman\TelegramBot\Entities\Keyboard;
+use Longman\TelegramBot\Entities\Message;
+use Longman\TelegramBot\Entities\Update;
 use Longman\TelegramBot\Exception\TelegramException;
+use Longman\TelegramBot\Request;
+use Longman\TelegramBot\Telegram;
 
 class TelegramBotService
 {
-    private Telegram $telegram;
     private MessageParserService $messageParser;
     private CategoryService $categoryService;
     private GoogleSheetsService $sheetsService;
@@ -24,100 +24,109 @@ class TelegramBotService
         MessageParserService $messageParser,
         CategoryService $categoryService,
         GoogleSheetsService $sheetsService,
-        UserRepository $userRepository
+        UserRepository $userRepository,
     ) {
-        $this->telegram = new Telegram($botToken, $botUsername);
+        // Initialize Telegram bot
+        new Telegram($botToken, $botUsername);
+
         $this->messageParser = $messageParser;
         $this->categoryService = $categoryService;
         $this->sheetsService = $sheetsService;
         $this->userRepository = $userRepository;
     }
 
+    /**
+     * @param array<string, mixed> $updateData
+     */
     public function handleUpdate(array $updateData): void
     {
         try {
             $update = new Update($updateData);
             $message = $update->getMessage();
-            
-            if ($message === null) {
+
+            if (!$message instanceof Message) {
                 return;
             }
 
             $chatId = $message->getChat()->getId();
             $text = $message->getText();
-            
-            if ($text === null) {
+
+            if (null === $text) {
                 return;
             }
 
             // Handle commands
-            if ($text === '/start') {
+            if ('/start' === $text) {
                 $this->handleStartCommand($chatId, $message);
+
                 return;
             }
 
-            if ($text === '/list') {
+            if ('/list' === $text) {
                 $this->handleListCommand($chatId);
+
                 return;
             }
 
-            if ($text === '/categories') {
+            if ('/categories' === $text) {
                 $this->handleCategoriesCommand($chatId);
+
                 return;
             }
 
-            // Handle regular messages
-            $this->handleMessage($chatId, $text, $message);
+            // Handle regular message
+            $this->handleMessage($chatId, $message);
         } catch (TelegramException $e) {
             // Log error
         }
     }
 
-    private function handleStartCommand(int $chatId, $message): void
+    private function handleStartCommand(int $chatId, Message $message): void
     {
         $user = $this->userRepository->findByTelegramId($chatId);
-        
+
         if (!$user) {
             $user = new User();
             $user->setTelegramId($chatId)
                 ->setUsername($message->getFrom()->getUsername())
                 ->setFirstName($message->getFrom()->getFirstName())
                 ->setLastName($message->getFrom()->getLastName());
-            
+
             $this->userRepository->save($user, true);
         }
 
         Request::sendMessage([
             'chat_id' => $chatId,
-            'text' => 'Привет! Я помогу вести учет доходов и расходов в Google Таблицах. ' .
-                     'Отправляйте сообщения в формате: "[дата] [+]сумма описание"' .
-                     "\n\nДоступные команды:\n" .
-                     "/list - список доступных таблиц\n" .
-                     "/categories - управление категориями",
+            'text' => 'Привет! Я помогу вести учет доходов и расходов в Google Таблицах. '.
+                     'Отправляйте сообщения в формате: "[дата] [+]сумма описание"'.
+                     "\n\nДоступные команды:\n".
+                     "/list - список доступных таблиц\n".
+                     '/categories - управление категориями',
         ]);
     }
 
     private function handleListCommand(int $chatId): void
     {
         $spreadsheets = $this->sheetsService->getSpreadsheetsList();
-        
+
         if (empty($spreadsheets)) {
             Request::sendMessage([
                 'chat_id' => $chatId,
                 'text' => 'Нет доступных таблиц.',
             ]);
+
             return;
         }
 
-        $text = "Доступные таблицы:\n\n";
-        foreach ($spreadsheets as $name => $id) {
-            $text .= "{$name}: https://docs.google.com/spreadsheets/d/{$id}\n";
-        }
+        $keyboard = new Keyboard(...array_chunk($spreadsheets, 2));
+        $keyboard->setResizeKeyboard(true)
+            ->setOneTimeKeyboard(true)
+            ->setSelective(false);
 
         Request::sendMessage([
             'chat_id' => $chatId,
-            'text' => $text,
-            'disable_web_page_preview' => true,
+            'text' => 'Выберите таблицу:',
+            'reply_markup' => $keyboard,
         ]);
     }
 
@@ -125,29 +134,27 @@ class TelegramBotService
     {
         $user = $this->userRepository->findByTelegramId($chatId);
         if (!$user) {
+            Request::sendMessage([
+                'chat_id' => $chatId,
+                'text' => 'Пожалуйста, используйте /start для начала работы.',
+            ]);
+
             return;
         }
 
         $expenseCategories = $this->categoryService->getCategories(false, $user);
         $incomeCategories = $this->categoryService->getCategories(true, $user);
 
-        $text = "Категории расходов:\n";
-        foreach ($expenseCategories as $category) {
-            $text .= "• {$category}\n";
-        }
-
-        $text .= "\nКатегории доходов:\n";
-        foreach ($incomeCategories as $category) {
-            $text .= "• {$category}\n";
-        }
+        $message = "Категории расходов:\n".implode("\n", $expenseCategories);
+        $message .= "\n\nКатегории доходов:\n".implode("\n", $incomeCategories);
 
         Request::sendMessage([
             'chat_id' => $chatId,
-            'text' => $text,
+            'text' => $message,
         ]);
     }
 
-    private function handleMessage(int $chatId, string $text, $message): void
+    private function handleMessage(int $chatId, Message $message): void
     {
         $user = $this->userRepository->findByTelegramId($chatId);
         if (!$user || !$user->getCurrentSpreadsheetId()) {
@@ -155,48 +162,61 @@ class TelegramBotService
                 'chat_id' => $chatId,
                 'text' => 'Пожалуйста, выберите таблицу с помощью команды /list',
             ]);
+
             return;
         }
 
-        $parsedData = $this->messageParser->parseMessage($text);
+        $parsedData = $this->messageParser->parseMessage($message->getText() ?? '');
         if (!$parsedData) {
             Request::sendMessage([
                 'chat_id' => $chatId,
                 'text' => 'Неверный формат сообщения. Используйте: "[дата] [+]сумма описание"',
             ]);
+
             return;
         }
 
+        $type = $parsedData['isIncome'] ? 'income' : 'expense';
         $category = $this->categoryService->detectCategory(
             $parsedData['description'],
-            $parsedData['isIncome'],
+            $type,
             $user
         );
 
-        if ($category === null) {
+        if (null === $category) {
             // Ask user to select category
             $categories = $this->categoryService->getCategories($parsedData['isIncome'], $user);
             $keyboard = new Keyboard(...array_chunk($categories, 2));
             $keyboard->setResizeKeyboard(true)
-                    ->setOneTimeKeyboard(true);
+                ->setOneTimeKeyboard(true)
+                ->setSelective(false);
 
             Request::sendMessage([
                 'chat_id' => $chatId,
                 'text' => 'Выберите категорию:',
                 'reply_markup' => $keyboard,
             ]);
+
             return;
         }
 
-        $this->saveTransaction($user, $parsedData, $category);
+        $this->saveTransaction($chatId, $user->getCurrentSpreadsheetId(), $parsedData, $category);
+
+        Request::sendMessage([
+            'chat_id' => $chatId,
+            'text' => 'Транзакция сохранена.',
+        ]);
     }
 
-    private function saveTransaction(User $user, array $parsedData, string $category): void
+    /**
+     * @param array{date: \DateTime, amount: float, description: string, isIncome: bool} $parsedData
+     */
+    private function saveTransaction(int $chatId, string $spreadsheetId, array $parsedData, string $category): void
     {
         try {
             if ($parsedData['isIncome']) {
                 $this->sheetsService->addIncome(
-                    $user->getCurrentSpreadsheetId(),
+                    $spreadsheetId,
                     $parsedData['date']->format('d.m.Y'),
                     $parsedData['amount'],
                     $parsedData['description'],
@@ -204,23 +224,18 @@ class TelegramBotService
                 );
             } else {
                 $this->sheetsService->addExpense(
-                    $user->getCurrentSpreadsheetId(),
+                    $spreadsheetId,
                     $parsedData['date']->format('d.m.Y'),
                     $parsedData['amount'],
                     $parsedData['description'],
                     $category
                 );
             }
-
-            Request::sendMessage([
-                'chat_id' => $user->getTelegramId(),
-                'text' => 'Запись успешно добавлена!',
-            ]);
         } catch (\Exception $e) {
             Request::sendMessage([
-                'chat_id' => $user->getTelegramId(),
-                'text' => 'Произошла ошибка при сохранении записи.',
+                'chat_id' => $chatId,
+                'text' => 'Ошибка при сохранении транзакции.',
             ]);
         }
     }
-} 
+}

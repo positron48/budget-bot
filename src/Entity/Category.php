@@ -45,6 +45,7 @@ class Category
     public function setName(string $name): static
     {
         $this->name = $name;
+
         return $this;
     }
 
@@ -56,6 +57,7 @@ class Category
     public function setType(string $type): static
     {
         $this->type = $type;
+
         return $this;
     }
 
@@ -67,6 +69,7 @@ class Category
     public function setIsDefault(bool $isDefault): static
     {
         $this->isDefault = $isDefault;
+
         return $this;
     }
 
@@ -95,4 +98,4 @@ class Category
 
         return $this;
     }
-} 
+}

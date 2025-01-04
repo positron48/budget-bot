@@ -35,6 +35,7 @@ class CategoryKeyword
     public function setCategory(?Category $category): static
     {
         $this->category = $category;
+
         return $this;
     }
 
@@ -46,6 +47,7 @@ class CategoryKeyword
     public function setUserCategory(?UserCategory $userCategory): static
     {
         $this->userCategory = $userCategory;
+
         return $this;
     }
 
@@ -57,6 +59,7 @@ class CategoryKeyword
     public function setKeyword(string $keyword): static
     {
         $this->keyword = $keyword;
+
         return $this;
     }
-} 
+}

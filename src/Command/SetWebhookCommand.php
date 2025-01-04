@@ -2,13 +2,13 @@
 
 namespace App\Command;
 
+use Longman\TelegramBot\Exception\TelegramException;
+use Longman\TelegramBot\Telegram;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Longman\TelegramBot\Telegram;
-use Longman\TelegramBot\Exception\TelegramException;
 
 #[AsCommand(
     name: 'app:set-webhook',
@@ -39,14 +39,17 @@ class SetWebhookCommand extends Command
 
             if ($result->isOk()) {
                 $output->writeln('<info>Webhook was set successfully!</info>');
+
                 return Command::SUCCESS;
             }
 
-            $output->writeln('<error>Failed to set webhook: ' . $result->getDescription() . '</error>');
+            $output->writeln('<error>Failed to set webhook: '.$result->getDescription().'</error>');
+
             return Command::FAILURE;
         } catch (TelegramException $e) {
-            $output->writeln('<error>Error: ' . $e->getMessage() . '</error>');
+            $output->writeln('<error>Error: '.$e->getMessage().'</error>');
+
             return Command::FAILURE;
         }
     }
-} 
+}

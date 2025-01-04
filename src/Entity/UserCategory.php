@@ -46,6 +46,7 @@ class UserCategory
     public function setUser(?User $user): static
     {
         $this->user = $user;
+
         return $this;
     }
 
@@ -57,6 +58,7 @@ class UserCategory
     public function setName(string $name): static
     {
         $this->name = $name;
+
         return $this;
     }
 
@@ -68,6 +70,7 @@ class UserCategory
     public function setType(string $type): static
     {
         $this->type = $type;
+
         return $this;
     }
 
@@ -96,4 +99,4 @@ class UserCategory
 
         return $this;
     }
-} 
+}

@@ -60,7 +60,7 @@ final class Version20231212000001 extends AbstractMigration
             'Алко',
             'Образование',
             'Услуги',
-            'Авто'
+            'Авто',
         ];
 
         foreach ($expenseCategories as $category) {
@@ -74,7 +74,7 @@ final class Version20231212000001 extends AbstractMigration
             'Кешбек, др. бонусы',
             'Процентный доход',
             'Инвестиции',
-            'Другое'
+            'Другое',
         ];
 
         foreach ($incomeCategories as $category) {
@@ -88,4 +88,4 @@ final class Version20231212000001 extends AbstractMigration
         $this->addSql('DROP TABLE user_category');
         $this->addSql('DROP TABLE category');
     }
-} 
+}

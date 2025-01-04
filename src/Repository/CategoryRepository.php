@@ -6,6 +6,9 @@ use App\Entity\Category;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
+/**
+ * @extends ServiceEntityRepository<Category>
+ */
 class CategoryRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -13,22 +16,20 @@ class CategoryRepository extends ServiceEntityRepository
         parent::__construct($registry, Category::class);
     }
 
+    /**
+     * @return Category[]
+     */
     public function findByType(string $type): array
     {
-        return $this->createQueryBuilder('c')
-            ->where('c.type = :type')
-            ->andWhere('c.isDefault = true')
-            ->setParameter('type', $type)
-            ->getQuery()
-            ->getResult();
+        return $this->findBy(['type' => $type, 'isDefault' => true]);
     }
 
-    public function save(Category $category, bool $flush = false): void
+    public function save(Category $entity, bool $flush = false): void
     {
-        $this->getEntityManager()->persist($category);
+        $this->getEntityManager()->persist($entity);
 
         if ($flush) {
             $this->getEntityManager()->flush();
         }
     }
-} 
+}

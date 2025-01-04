@@ -24,7 +24,7 @@ final class Version20231212000000 extends AbstractMigration
             last_name VARCHAR(255) DEFAULT NULL,
             current_spreadsheet_id VARCHAR(255) DEFAULT NULL
         )');
-        
+
         $this->addSql('CREATE UNIQUE INDEX UNIQ_8D93D649F3E6D02F ON user (telegram_id)');
     }
 
@@ -32,4 +32,4 @@ final class Version20231212000000 extends AbstractMigration
     {
         $this->addSql('DROP TABLE user');
     }
-} 
+}

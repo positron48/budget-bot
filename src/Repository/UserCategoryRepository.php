@@ -7,6 +7,9 @@ use App\Entity\UserCategory;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
+/**
+ * @extends ServiceEntityRepository<UserCategory>
+ */
 class UserCategoryRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -14,23 +17,20 @@ class UserCategoryRepository extends ServiceEntityRepository
         parent::__construct($registry, UserCategory::class);
     }
 
+    /**
+     * @return UserCategory[]
+     */
     public function findByUserAndType(User $user, string $type): array
     {
-        return $this->createQueryBuilder('uc')
-            ->where('uc.user = :user')
-            ->andWhere('uc.type = :type')
-            ->setParameter('user', $user)
-            ->setParameter('type', $type)
-            ->getQuery()
-            ->getResult();
+        return $this->findBy(['user' => $user, 'type' => $type]);
     }
 
-    public function save(UserCategory $category, bool $flush = false): void
+    public function save(UserCategory $entity, bool $flush = false): void
     {
-        $this->getEntityManager()->persist($category);
+        $this->getEntityManager()->persist($entity);
 
         if ($flush) {
             $this->getEntityManager()->flush();
         }
     }
-} 
+}

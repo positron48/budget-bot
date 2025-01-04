@@ -41,6 +41,7 @@ class User
     public function setTelegramId(int $telegramId): static
     {
         $this->telegramId = $telegramId;
+
         return $this;
     }
 
@@ -52,6 +53,7 @@ class User
     public function setUsername(?string $username): static
     {
         $this->username = $username;
+
         return $this;
     }
 
@@ -63,6 +65,7 @@ class User
     public function setFirstName(?string $firstName): static
     {
         $this->firstName = $firstName;
+
         return $this;
     }
 
@@ -74,6 +77,7 @@ class User
     public function setLastName(?string $lastName): static
     {
         $this->lastName = $lastName;
+
         return $this;
     }
 
@@ -85,6 +89,7 @@ class User
     public function setCurrentSpreadsheetId(?string $currentSpreadsheetId): static
     {
         $this->currentSpreadsheetId = $currentSpreadsheetId;
+
         return $this;
     }
-} 
+}
