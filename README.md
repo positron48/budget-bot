@@ -1,116 +1,86 @@
 # Budget Bot
 
-Telegram bot for tracking expenses and income using Google Spreadsheets.
+Telegram бот для учета доходов и расходов в Google Таблицах.
 
-## Requirements
+## Требования
 
-- PHP 8.2+
-- Composer
-- Docker & Docker Compose
-- SQLite3
+- PHP 8.1+
+- Docker
+- Docker Compose
+- Make
 
-## Installation
+## Установка
 
-1. Clone the repository:
+1. Клонируйте репозиторий:
 ```bash
-git clone git@github.com:positron48/budget-bot.git
+git clone git@github.com:your-username/budget-bot.git
 cd budget-bot
 ```
 
-2. Copy environment file and configure it:
+2. Скопируйте файл `.env.example` в `.env` и настройте переменные окружения:
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Edit `.env.local` and set the following variables:
-- `APP_SECRET` - random 32 character string
-- `TELEGRAM_BOT_TOKEN` - get from [@BotFather](https://t.me/BotFather)
-- `TELEGRAM_BOT_USERNAME` - your bot's username (without @)
-- `GOOGLE_SHEETS_CREDENTIALS_PATH` - path to Google Sheets API credentials file
+Необходимо заполнить следующие переменные:
+- `TELEGRAM_BOT_TOKEN` - токен вашего Telegram бота
+- `TELEGRAM_BOT_USERNAME` - имя пользователя вашего бота
+- `GOOGLE_SHEETS_CREDENTIALS_PATH` - путь к файлу с учетными данными Google Sheets API
 
-3. Install dependencies:
-```bash
-make build
-```
-
-4. Set up the database:
-```bash
-docker-compose exec php bin/console doctrine:migrations:migrate
-```
-
-## Development
-
-Start the development server:
+3. Запустите сервисы:
 ```bash
 make up
 ```
 
-For local development with webhook, you can use SSH tunnel:
-1. Configure tunnel settings in `.env.local`:
-```env
-SSH_TUNNEL_HOST=your.domain.com
-SSH_TUNNEL_USER=root
-SSH_TUNNEL_LOCAL_PORT=80
-SSH_TUNNEL_REMOTE_PORT=8080
+## Разработка
+
+### Доступные команды
+
+- `make up` - запуск сервисов
+- `make down` - остановка сервисов
+- `make build` - пересборка и запуск сервисов
+- `make restart` - перезапуск сервисов
+- `make tunnel` - создание SSH-туннеля для локальной разработки
+- `make permissions` - установка прав доступа для директорий
+- `make ci` - запуск всех проверок
+- `make cs-check` - проверка стиля кода
+- `make cs-fix` - исправление стиля кода
+- `make phpstan` - статический анализ кода
+- `make test` - запуск тестов
+
+### Локальная разработка с использованием туннеля
+
+Для локальной разработки можно использовать SSH-туннель, чтобы получать webhook-запросы от Telegram.
+
+1. Настройте переменные окружения для туннеля в `.env`:
+```
+SSH_TUNNEL_HOST=your-server.com
+SSH_TUNNEL_USER=username
+SSH_TUNNEL_PORT=22
 ```
 
-2. Start the tunnel:
+2. Запустите туннель:
 ```bash
 make tunnel
 ```
 
-3. Set up webhook URL:
+3. Настройте webhook в Telegram на URL: `https://your-domain.com/webhook`
+
+## Тестирование
+
+Для запуска тестов используйте:
 ```bash
-docker-compose exec php bin/console app:set-webhook https://bot.your.domain.com/webhook
+make test
 ```
 
-## Available Commands
+## Проверка кода
 
-- `make up` - Start the services
-- `make down` - Stop the services
-- `make build` - Build and start the services
-- `make restart` - Restart the services
-- `make tunnel` - Create SSH tunnel for webhook development
-- `make permissions` - Fix var directory permissions
-- `make cs-check` - Check code style
-- `make cs-fix` - Fix code style
-- `make phpstan` - Run static analysis
-- `make test` - Run tests
-- `make ci` - Run all checks (cs, phpstan, tests)
-
-## Production Deployment
-
-1. Configure your web server (Nginx example):
-```nginx
-server {
-    listen 443 ssl;
-    server_name bot.your.domain.com;
-
-    ssl_certificate /etc/letsencrypt/live/bot.your.domain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/bot.your.domain.com/privkey.pem;
-
-    location / {
-        proxy_pass http://localhost:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-
-server {
-    listen 80;
-    server_name bot.your.domain.com;
-    return 301 https://$server_name$request_uri;
-}
-```
-
-2. Set up SSL certificate:
+Для проверки качества кода используйте:
 ```bash
-certbot --nginx -d bot.your.domain.com
+make ci
 ```
 
-3. Set webhook URL:
-```bash
-bin/console app:set-webhook https://bot.your.domain.com/webhook
-```
+Это запустит:
+- PHP CS Fixer для проверки стиля кода
+- PHPStan для статического анализа
+- PHPUnit для тестов
