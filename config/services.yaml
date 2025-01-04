@@ -14,4 +14,18 @@ services:
         exclude:
             - '../src/DependencyInjection/'
             - '../src/Entity/'
-            - '../src/Kernel.php' 
+            - '../src/Kernel.php'
+
+    App\Command\SetWebhookCommand:
+        arguments:
+            $botToken: '%telegram.bot_token%'
+            $botUsername: '%telegram.bot_username%'
+
+    App\Service\TelegramBotService:
+        arguments:
+            $botToken: '%telegram.bot_token%'
+            $botUsername: '%telegram.bot_username%'
+
+    App\Service\GoogleSheetsService:
+        arguments:
+            $credentialsPath: '%google.credentials_path%' 

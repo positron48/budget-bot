@@ -11,9 +11,16 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-enable \
     pdo_sqlite
 
+# Create non-root user
+RUN useradd -m -u 1000 appuser \
+    && mkdir -p /var/www/budget-bot \
+    && chown -R appuser:appuser /var/www/budget-bot
+
 WORKDIR /var/www/budget-bot
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-CMD ["php-fpm"] 
+USER appuser
+
+CMD ["php-fpm"]
