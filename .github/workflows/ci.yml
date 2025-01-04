@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: read
+  checks: write
+  pull-requests: write
 
 jobs:
   tests:
@@ -20,7 +22,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          coverage: none
+          extensions: pcov
+          coverage: pcov
 
       - name: Validate composer.json
         run: composer validate --strict
@@ -34,11 +37,32 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-php-
 
+      - name: Copy .env
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
-      - name: Run test suite
-        run: composer run-script test
+      - name: Generate key
+        run: php bin/console secrets:generate-keys
+
+      - name: Directory Permissions
+        run: chmod -R 777 var
+
+      - name: Create Database
+        run: |
+          mkdir -p var
+          touch var/app.db
+
+      - name: Run test suite with coverage
+        run: vendor/bin/phpunit --coverage-clover build/logs/clover.xml --coverage-text
+
+      - name: Upload coverage results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: build/logs/clover.xml
+          check_name: "Test Results with Coverage"
 
   phpstan:
     name: PHPStan

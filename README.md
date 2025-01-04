@@ -1,6 +1,9 @@
 # Budget Bot
 
-[![codecov](https://codecov.io/gh/positron48/budget-bot/branch/master/graph/badge.svg)](https://codecov.io/gh/positron48/budget-bot)
+[![CI](https://github.com/positron48/budget-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/positron48/budget-bot/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/positron48/gist_id/raw/budget-bot.json)](https://github.com/positron48/budget-bot/actions/workflows/ci.yml)
+[![PHPStan](https://img.shields.io/badge/PHPStan-level%208-brightgreen.svg?style=flat)](https://phpstan.org/)
+[![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://www.php.net/)
 
 Telegram бот для учета расходов и доходов в Google таблицах.
 
