@@ -33,7 +33,8 @@ class MessageParserService
         }
 
         // Parse amount and description
-        if (!preg_match('/^([+]?\d+(?:\.\d+)?)\s*(.*)$/', $remainingPart, $matches)) {
+        $remainingPart = str_replace(',', '.', $remainingPart);
+        if (!preg_match('/^([+]?\d+(?:\.\d+)?)\s+(.+)$/', $remainingPart, $matches)) {
             return null;
         }
 
@@ -63,11 +64,17 @@ class MessageParserService
 
         // Try different date formats
         foreach (self::DATE_FORMATS as $format) {
-            $date = \DateTime::createFromFormat($format, $dateStr);
-            if (false !== $date) {
+            $date = \DateTime::createFromFormat($format.' H:i:s', $dateStr.' 00:00:00');
+            if (false !== $date && $date->format($format) === $dateStr) {
                 // If year is not specified, use current year
                 if (false === strpos($format, 'Y')) {
                     $date->setDate((int) date('Y'), (int) $date->format('m'), (int) $date->format('d'));
+                } else {
+                    // Validate that year has 4 digits
+                    $year = (int) $date->format('Y');
+                    if ($year < 1000 || $year > 9999) {
+                        return null;
+                    }
                 }
 
                 return $date;
