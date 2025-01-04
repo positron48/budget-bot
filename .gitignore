@@ -22,6 +22,7 @@
 ###> phpunit/phpunit ###
 /phpunit.xml
 .phpunit.result.cache
+/coverage
 ###< phpunit/phpunit ###
 
 ###> friendsofphp/php-cs-fixer ###

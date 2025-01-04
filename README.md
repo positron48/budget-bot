@@ -1,35 +1,40 @@
 # Budget Bot
 
-Telegram бот для учета доходов и расходов в Google Таблицах.
+[![codecov](https://codecov.io/gh/positron48/budget-bot/branch/master/graph/badge.svg)](https://codecov.io/gh/positron48/budget-bot)
 
-## Требования
-
-- PHP 8.1+
-- Docker
-- Docker Compose
-- Make
+Telegram бот для учета расходов и доходов в Google таблицах.
 
 ## Установка
 
-1. Клонируйте репозиторий:
+1. Склонируйте репозиторий
+2. Скопируйте `.env.example` в `.env` и заполните необходимые переменные окружения
+3. Запустите `docker-compose up -d`
+4. Выполните миграции: `docker-compose exec php bin/console doctrine:migrations:migrate`
+
+## Разработка
+
+### Тесты
+
 ```bash
-git clone git@github.com:your-username/budget-bot.git
-cd budget-bot
+make test
 ```
 
-2. Скопируйте файл `.env.example` в `.env` и настройте переменные окружения:
+### Code Style
+
 ```bash
-cp .env.example .env
+make cs-fix
 ```
 
-Необходимо заполнить следующие переменные:
-- `TELEGRAM_BOT_TOKEN` - токен вашего Telegram бота
-- `TELEGRAM_BOT_USERNAME` - имя пользователя вашего бота
-- `GOOGLE_SHEETS_CREDENTIALS_PATH` - путь к файлу с учетными данными Google Sheets API
+### Статический анализ
 
-3. Запустите сервисы:
 ```bash
-make up
+make phpstan
+```
+
+### CI
+
+```bash
+make ci
 ```
 
 ## Разработка

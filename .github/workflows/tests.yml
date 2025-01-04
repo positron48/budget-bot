@@ -1,0 +1,45 @@
+name: Tests
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pcov
+          coverage: pcov
+
+      - name: Copy .env
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
+      - name: Install Dependencies
+        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+      - name: Generate key
+        run: php bin/console secrets:generate-keys
+
+      - name: Directory Permissions
+        run: chmod -R 777 var
+
+      - name: Create Database
+        run: |
+          mkdir -p var
+          touch var/app.db
+
+      - name: Execute tests
+        run: vendor/bin/phpunit --coverage-clover coverage/clover.xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }} 

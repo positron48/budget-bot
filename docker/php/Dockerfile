@@ -8,8 +8,10 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install \
     pdo_sqlite \
     intl \
+    && pecl install pcov \
     && docker-php-ext-enable \
-    pdo_sqlite
+    pdo_sqlite \
+    pcov
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser \
