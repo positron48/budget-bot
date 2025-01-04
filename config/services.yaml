@@ -2,6 +2,7 @@ parameters:
     telegram.bot_token: '%env(TELEGRAM_BOT_TOKEN)%'
     telegram.bot_username: '%env(TELEGRAM_BOT_USERNAME)%'
     google.credentials_path: '%env(GOOGLE_SHEETS_CREDENTIALS_PATH)%'
+    google.service_account_email: '%env(GOOGLE_SERVICE_ACCOUNT_EMAIL)%'
 
 services:
     _defaults:
@@ -28,4 +29,5 @@ services:
 
     App\Service\GoogleSheetsService:
         arguments:
-            $credentialsPath: '%google.credentials_path%' 
+            $credentialsPath: '%google.credentials_path%'
+            $serviceAccountEmail: '%google.service_account_email%' 

@@ -24,22 +24,23 @@ class CategoryService
      */
     public function getCategories(bool $isIncome, User $user): array
     {
-        $categories = [];
         $type = $isIncome ? 'income' : 'expense';
 
         // Get user-specific categories
         $userCategories = $this->userCategoryRepository->findByUserAndType($user, $type);
-        foreach ($userCategories as $category) {
-            $categories[] = $category->getName();
-        }
+        $userCategoryNames = array_map(
+            static fn (UserCategory $category): string => $category->getName() ?? '',
+            $userCategories
+        );
 
         // Get default categories
         $defaultCategories = $this->categoryRepository->findByType($type);
-        foreach ($defaultCategories as $category) {
-            $categories[] = $category->getName();
-        }
+        $defaultCategoryNames = array_map(
+            static fn (Category $category): string => $category->getName() ?? '',
+            $defaultCategories
+        );
 
-        return array_unique($categories);
+        return array_merge($userCategoryNames, $defaultCategoryNames);
     }
 
     public function detectCategory(string $description, string $type, User $user): ?string

@@ -14,10 +14,10 @@ class MessageParserService
     /**
      * @return array{date: \DateTime, amount: float, description: string, isIncome: bool}|null
      */
-    public function parseMessage(string $message): ?array
+    public function parseMessage(string $text): ?array
     {
-        $parts = preg_split('/\s+/', trim($message), 2);
-        if (count($parts) < 2) {
+        $parts = preg_split('/\s+/', trim($text));
+        if (!is_array($parts) || count($parts) < 2) {
             return null;
         }
 
@@ -29,16 +29,22 @@ class MessageParserService
         if (null === $date) {
             // If first part is not a date, assume it's today
             $date = new \DateTime();
-            $remainingPart = $message;
+            $remainingPart = $text;
+        } else {
+            $remainingPart = trim(substr($text, strlen($firstPart)));
         }
 
         // Parse amount and description
-        $remainingPart = str_replace(',', '.', $remainingPart);
+        $remainingPart = str_replace(',', '.', trim($remainingPart));
         if (!preg_match('/^([+]?\d+(?:\.\d+)?)\s+(.+)$/', $remainingPart, $matches)) {
             return null;
         }
 
         $amount = (float) $matches[1];
+        if ($amount <= 0) {
+            return null;
+        }
+
         $description = trim($matches[2]);
         $isIncome = str_starts_with($matches[1], '+');
 
@@ -64,18 +70,23 @@ class MessageParserService
 
         // Try different date formats
         foreach (self::DATE_FORMATS as $format) {
-            $date = \DateTime::createFromFormat($format.' H:i:s', $dateStr.' 00:00:00');
-            if (false !== $date && $date->format($format) === $dateStr) {
-                // If year is not specified, use current year
-                if (false === strpos($format, 'Y')) {
-                    $date->setDate((int) date('Y'), (int) $date->format('m'), (int) $date->format('d'));
-                } else {
-                    // Validate that year has 4 digits
-                    $year = (int) $date->format('Y');
-                    if ($year < 1000 || $year > 9999) {
-                        return null;
-                    }
+            if (preg_match('/^(\d{1,2})\.(\d{1,2})(?:\.(\d{4}))?$/', $dateStr, $matches)) {
+                $day = (int) $matches[1];
+                $month = (int) $matches[2];
+                $year = isset($matches[3]) ? (int) $matches[3] : (int) date('Y');
+
+                // Validate year format
+                if (isset($matches[3]) && ($year < 1000 || $year > 9999)) {
+                    continue;
                 }
+
+                // Validate date
+                if (!checkdate($month, $day, $year)) {
+                    continue;
+                }
+
+                $date = new \DateTime();
+                $date->setDate($year, $month, $day);
 
                 return $date;
             }

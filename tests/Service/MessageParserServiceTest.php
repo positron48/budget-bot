@@ -22,14 +22,8 @@ class MessageParserServiceTest extends TestCase
     public function testParseValidMessage(string $message, array $expected): void
     {
         $result = $this->parser->parseMessage($message);
-
         $this->assertNotNull($result);
-
-        // Сравниваем даты отдельно, так как они могут иметь разное время
-        $this->assertInstanceOf(\DateTime::class, $result['date']);
         $this->assertEquals($expected['date']->format('Y-m-d'), $result['date']->format('Y-m-d'));
-
-        // Сравниваем остальные поля
         $this->assertEquals($expected['amount'], $result['amount']);
         $this->assertEquals($expected['description'], $result['description']);
         $this->assertEquals($expected['isIncome'], $result['isIncome']);
@@ -40,14 +34,25 @@ class MessageParserServiceTest extends TestCase
      */
     public function validMessageProvider(): array
     {
+        $today = new \DateTime();
+
         return [
-            'simple expense' => [
-                '100 продукты',
+            'expense without date' => [
+                '200 такси',
                 [
-                    'date' => new \DateTime('today'),
-                    'amount' => 100.0,
-                    'description' => 'продукты',
+                    'date' => $today,
+                    'amount' => 200.0,
+                    'description' => 'такси',
                     'isIncome' => false,
+                ],
+            ],
+            'income without date' => [
+                '+10000 премия',
+                [
+                    'date' => $today,
+                    'amount' => 10000.0,
+                    'description' => 'премия',
+                    'isIncome' => true,
                 ],
             ],
             'expense with date' => [
@@ -59,15 +64,6 @@ class MessageParserServiceTest extends TestCase
                     'isIncome' => false,
                 ],
             ],
-            'income with plus' => [
-                '+5000 зарплата',
-                [
-                    'date' => new \DateTime('today'),
-                    'amount' => 5000.0,
-                    'description' => 'зарплата',
-                    'isIncome' => true,
-                ],
-            ],
             'income with date' => [
                 '31.12.2023 +10000 премия',
                 [
@@ -77,19 +73,19 @@ class MessageParserServiceTest extends TestCase
                     'isIncome' => true,
                 ],
             ],
-            'decimal amount with dot' => [
-                '99.90 кофе',
+            'expense with comma' => [
+                '99,90 кофе',
                 [
-                    'date' => new \DateTime('today'),
+                    'date' => $today,
                     'amount' => 99.90,
                     'description' => 'кофе',
                     'isIncome' => false,
                 ],
             ],
-            'decimal amount with comma' => [
-                '99,90 кофе',
+            'expense with dot' => [
+                '99.90 кофе',
                 [
-                    'date' => new \DateTime('today'),
+                    'date' => $today,
                     'amount' => 99.90,
                     'description' => 'кофе',
                     'isIncome' => false,
@@ -103,8 +99,7 @@ class MessageParserServiceTest extends TestCase
      */
     public function testParseInvalidMessage(string $message): void
     {
-        $result = $this->parser->parseMessage($message);
-        $this->assertNull($result);
+        $this->assertNull($this->parser->parseMessage($message));
     }
 
     /**
@@ -113,16 +108,16 @@ class MessageParserServiceTest extends TestCase
     public function invalidMessageProvider(): array
     {
         return [
-            'empty message' => [''],
+            'empty string' => [''],
+            'only date' => ['01.01.2024'],
             'only amount' => ['100'],
-            'only text' => ['продукты'],
-            'invalid date format' => ['24.01.01 100 продукты'],
-            'invalid amount' => ['abc 100 продукты'],
-            'missing description' => ['100'],
-            'missing amount' => ['продукты'],
-            'invalid year format' => ['01.01.24 100 продукты'],
-            'missing description after amount' => ['100 '],
-            'missing description after decimal' => ['99.90 '],
+            'only description' => ['такси'],
+            'invalid date' => ['32.13.2024 100 такси'],
+            'invalid amount' => ['01.01.2024 abc такси'],
+            'zero amount' => ['01.01.2024 0 такси'],
+            'negative amount' => ['01.01.2024 -100 такси'],
+            'invalid year format' => ['01.01.24 100 такси'],
+            'invalid year length' => ['01.01.20244 100 такси'],
         ];
     }
 }

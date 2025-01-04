@@ -25,7 +25,8 @@ tunnel:
 	ssh -R $(SSH_TUNNEL_REMOTE_PORT):localhost:$(SSH_TUNNEL_LOCAL_PORT) $(SSH_TUNNEL_USER)@$(SSH_TUNNEL_HOST) -N
 
 # CI commands
-ci: cs-check phpstan test
+ci:
+	docker-compose exec php composer check-all
 
 cs-check:
 	docker-compose exec php composer cs-check -- --allow-risky=yes

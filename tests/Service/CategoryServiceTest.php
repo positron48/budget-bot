@@ -36,25 +36,13 @@ class CategoryServiceTest extends TestCase
     {
         $user = new User();
         $userCategories = [
-            (new UserCategory())
-                ->setUser($user)
-                ->setName('Продукты')
-                ->setType('expense'),
-            (new UserCategory())
-                ->setUser($user)
-                ->setName('Транспорт')
-                ->setType('expense'),
+            $this->createUserCategoryWithKeywords('Продукты', [], 'expense', $user),
+            $this->createUserCategoryWithKeywords('Транспорт', [], 'expense', $user),
         ];
 
         $defaultCategories = [
-            (new Category())
-                ->setName('Развлечения')
-                ->setType('expense')
-                ->setIsDefault(true),
-            (new Category())
-                ->setName('Здоровье')
-                ->setType('expense')
-                ->setIsDefault(true),
+            $this->createCategoryWithKeywords('Развлечения', [], 'expense'),
+            $this->createCategoryWithKeywords('Здоровье', [], 'expense'),
         ];
 
         $this->userCategoryRepository->expects($this->once())

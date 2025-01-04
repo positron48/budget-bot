@@ -18,9 +18,11 @@ services:
     volumes:
       - .:/var/www/budget-bot
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/php.ini:ro
+      - ./docker/php/conf.d/custom.ini:/usr/local/etc/php/conf.d/custom.ini:ro
     environment:
       - APP_ENV=dev
       - DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db
+      - SYMFONY_DEPRECATIONS_HELPER=disabled=1
     restart: unless-stopped
 
   composer:

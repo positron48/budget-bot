@@ -28,6 +28,15 @@ class User
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $currentSpreadsheetId = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $state = null;
+
+    /**
+     * @var array<string, mixed>
+     */
+    #[ORM\Column(type: 'json')]
+    private array $tempData = [];
+
     public function getId(): ?int
     {
         return $this->id;
@@ -89,6 +98,36 @@ class User
     public function setCurrentSpreadsheetId(?string $currentSpreadsheetId): static
     {
         $this->currentSpreadsheetId = $currentSpreadsheetId;
+
+        return $this;
+    }
+
+    public function getState(): ?string
+    {
+        return $this->state;
+    }
+
+    public function setState(string $state): self
+    {
+        $this->state = $state;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getTempData(): array
+    {
+        return $this->tempData ?? [];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function setTempData(array $data): self
+    {
+        $this->tempData = $data;
 
         return $this;
     }
