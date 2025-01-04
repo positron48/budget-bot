@@ -1,4 +1,7 @@
-.PHONY: up down build ci cs-check cs-fix phpstan test restart permissions
+.PHONY: up down build ci cs-check cs-fix phpstan test restart permissions tunnel
+
+include .env.local
+export
 
 # Docker commands
 up:
@@ -17,6 +20,9 @@ restart:
 permissions:
 	mkdir -p var/cache var/log
 	chmod -R 777 var
+
+tunnel:
+	ssh -R $(SSH_TUNNEL_REMOTE_PORT):localhost:$(SSH_TUNNEL_LOCAL_PORT) $(SSH_TUNNEL_USER)@$(SSH_TUNNEL_HOST) -N
 
 # CI commands
 ci: cs-check phpstan test
