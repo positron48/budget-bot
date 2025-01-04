@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - .:/var/www/budget-bot
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/php.ini:ro
+    environment:
+      - APP_ENV=dev
+      - DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db
+    restart: unless-stopped
+
+  composer:
+    image: composer:latest
+    volumes:
+      - .:/var/www/budget-bot
+    working_dir: /var/www/budget-bot
+    command: composer install --ignore-platform-reqs --no-scripts 
