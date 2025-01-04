@@ -55,14 +55,23 @@ jobs:
           touch var/app.db
 
       - name: Run test suite with coverage
-        run: vendor/bin/phpunit --coverage-clover build/logs/clover.xml --coverage-text
+        run: |
+          mkdir -p build/logs
+          vendor/bin/phpunit --coverage-clover build/logs/clover.xml --coverage-text --log-junit build/logs/junit.xml
 
-      - name: Upload coverage results
+      - name: Upload test results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
-          files: build/logs/clover.xml
+          junit_files: "build/logs/junit.xml"
           check_name: "Test Results with Coverage"
+
+      - name: Generate coverage badge
+        uses: timkrase/phpunit-coverage-badge@v1.2.1
+        with:
+          coverage_badge_path: 'badge-coverage.svg'
+          push_badge: true
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
 
   phpstan:
     name: PHPStan
