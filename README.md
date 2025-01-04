@@ -1,6 +1,6 @@
 # Budget Bot
 
-[![CI](https://github.com/positron48/budget-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/positron48/budget-bot/actions/workflows/ci.yml)
+[![CI](https://github.com/positron48/budget-bot/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/positron48/budget-bot/actions/workflows/ci.yml)
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -185,8 +185,8 @@ composer check-all
 ```
 
 Все проверки автоматически запускаются в GitHub Actions при:
-- Push в ветку main
-- Создании Pull Request
+- Push в ветку master
+- Создании Pull Request в master
 
 ### Добавление категорий
 
