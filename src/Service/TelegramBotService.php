@@ -10,29 +10,40 @@ use Longman\TelegramBot\Entities\Update;
 use Longman\TelegramBot\Exception\TelegramException;
 use Longman\TelegramBot\Request;
 use Longman\TelegramBot\Telegram;
+use Psr\Log\LoggerInterface;
 
 class TelegramBotService
 {
-    private MessageParserService $messageParser;
-    private CategoryService $categoryService;
     private GoogleSheetsService $sheetsService;
+    private MessageParserService $messageParser;
     private UserRepository $userRepository;
+    private CategoryService $categoryService;
+    private LoggerInterface $logger;
 
     public function __construct(
         string $botToken,
         string $botUsername,
-        MessageParserService $messageParser,
-        CategoryService $categoryService,
         GoogleSheetsService $sheetsService,
+        MessageParserService $messageParser,
         UserRepository $userRepository,
+        CategoryService $categoryService,
+        LoggerInterface $logger,
     ) {
-        // Initialize Telegram bot
-        new Telegram($botToken, $botUsername);
-
-        $this->messageParser = $messageParser;
-        $this->categoryService = $categoryService;
         $this->sheetsService = $sheetsService;
+        $this->messageParser = $messageParser;
         $this->userRepository = $userRepository;
+        $this->categoryService = $categoryService;
+        $this->logger = $logger;
+
+        try {
+            $telegram = new Telegram($botToken, $botUsername);
+            Request::initialize($telegram);
+        } catch (TelegramException $e) {
+            $this->logger->error('Failed to initialize Telegram bot: '.$e->getMessage(), [
+                'exception' => $e,
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -41,10 +52,13 @@ class TelegramBotService
     public function handleUpdate(array $updateData): void
     {
         try {
+            $this->logger->info('Processing update', ['update' => $updateData]);
             $update = new Update($updateData);
             $message = $update->getMessage();
 
             if (!$message instanceof Message) {
+                $this->logger->info('Update does not contain a message');
+
                 return;
             }
 
@@ -52,8 +66,15 @@ class TelegramBotService
             $text = $message->getText();
 
             if (null === $text) {
+                $this->logger->info('Message does not contain text', ['chat_id' => $chatId]);
+
                 return;
             }
+
+            $this->logger->info('Processing message', [
+                'chat_id' => $chatId,
+                'text' => $text,
+            ]);
 
             // Handle commands
             if ('/start' === $text) {
@@ -77,7 +98,10 @@ class TelegramBotService
             // Handle regular message
             $this->handleMessage($chatId, $message);
         } catch (TelegramException $e) {
-            // Log error
+            $this->logger->error('Error handling update: '.$e->getMessage(), [
+                'exception' => $e,
+                'update' => $updateData,
+            ]);
         }
     }
 
