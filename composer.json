@@ -23,7 +23,12 @@
         "symfony/maker-bundle": "^1.51",
         "symfony/debug-bundle": "6.3.*",
         "symfony/stopwatch": "6.3.*",
-        "symfony/web-profiler-bundle": "6.3.*"
+        "symfony/web-profiler-bundle": "6.3.*",
+        "phpstan/phpstan": "^1.10",
+        "phpstan/phpstan-symfony": "^1.3",
+        "phpstan/phpstan-doctrine": "^1.3",
+        "friendsofphp/php-cs-fixer": "^3.35",
+        "phpunit/phpunit": "^10.4"
     },
     "config": {
         "allow-plugins": {
@@ -62,6 +67,15 @@
         ],
         "post-update-cmd": [
             "@auto-scripts"
+        ],
+        "cs-check": "php-cs-fixer fix --dry-run --diff",
+        "cs-fix": "php-cs-fixer fix",
+        "phpstan": "phpstan analyse -c phpstan.neon",
+        "test": "phpunit",
+        "check-all": [
+            "@cs-check",
+            "@phpstan",
+            "@test"
         ]
     },
     "conflict": {

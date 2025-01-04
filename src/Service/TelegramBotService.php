@@ -61,6 +61,11 @@ class TelegramBotService
                 return;
             }
 
+            if ($text === '/categories') {
+                $this->handleCategoriesCommand($chatId);
+                return;
+            }
+
             // Handle regular messages
             $this->handleMessage($chatId, $text, $message);
         } catch (TelegramException $e) {
@@ -85,7 +90,10 @@ class TelegramBotService
         Request::sendMessage([
             'chat_id' => $chatId,
             'text' => 'Привет! Я помогу вести учет доходов и расходов в Google Таблицах. ' .
-                     'Отправляйте сообщения в формате: "[дата] [+]сумма описание"',
+                     'Отправляйте сообщения в формате: "[дата] [+]сумма описание"' .
+                     "\n\nДоступные команды:\n" .
+                     "/list - список доступных таблиц\n" .
+                     "/categories - управление категориями",
         ]);
     }
 
@@ -113,6 +121,32 @@ class TelegramBotService
         ]);
     }
 
+    private function handleCategoriesCommand(int $chatId): void
+    {
+        $user = $this->userRepository->findByTelegramId($chatId);
+        if (!$user) {
+            return;
+        }
+
+        $expenseCategories = $this->categoryService->getCategories(false, $user);
+        $incomeCategories = $this->categoryService->getCategories(true, $user);
+
+        $text = "Категории расходов:\n";
+        foreach ($expenseCategories as $category) {
+            $text .= "• {$category}\n";
+        }
+
+        $text .= "\nКатегории доходов:\n";
+        foreach ($incomeCategories as $category) {
+            $text .= "• {$category}\n";
+        }
+
+        Request::sendMessage([
+            'chat_id' => $chatId,
+            'text' => $text,
+        ]);
+    }
+
     private function handleMessage(int $chatId, string $text, $message): void
     {
         $user = $this->userRepository->findByTelegramId($chatId);
@@ -135,12 +169,13 @@ class TelegramBotService
 
         $category = $this->categoryService->detectCategory(
             $parsedData['description'],
-            $parsedData['isIncome']
+            $parsedData['isIncome'],
+            $user
         );
 
         if ($category === null) {
             // Ask user to select category
-            $categories = $this->categoryService->getCategories($parsedData['isIncome']);
+            $categories = $this->categoryService->getCategories($parsedData['isIncome'], $user);
             $keyboard = new Keyboard(...array_chunk($categories, 2));
             $keyboard->setResizeKeyboard(true)
                     ->setOneTimeKeyboard(true);
