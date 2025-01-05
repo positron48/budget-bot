@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1736070379">
-  <project timestamp="1736070379">
+<coverage generated="1736071457">
+  <project timestamp="1736071457">
     <file name="/home/runner/work/budget-bot/budget-bot/src/Command/SetWebhookCommand.php">
       <class name="App\Command\SetWebhookCommand" namespace="global">
         <metrics complexity="5" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="26" coveredstatements="0" elements="29" coveredelements="0"/>
@@ -508,6 +508,33 @@
       <line num="39" type="stmt" count="0"/>
       <metrics loc="42" ncloc="42" classes="1" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="13" coveredstatements="0" elements="16" coveredelements="0"/>
     </file>
+    <file name="/home/runner/work/budget-bot/budget-bot/src/Service/Command/CategoriesCommand.php">
+      <class name="App\Service\Command\CategoriesCommand" namespace="global">
+        <metrics complexity="4" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="18" coveredstatements="0" elements="21" coveredelements="0"/>
+      </class>
+      <line num="11" type="method" name="__construct" visibility="public" complexity="1" crap="2" count="0"/>
+      <line num="15" type="stmt" count="0"/>
+      <line num="18" type="method" name="getName" visibility="public" complexity="1" crap="2" count="0"/>
+      <line num="20" type="stmt" count="0"/>
+      <line num="23" type="method" name="execute" visibility="public" complexity="2" crap="6" count="0"/>
+      <line num="25" type="stmt" count="0"/>
+      <line num="26" type="stmt" count="0"/>
+      <line num="28" type="stmt" count="0"/>
+      <line num="31" type="stmt" count="0"/>
+      <line num="32" type="stmt" count="0"/>
+      <line num="33" type="stmt" count="0"/>
+      <line num="34" type="stmt" count="0"/>
+      <line num="35" type="stmt" count="0"/>
+      <line num="36" type="stmt" count="0"/>
+      <line num="38" type="stmt" count="0"/>
+      <line num="39" type="stmt" count="0"/>
+      <line num="41" type="stmt" count="0"/>
+      <line num="42" type="stmt" count="0"/>
+      <line num="43" type="stmt" count="0"/>
+      <line num="44" type="stmt" count="0"/>
+      <line num="45" type="stmt" count="0"/>
+      <metrics loc="48" ncloc="48" classes="1" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="18" coveredstatements="0" elements="21" coveredelements="0"/>
+    </file>
     <file name="/home/runner/work/budget-bot/budget-bot/src/Service/Command/CommandInterface.php">
       <metrics loc="15" ncloc="15" classes="0" methods="0" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="0" coveredstatements="0" elements="0" coveredelements="0"/>
     </file>
@@ -541,6 +568,38 @@
       <line num="54" type="stmt" count="0"/>
       <line num="57" type="stmt" count="0"/>
       <metrics loc="60" ncloc="60" classes="1" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="22" coveredstatements="0" elements="25" coveredelements="0"/>
+    </file>
+    <file name="/home/runner/work/budget-bot/budget-bot/src/Service/Command/RemoveCommand.php">
+      <class name="App\Service\Command\RemoveCommand" namespace="global">
+        <metrics complexity="6" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="23" coveredstatements="0" elements="26" coveredelements="0"/>
+      </class>
+      <line num="14" type="method" name="__construct" visibility="public" complexity="1" crap="2" count="0"/>
+      <line num="19" type="stmt" count="0"/>
+      <line num="20" type="stmt" count="0"/>
+      <line num="23" type="method" name="getName" visibility="public" complexity="1" crap="2" count="0"/>
+      <line num="25" type="stmt" count="0"/>
+      <line num="28" type="method" name="execute" visibility="public" complexity="4" crap="20" count="0"/>
+      <line num="30" type="stmt" count="0"/>
+      <line num="31" type="stmt" count="0"/>
+      <line num="33" type="stmt" count="0"/>
+      <line num="36" type="stmt" count="0"/>
+      <line num="38" type="stmt" count="0"/>
+      <line num="39" type="stmt" count="0"/>
+      <line num="40" type="stmt" count="0"/>
+      <line num="41" type="stmt" count="0"/>
+      <line num="42" type="stmt" count="0"/>
+      <line num="44" type="stmt" count="0"/>
+      <line num="47" type="stmt" count="0"/>
+      <line num="48" type="stmt" count="0"/>
+      <line num="49" type="stmt" count="0"/>
+      <line num="52" type="stmt" count="0"/>
+      <line num="53" type="stmt" count="0"/>
+      <line num="55" type="stmt" count="0"/>
+      <line num="56" type="stmt" count="0"/>
+      <line num="57" type="stmt" count="0"/>
+      <line num="58" type="stmt" count="0"/>
+      <line num="59" type="stmt" count="0"/>
+      <metrics loc="62" ncloc="62" classes="1" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="23" coveredstatements="0" elements="26" coveredelements="0"/>
     </file>
     <file name="/home/runner/work/budget-bot/budget-bot/src/Service/Command/StartCommand.php">
       <class name="App\Service\Command\StartCommand" namespace="global">
@@ -1285,6 +1344,6 @@
       <line num="148" type="stmt" count="0"/>
       <metrics loc="151" ncloc="143" classes="1" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="95" coveredstatements="0" elements="98" coveredelements="0"/>
     </file>
-    <metrics files="29" loc="2563" ncloc="2434" classes="27" methods="150" coveredmethods="49" conditionals="0" coveredconditionals="0" statements="966" coveredstatements="251" elements="1116" coveredelements="300"/>
+    <metrics files="31" loc="2673" ncloc="2544" classes="29" methods="156" coveredmethods="49" conditionals="0" coveredconditionals="0" statements="1007" coveredstatements="251" elements="1163" coveredelements="300"/>
   </project>
 </coverage>
