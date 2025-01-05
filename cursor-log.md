@@ -675,7 +675,15 @@ github actions пропускает многие тесты из-за отсут
 
 ---
 
-при команде /add после отправки таблицы не показывается клавиатура с выбором месяца
+при команде /add после отправки таблицы не показывается клавиатура с выбором месяца [fix: improve spreadsheet state handler](https://github.com/positron48/budget-bot/commit/cb068e46bc8929caa7b7ef78477cd03433289908)
+
+---
+
+в состоянии WAITING_CATEGORIES_ACTION нет реакции на присылаемые сообщения с типом категорий
+
+---
+
+WAITING_CATEGORY_NAME и WAITING_CATEGORY_TO_DELETE все еще не покрыты
 
 ---
 

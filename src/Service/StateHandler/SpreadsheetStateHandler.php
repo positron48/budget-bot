@@ -169,22 +169,42 @@ class SpreadsheetStateHandler implements StateHandlerInterface
     {
         $keyboard = [];
         $months = [
-            'Январь',
-            'Февраль',
-            'Март',
-            'Апрель',
-            'Май',
-            'Июнь',
-            'Июль',
-            'Август',
-            'Сентябрь',
-            'Октябрь',
-            'Ноябрь',
-            'Декабрь',
+            1 => 'Январь',
+            2 => 'Февраль',
+            3 => 'Март',
+            4 => 'Апрель',
+            5 => 'Май',
+            6 => 'Июнь',
+            7 => 'Июль',
+            8 => 'Август',
+            9 => 'Сентябрь',
+            10 => 'Октябрь',
+            11 => 'Ноябрь',
+            12 => 'Декабрь',
         ];
 
-        foreach ($months as $text) {
-            $keyboard[] = ['text' => $text];
+        // Get next month and year
+        $nextMonth = (int) date('n') + 1;
+        $nextMonthYear = (int) date('Y');
+        if ($nextMonth > 12) {
+            $nextMonth = 1;
+            ++$nextMonthYear;
+        }
+
+        // Add next month first
+        $keyboard[] = ['text' => sprintf('%s %d', $months[$nextMonth], $nextMonthYear)];
+
+        // Then add 5 previous months
+        for ($i = 0; $i < 5; ++$i) {
+            $month = $nextMonth - 1 - $i;
+            $year = $nextMonthYear;
+
+            if ($month <= 0) {
+                $month += 12;
+                --$year;
+            }
+
+            $keyboard[] = ['text' => sprintf('%s %d', $months[$month], $year)];
         }
 
         return $keyboard;

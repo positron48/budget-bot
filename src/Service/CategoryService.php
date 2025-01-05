@@ -106,4 +106,17 @@ class CategoryService
             $this->categoryKeywordRepository->save($categoryKeyword, true);
         }
     }
+
+    public function removeUserCategory(User $user, string $name, bool $isIncome): void
+    {
+        $category = $this->userCategoryRepository->findOneBy([
+            'user' => $user,
+            'name' => $name,
+            'type' => $isIncome ? 'income' : 'expense',
+        ]);
+
+        if ($category) {
+            $this->userCategoryRepository->remove($category, true);
+        }
+    }
 }
