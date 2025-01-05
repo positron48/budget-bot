@@ -176,4 +176,137 @@ class TelegramBotServiceTest extends TestCase
             ],
         ]);
     }
+
+    public function testMainUserFlow(): void
+    {
+        $chatId = 123;
+        $spreadsheetId = 'test_spreadsheet_id';
+        $month = 'Январь';
+        $year = 2024;
+
+        // Step 1: New user starts with /start command
+        $user = new User();
+        $user->setTelegramId($chatId);
+
+        $this->userRepository->expects($this->once())
+            ->method('findByTelegramId')
+            ->with($chatId)
+            ->willReturn(null);
+
+        // Test consecutive saves
+        $this->userRepository
+            ->expects($this->exactly(4))
+            ->method('save')
+            ->willReturnCallback(function ($actualUser, $flush) use ($user) {
+                $this->assertEquals($user->getTelegramId(), $actualUser->getTelegramId());
+                $this->assertTrue($flush);
+
+                return null;
+            });
+
+        // Test consecutive state changes
+        $expectedStates = ['WAITING_SPREADSHEET_ID', 'WAITING_MONTH'];
+        $stateIndex = 0;
+
+        $this->userRepository
+            ->expects($this->exactly(2))
+            ->method('setUserState')
+            ->willReturnCallback(function ($actualUser, $state) use ($user, &$stateIndex, $expectedStates) {
+                $this->assertEquals($user->getTelegramId(), $actualUser->getTelegramId());
+                $this->assertEquals($expectedStates[$stateIndex], $state);
+                ++$stateIndex;
+
+                return null;
+            });
+
+        $this->sheetsService->expects($this->once())
+            ->method('handleSpreadsheetId')
+            ->with($spreadsheetId)
+            ->willReturn($spreadsheetId);
+
+        // Step 3: User selects month
+        $this->sheetsService->expects($this->once())
+            ->method('addSpreadsheet')
+            ->with($user, $spreadsheetId, $month, $year);
+
+        // Step 4: User adds a record
+        $this->messageParser->expects($this->once())
+            ->method('parseMessage')
+            ->with('1000 продукты')
+            ->willReturn([
+                'amount' => 1000,
+                'description' => 'продукты',
+                'isIncome' => false,
+                'date' => new \DateTime(),
+            ]);
+
+        $this->categoryService->expects($this->once())
+            ->method('getCategoryByDescription')
+            ->with('продукты')
+            ->willReturn('Питание');
+
+        $this->sheetsService->expects($this->once())
+            ->method('addRecord')
+            ->with(
+                $user,
+                $this->callback(function ($date) {
+                    return $date instanceof \DateTime;
+                }),
+                1000,
+                'продукты',
+                'Питание',
+                false
+            );
+
+        // Execute the flow
+        // Step 1: Start command
+        $this->telegramBotService->handleUpdate([
+            'message' => [
+                'message_id' => 1,
+                'chat' => ['id' => $chatId, 'type' => 'private'],
+                'date' => time(),
+                'text' => '/start',
+            ],
+        ]);
+
+        // Step 2: Add command
+        $this->telegramBotService->handleUpdate([
+            'message' => [
+                'message_id' => 2,
+                'chat' => ['id' => $chatId, 'type' => 'private'],
+                'date' => time(),
+                'text' => '/add',
+            ],
+        ]);
+
+        // Step 2.1: Send spreadsheet ID
+        $this->telegramBotService->handleUpdate([
+            'message' => [
+                'message_id' => 3,
+                'chat' => ['id' => $chatId, 'type' => 'private'],
+                'date' => time(),
+                'text' => $spreadsheetId,
+            ],
+        ]);
+
+        // Step 3: Select month
+        $this->telegramBotService->handleUpdate([
+            'message' => [
+                'message_id' => 4,
+                'chat' => ['id' => $chatId, 'type' => 'private'],
+                'date' => time(),
+                'text' => sprintf('%s %d', $month, $year),
+            ],
+        ]);
+
+        // Step 4: Add record
+        $this->telegramBotService->handleUpdate([
+            'message' => [
+                'message_id' => 5,
+                'chat' => ['id' => $chatId, 'type' => 'private'],
+                'date' => time(),
+                'text' => '1000 продукты',
+            ],
+        ]);
+    }
 }
