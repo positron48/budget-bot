@@ -2,19 +2,27 @@
 
 <!-- https://phpunit.readthedocs.io/en/latest/configuration.html -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
-         backupGlobals="false"
-         colors="true"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
          bootstrap="tests/bootstrap.php"
-         displayDetailsOnTestsThatTriggerDeprecations="true"
-         displayDetailsOnTestsThatTriggerWarnings="true"
->
+         cacheDirectory=".phpunit.cache"
+         executionOrder="depends,defects"
+         requireCoverageMetadata="false"
+         beStrictAboutCoverageMetadata="true"
+         beStrictAboutOutputDuringTests="true"
+         failOnRisky="true"
+         failOnWarning="true">
     <php>
         <ini name="display_errors" value="1" />
         <ini name="error_reporting" value="-1" />
-        <server name="APP_ENV" value="test" force="true" />
-        <server name="SHELL_VERBOSITY" value="-1" />
-        <server name="SYMFONY_PHPUNIT_REMOVE" value="" />
+        <env name="APP_ENV" value="test" force="true" />
+        <env name="KERNEL_CLASS" value="App\Kernel" />
+        <env name="APP_SECRET" value="$ecretf0rt3st" />
+        <env name="SYMFONY_DEPRECATIONS_HELPER" value="disabled=1" />
+        <env name="TELEGRAM_BOT_TOKEN" value="test_token" />
+        <env name="TELEGRAM_BOT_USERNAME" value="test_bot" />
+        <env name="DATABASE_URL" value="sqlite:///%kernel.project_dir%/var/test.db" />
+        <env name="GOOGLE_CREDENTIALS_PATH" value="%kernel.project_dir%/tests/config/google-credentials.json" />
+        <env name="GOOGLE_SERVICE_ACCOUNT_EMAIL" value="test@example.com" />
     </php>
 
     <testsuites>
@@ -23,21 +31,9 @@
         </testsuite>
     </testsuites>
 
-    <coverage>
-        <report>
-            <clover outputFile="coverage/clover.xml"/>
-            <html outputDirectory="coverage/html"/>
-            <text outputFile="coverage/coverage.txt"/>
-        </report>
-    </coverage>
-
-    <source>
+    <source restrictDeprecations="true" restrictNotices="true" restrictWarnings="true">
         <include>
-            <directory suffix=".php">src</directory>
+            <directory>src</directory>
         </include>
-        <exclude>
-            <directory>src/DataFixtures</directory>
-            <file>src/Kernel.php</file>
-        </exclude>
     </source>
 </phpunit>

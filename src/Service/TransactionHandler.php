@@ -22,6 +22,41 @@ class TransactionHandler
         $this->logger = $logger;
     }
 
+    private function sendMessage(int $chatId, string $text): void
+    {
+        try {
+            $data = [
+                'chat_id' => $chatId,
+                'text' => $text,
+                'parse_mode' => 'HTML',
+            ];
+
+            $this->logger->info('Sending message to Telegram API', [
+                'request' => $data,
+            ]);
+
+            $response = Request::sendMessage($data);
+
+            $this->logger->info('Received response from Telegram API', [
+                'response' => [
+                    'ok' => $response->isOk(),
+                    'result' => $response->getResult(),
+                    'description' => $response->getDescription(),
+                    'error_code' => $response->getErrorCode(),
+                ],
+            ]);
+
+            if (!$response->isOk()) {
+                throw new \RuntimeException(sprintf('Failed to send message to Telegram API: %s (Error code: %d)', $response->getDescription() ?: 'Unknown error', $response->getErrorCode() ?: 0));
+            }
+        } catch (\Throwable $e) {
+            $this->logger->error('Error sending message to Telegram API: '.$e->getMessage(), [
+                'exception' => $e,
+                'request' => $data,
+            ]);
+        }
+    }
+
     /**
      * @param array{
      *     date: \DateTime,
@@ -39,14 +74,14 @@ class TransactionHandler
                 'date' => $data['date']->format('Y-m-d'),
             ]);
 
-            Request::sendMessage([
-                'chat_id' => $chatId,
-                'text' => sprintf(
+            $this->sendMessage(
+                $chatId,
+                sprintf(
                     'У вас нет таблицы за %s %d. Пожалуйста, добавьте её с помощью команды /add',
                     $this->getMonthName((int) $data['date']->format('m')),
                     (int) $data['date']->format('Y')
-                ),
-            ]);
+                )
+            );
 
             return;
         }
@@ -64,10 +99,7 @@ class TransactionHandler
                 'type' => $data['isIncome'] ? 'income' : 'expense',
             ]);
 
-            Request::sendMessage([
-                'chat_id' => $chatId,
-                'text' => 'Не удалось определить категорию',
-            ]);
+            $this->sendMessage($chatId, 'Не удалось определить категорию');
 
             return;
         }
@@ -99,10 +131,7 @@ class TransactionHandler
                 $category
             );
 
-            Request::sendMessage([
-                'chat_id' => $chatId,
-                'text' => 'Доход успешно добавлен',
-            ]);
+            $this->sendMessage($chatId, sprintf('Доход успешно добавлен в категорию "%s"', $category));
         } else {
             $this->logger->info('Adding expense', [
                 'chat_id' => $chatId,
@@ -121,10 +150,7 @@ class TransactionHandler
                 $category
             );
 
-            Request::sendMessage([
-                'chat_id' => $chatId,
-                'text' => 'Расход успешно добавлен',
-            ]);
+            $this->sendMessage($chatId, sprintf('Расход успешно добавлен в категорию "%s"', $category));
         }
     }
 

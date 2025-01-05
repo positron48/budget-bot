@@ -97,15 +97,33 @@ class RemoveCommandTest extends TestCase
     {
         $chatId = 123456;
 
-        $this->logger->expects($this->once())
+        $this->logger->expects($this->exactly(2))
             ->method('info')
-            ->with(
-                'Sending message to chat {chat_id}: {message}',
-                [
-                    'chat_id' => $chatId,
-                    'message' => 'Пожалуйста, начните с команды /start',
-                ]
-            );
+            ->willReturnCallback(function (string $message, array $context) use ($chatId) {
+                static $callNumber = 0;
+                ++$callNumber;
+
+                if (1 === $callNumber) {
+                    $this->assertEquals('Sending message to Telegram API', $message);
+                    $this->assertEquals([
+                        'request' => [
+                            'chat_id' => $chatId,
+                            'text' => 'Пожалуйста, начните с команды /start',
+                            'parse_mode' => 'HTML',
+                        ],
+                    ], $context);
+                } elseif (2 === $callNumber) {
+                    $this->assertEquals('Received response from Telegram API', $message);
+                    $this->assertEquals([
+                        'response' => [
+                            'ok' => true,
+                            'result' => null,
+                            'description' => null,
+                            'error_code' => null,
+                        ],
+                    ], $context);
+                }
+            });
 
         $this->command->execute($chatId, null, '/remove');
     }
@@ -120,15 +138,33 @@ class RemoveCommandTest extends TestCase
             ->with($user)
             ->willReturn([]);
 
-        $this->logger->expects($this->once())
+        $this->logger->expects($this->exactly(2))
             ->method('info')
-            ->with(
-                'Sending message to chat {chat_id}: {message}',
-                [
-                    'chat_id' => $chatId,
-                    'message' => 'У вас пока нет добавленных таблиц. Используйте команду /add чтобы добавить таблицу',
-                ]
-            );
+            ->willReturnCallback(function (string $message, array $context) use ($chatId) {
+                static $callNumber = 0;
+                ++$callNumber;
+
+                if (1 === $callNumber) {
+                    $this->assertEquals('Sending message to Telegram API', $message);
+                    $this->assertEquals([
+                        'request' => [
+                            'chat_id' => $chatId,
+                            'text' => 'У вас пока нет добавленных таблиц. Используйте команду /add чтобы добавить таблицу',
+                            'parse_mode' => 'HTML',
+                        ],
+                    ], $context);
+                } elseif (2 === $callNumber) {
+                    $this->assertEquals('Received response from Telegram API', $message);
+                    $this->assertEquals([
+                        'response' => [
+                            'ok' => true,
+                            'result' => null,
+                            'description' => null,
+                            'error_code' => null,
+                        ],
+                    ], $context);
+                }
+            });
 
         $this->command->execute($chatId, $user, '/remove');
     }
@@ -165,15 +201,41 @@ class RemoveCommandTest extends TestCase
                 true
             );
 
-        $this->logger->expects($this->once())
+        $this->logger->expects($this->exactly(2))
             ->method('info')
-            ->with(
-                'Sending message to chat {chat_id}: {message}',
-                [
-                    'chat_id' => $chatId,
-                    'message' => 'Выберите таблицу для удаления:',
-                ]
-            );
+            ->willReturnCallback(function (string $message, array $context) use ($chatId) {
+                static $callNumber = 0;
+                ++$callNumber;
+
+                if (1 === $callNumber) {
+                    $this->assertEquals('Sending message to Telegram API', $message);
+                    $this->assertEquals([
+                        'request' => [
+                            'chat_id' => $chatId,
+                            'text' => 'Выберите таблицу для удаления:',
+                            'parse_mode' => 'HTML',
+                            'reply_markup' => json_encode([
+                                'keyboard' => [
+                                    [['text' => 'Январь 2024']],
+                                    [['text' => 'Февраль 2024']],
+                                ],
+                                'resize_keyboard' => true,
+                                'one_time_keyboard' => true,
+                            ]),
+                        ],
+                    ], $context);
+                } elseif (2 === $callNumber) {
+                    $this->assertEquals('Received response from Telegram API', $message);
+                    $this->assertEquals([
+                        'response' => [
+                            'ok' => true,
+                            'result' => null,
+                            'description' => null,
+                            'error_code' => null,
+                        ],
+                    ], $context);
+                }
+            });
 
         $this->command->execute($chatId, $user, '/remove');
     }

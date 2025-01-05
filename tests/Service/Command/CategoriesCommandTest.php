@@ -92,15 +92,33 @@ class CategoriesCommandTest extends TestCase
     {
         $chatId = 123456;
 
-        $this->logger->expects($this->once())
+        $this->logger->expects($this->exactly(2))
             ->method('info')
-            ->with(
-                'Sending message to chat {chat_id}: {message}',
-                [
-                    'chat_id' => $chatId,
-                    'message' => 'Пожалуйста, начните с команды /start',
-                ]
-            );
+            ->willReturnCallback(function (string $message, array $context) use ($chatId) {
+                static $callNumber = 0;
+                ++$callNumber;
+
+                if (1 === $callNumber) {
+                    $this->assertEquals('Sending message to Telegram API', $message);
+                    $this->assertEquals([
+                        'request' => [
+                            'chat_id' => $chatId,
+                            'text' => 'Пожалуйста, начните с команды /start',
+                            'parse_mode' => 'HTML',
+                        ],
+                    ], $context);
+                } elseif (2 === $callNumber) {
+                    $this->assertEquals('Received response from Telegram API', $message);
+                    $this->assertEquals([
+                        'response' => [
+                            'ok' => true,
+                            'result' => null,
+                            'description' => null,
+                            'error_code' => null,
+                        ],
+                    ], $context);
+                }
+            });
 
         $this->command->execute($chatId, null, '/categories');
     }
@@ -120,15 +138,43 @@ class CategoriesCommandTest extends TestCase
                 true
             );
 
-        $this->logger->expects($this->once())
+        $this->logger->expects($this->exactly(2))
             ->method('info')
-            ->with(
-                'Sending message to chat {chat_id}: {message}',
-                [
-                    'chat_id' => $chatId,
-                    'message' => 'Выберите действие:',
-                ]
-            );
+            ->willReturnCallback(function (string $message, array $context) use ($chatId) {
+                static $callNumber = 0;
+                ++$callNumber;
+
+                if (1 === $callNumber) {
+                    $this->assertEquals('Sending message to Telegram API', $message);
+                    $this->assertEquals([
+                        'request' => [
+                            'chat_id' => $chatId,
+                            'text' => 'Выберите действие:',
+                            'parse_mode' => 'HTML',
+                            'reply_markup' => json_encode([
+                                'keyboard' => [
+                                    [['text' => 'Категории расходов']],
+                                    [['text' => 'Категории доходов']],
+                                    [['text' => 'Добавить категорию']],
+                                    [['text' => 'Удалить категорию']],
+                                ],
+                                'resize_keyboard' => true,
+                                'one_time_keyboard' => true,
+                            ]),
+                        ],
+                    ], $context);
+                } elseif (2 === $callNumber) {
+                    $this->assertEquals('Received response from Telegram API', $message);
+                    $this->assertEquals([
+                        'response' => [
+                            'ok' => true,
+                            'result' => null,
+                            'description' => null,
+                            'error_code' => null,
+                        ],
+                    ], $context);
+                }
+            });
 
         $this->command->execute($chatId, $user, '/categories');
     }

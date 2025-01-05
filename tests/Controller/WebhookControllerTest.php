@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Controller;
+namespace App\Tests\Controller;
 
 use App\Controller\WebhookController;
 use App\Service\TelegramBotService;
@@ -35,13 +35,30 @@ class WebhookControllerTest extends TestCase
                 'date' => time(),
                 'text' => '/start',
             ],
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
 
         if (false === $content) {
             throw new \RuntimeException('Failed to encode JSON');
         }
 
         $request = new Request([], [], [], [], [], ['CONTENT_TYPE' => 'application/json'], $content);
+
+        $this->logger->expects($this->exactly(2))
+            ->method('info')
+            ->willReturnCallback(function (string $message, array $context) use ($content) {
+                static $callNumber = 0;
+                ++$callNumber;
+
+                if (1 === $callNumber) {
+                    $this->assertEquals('Received webhook request', $message);
+                    $this->assertEquals([
+                        'content' => $content,
+                    ], $context);
+                } elseif (2 === $callNumber) {
+                    $this->assertEquals('Webhook request processed successfully', $message);
+                    $this->assertEquals([], $context);
+                }
+            });
 
         $response = $this->controller->webhook($request);
 
@@ -52,6 +69,16 @@ class WebhookControllerTest extends TestCase
     public function testHandleWebhookInvalidJson(): void
     {
         $request = new Request([], [], [], [], [], ['CONTENT_TYPE' => 'application/json'], 'invalid json');
+
+        $this->logger->expects($this->once())
+            ->method('error')
+            ->with(
+                'Failed to decode webhook request content',
+                [
+                    'content' => 'invalid json',
+                    'error' => 'Syntax error',
+                ]
+            );
 
         $response = $this->controller->webhook($request);
 

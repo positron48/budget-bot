@@ -118,14 +118,20 @@ class TelegramBotService
             if (null !== $data) {
                 $this->transactionHandler->handle($chatId, $user, $data);
             } else {
-                $this->sendMessage($chatId, 'Неверный формат сообщения. Используйте формат: "[дата] [+]сумма описание"');
+                $this->sendMessage(
+                    $chatId,
+                    'Неверный формат сообщения. Используйте формат: "[дата] [+]сумма описание"'
+                );
             }
         } catch (\Exception $e) {
             $this->logger->warning('Failed to parse message: '.$e->getMessage(), [
                 'chat_id' => $chatId,
                 'text' => $text,
             ]);
-            $this->sendMessage($chatId, 'Неверный формат сообщения. Используйте формат: "[дата] [+]сумма описание"');
+            $this->sendMessage(
+                $chatId,
+                'Неверный формат сообщения. Используйте формат: "[дата] [+]сумма описание"'
+            );
         }
     }
 
@@ -134,25 +140,57 @@ class TelegramBotService
      */
     private function sendMessage(int $chatId, string $text, ?array $keyboard = null): void
     {
-        $data = [
-            'chat_id' => $chatId,
-            'text' => $text,
-            'parse_mode' => 'HTML',
-        ];
+        try {
+            $data = [
+                'chat_id' => $chatId,
+                'text' => $text,
+                'parse_mode' => 'HTML',
+            ];
 
-        if ($keyboard) {
-            $data['reply_markup'] = json_encode([
-                'keyboard' => $keyboard,
-                'resize_keyboard' => true,
-                'one_time_keyboard' => true,
+            if ($keyboard) {
+                // Convert flat keyboard array to array of arrays (each inner array is a row)
+                $keyboardRows = array_map(
+                    static function (array $button) {
+                        return [$button];
+                    },
+                    $keyboard
+                );
+
+                $data['reply_markup'] = json_encode([
+                    'keyboard' => $keyboardRows,
+                    'resize_keyboard' => true,
+                    'one_time_keyboard' => true,
+                ]);
+
+                $this->logger->debug('Prepared keyboard for Telegram API', [
+                    'original' => $keyboard,
+                    'converted' => $keyboardRows,
+                ]);
+            }
+
+            $this->logger->info('Sending message to Telegram API', [
+                'request' => $data,
+            ]);
+
+            $response = Request::sendMessage($data);
+
+            $this->logger->info('Received response from Telegram API', [
+                'response' => [
+                    'ok' => $response->isOk(),
+                    'result' => $response->getResult(),
+                    'description' => $response->getDescription(),
+                    'error_code' => $response->getErrorCode(),
+                ],
+            ]);
+
+            if (!$response->isOk()) {
+                throw new \RuntimeException(sprintf('Failed to send message to Telegram API: %s (Error code: %d)', $response->getDescription() ?: 'Unknown error', $response->getErrorCode() ?: 0));
+            }
+        } catch (\Throwable $e) {
+            $this->logger->error('Error sending message to Telegram API: '.$e->getMessage(), [
+                'exception' => $e,
+                'request' => $data,
             ]);
         }
-
-        $this->logger->info('Sending message to chat {chat_id}: {message}', [
-            'chat_id' => $chatId,
-            'message' => $text,
-        ]);
-
-        Request::sendMessage($data);
     }
 }

@@ -22,22 +22,33 @@ class MessageParserService
         }
 
         $firstPart = $parts[0];
-        $remainingPart = $parts[1] ?? '';
+        $remainingPart = implode(' ', array_slice($parts, 1));
 
         // Try to parse the first part as a date
         $date = $this->parseDate($firstPart);
         if (null === $date) {
-            // If first part is not a date, assume it's today
+            // If first part is not a date, assume it's today and it's part of the amount
             $date = new \DateTime();
             $remainingPart = $text;
-        } else {
-            $remainingPart = trim(substr($text, strlen($firstPart)));
         }
 
         // Parse amount and description
         $remainingPart = str_replace(',', '.', trim($remainingPart));
+
+        // Try to parse amount and description
         if (!preg_match('/^([+]?\d+(?:\.\d+)?)\s+(.+)$/', $remainingPart, $matches)) {
-            return null;
+            // Try simpler format without decimal places
+            if (!preg_match('/^([+]?\d+)\s+(.+)$/', $remainingPart, $matches)) {
+                // Try parsing just the first part as amount
+                if (!preg_match('/^([+]?\d+)$/', $firstPart, $matches)) {
+                    return null;
+                }
+                $description = implode(' ', array_slice($parts, 1));
+            } else {
+                $description = $matches[2];
+            }
+        } else {
+            $description = $matches[2];
         }
 
         $amount = (float) $matches[1];
@@ -45,7 +56,7 @@ class MessageParserService
             return null;
         }
 
-        $description = trim($matches[2]);
+        $description = trim($description);
         $isIncome = str_starts_with($matches[1], '+');
 
         return [

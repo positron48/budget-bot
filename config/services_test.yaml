@@ -1,0 +1,29 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: true
+
+    App\Tests\:
+        resource: '../tests/*'
+        exclude:
+            - '../tests/bootstrap.php'
+            - '../tests/*/DataFixtures/'
+        autowire: false
+        autoconfigure: false
+
+    App\Service\TelegramBotService:
+        class: App\Tests\Mock\TestTelegramBotService
+        public: true
+        arguments:
+            $botToken: 'test_token'
+            $botUsername: 'test_bot'
+
+    App\Service\TransactionHandler:
+        class: App\Tests\Mock\TestTransactionHandler
+        public: true
+
+    App\Service\Google\GoogleSheetsClient:
+        arguments:
+            $credentialsPath: '%env(resolve:GOOGLE_CREDENTIALS_PATH)%'
+            $serviceAccountEmail: '%env(GOOGLE_SERVICE_ACCOUNT_EMAIL)%' 

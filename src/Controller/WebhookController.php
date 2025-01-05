@@ -4,50 +4,43 @@ namespace App\Controller;
 
 use App\Service\TelegramBotService;
 use Psr\Log\LoggerInterface;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
 
-class WebhookController extends AbstractController
+class WebhookController
 {
-    private TelegramBotService $botService;
+    private TelegramBotService $telegramBotService;
     private LoggerInterface $logger;
 
-    public function __construct(TelegramBotService $botService, LoggerInterface $logger)
+    public function __construct(TelegramBotService $telegramBotService, LoggerInterface $logger)
     {
-        $this->botService = $botService;
+        $this->telegramBotService = $telegramBotService;
         $this->logger = $logger;
     }
 
-    #[Route('/webhook', name: 'telegram_webhook', methods: ['POST'])]
     public function webhook(Request $request): Response
     {
+        $content = $request->getContent();
+
         $this->logger->info('Received webhook request', [
-            'content' => $request->getContent(),
-            'headers' => $request->headers->all(),
+            'content' => $content,
         ]);
 
-        $update = json_decode($request->getContent(), true);
+        $update = json_decode($content, true);
 
-        if (!$update) {
-            $this->logger->error('Invalid request: unable to decode JSON');
+        if (null === $update) {
+            $this->logger->error('Failed to decode webhook request content', [
+                'content' => $content,
+                'error' => json_last_error_msg(),
+            ]);
 
             return new Response('Invalid request', Response::HTTP_BAD_REQUEST);
         }
 
-        try {
-            $this->botService->handleUpdate($update);
-            $this->logger->info('Update processed successfully');
+        $this->telegramBotService->handleUpdate($update);
 
-            return new Response('OK');
-        } catch (\Exception $e) {
-            $this->logger->error('Error processing update: '.$e->getMessage(), [
-                'exception' => $e,
-                'update' => $update,
-            ]);
+        $this->logger->info('Webhook request processed successfully');
 
-            return new Response('Error processing update', Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
+        return new Response('OK');
     }
 }

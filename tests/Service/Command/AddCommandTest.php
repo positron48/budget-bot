@@ -92,15 +92,33 @@ class AddCommandTest extends TestCase
     {
         $chatId = 123456;
 
-        $this->logger->expects($this->once())
+        $this->logger->expects($this->exactly(2))
             ->method('info')
-            ->with(
-                'Sending message to chat {chat_id}: {message}',
-                [
-                    'chat_id' => $chatId,
-                    'message' => 'Пожалуйста, начните с команды /start',
-                ]
-            );
+            ->willReturnCallback(function (string $message, array $context) use ($chatId) {
+                static $callNumber = 0;
+                ++$callNumber;
+
+                if (1 === $callNumber) {
+                    $this->assertEquals('Sending message to Telegram API', $message);
+                    $this->assertEquals([
+                        'request' => [
+                            'chat_id' => $chatId,
+                            'text' => 'Пожалуйста, начните с команды /start',
+                            'parse_mode' => 'HTML',
+                        ],
+                    ], $context);
+                } elseif (2 === $callNumber) {
+                    $this->assertEquals('Received response from Telegram API', $message);
+                    $this->assertEquals([
+                        'response' => [
+                            'ok' => true,
+                            'result' => null,
+                            'description' => null,
+                            'error_code' => null,
+                        ],
+                    ], $context);
+                }
+            });
 
         $this->command->execute($chatId, null, '/add');
     }
@@ -120,17 +138,35 @@ class AddCommandTest extends TestCase
                 true
             );
 
-        $this->logger->expects($this->once())
+        $this->logger->expects($this->exactly(2))
             ->method('info')
-            ->with(
-                'Sending message to chat {chat_id}: {message}',
-                [
-                    'chat_id' => $chatId,
-                    'message' => 'Отправьте ссылку на таблицу или её идентификатор. '.
-                        'Таблица должна быть создана на основе шаблона: '.
-                        'https://docs.google.com/spreadsheets/d/1-BxqnQqyBPjyuRxMSrwQ2FDDxR-sQGQs_EZbZEn_Xzc',
-                ]
-            );
+            ->willReturnCallback(function (string $message, array $context) use ($chatId) {
+                static $callNumber = 0;
+                ++$callNumber;
+
+                if (1 === $callNumber) {
+                    $this->assertEquals('Sending message to Telegram API', $message);
+                    $this->assertEquals([
+                        'request' => [
+                            'chat_id' => $chatId,
+                            'text' => 'Отправьте ссылку на таблицу или её идентификатор. '.
+                                'Таблица должна быть создана на основе шаблона: '.
+                                'https://docs.google.com/spreadsheets/d/1-BxqnQqyBPjyuRxMSrwQ2FDDxR-sQGQs_EZbZEn_Xzc',
+                            'parse_mode' => 'HTML',
+                        ],
+                    ], $context);
+                } elseif (2 === $callNumber) {
+                    $this->assertEquals('Received response from Telegram API', $message);
+                    $this->assertEquals([
+                        'response' => [
+                            'ok' => true,
+                            'result' => null,
+                            'description' => null,
+                            'error_code' => null,
+                        ],
+                    ], $context);
+                }
+            });
 
         $this->command->execute($chatId, $user, '/add');
     }
