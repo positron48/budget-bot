@@ -519,7 +519,8 @@ Run timkrase/phpunit-coverage-badge@v1.2.1
 
 ---
 
-для фикса кодстайла просто запускай make cs-fix, можешь делать это всегда перед запуском ci
+для фикса кодстайла просто запускай make cs-fix, можешь делать это всегда перед запуском ci [refactor: extract AddCommand and ListCommand from TelegramBotService](https://github.com/positron48/budget-bot/commit/c1ba6500f7440b5efdf26d3c40f68e0c9a0d63ee)
 
 ---
 
+не хватает команд /remove и /categories
