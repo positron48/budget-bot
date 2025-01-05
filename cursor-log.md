@@ -415,4 +415,103 @@ Spreadsheet for this month and year already exists
 
 ---
 
-Закоммить и запушь все изменения, комментарий "добавление и удаление связей с таблицами, логи и ci"
+Закоммить и запушь все изменения, комментарий "добавление и удаление связей с таблицами, логи и ci" [добавление и удаление связей с таблицами, логи и ci](https://github.com/positron48/budget-bot/commit/29d7c9b2ec0418d0427518cda887ccf35d6fd830)
+
+---
+
+Давай добавим сбор покрытия тестами через pcov, сразу учтем его в CI (github) и добавим соответствующий значок в readme
+
+---
+
+pdo_mysql не нужен, у нас sqllite, также не коммить и не пушь изменения без дополнительной команды
+
+---
+
+проверь ci и факт того, что покрытие считается
+
+---
+
+закоммить и запушь изменения [coverage](https://github.com/positron48/budget-bot/commit/2dfcf074ea567c128ef00cdc67e3d9edcb85ef9c)
+
+---
+
+(**закончился лимит на длину контекста (conversation is too long), создал новый чат**)
+
+возьми за основу для github actions ci.yml, убери tests.yml. Выведи все значки в readme, не только coverage. Если возможно - покрытие считай через сам github, не codecov
+
+---
+
+закоммить и запушь все изменения [fix: update test results format and add coverage badge](https://github.com/positron48/budget-bot/commit/d04f2c1c9b66790485168f5718a93a1dddbb2f1e)
+
+---
+
+github-actions
+/ Test Results with Coverage
+Error processing result file
+
+Unsupported file format: build/logs/clover.xml
+
+[fix: add correct path for coverage report](https://github.com/positron48/budget-bot/commit/275b078099124cb3737e6fdd0feb61865c66a560)
+
+---
+
+Run timkrase/phpunit-coverage-badge@v1.2.1
+
+[15](https://github.com/positron48/budget-bot/actions/runs/12613328040/job/35151057337#step:15:16)/usr/bin/docker run --name ghcriotimkrasephpunitcoveragebadgev121_6e087a --label 9a5ab7 --workdir /github/workspace --rm -e "COMPOSER_PROCESS_TIMEOUT" -e "COMPOSER_NO_INTERACTION" -e "COMPOSER_NO_AUDIT" -e "INPUT_COVERAGE_BADGE_PATH" -e "INPUT_PUSH_BADGE" -e "INPUT_REPO_TOKEN" -e "INPUT_REPORT" -e "INPUT_REPORT_TYPE" -e "INPUT_COMMIT_MESSAGE" -e "INPUT_COMMIT_EMAIL" -e "INPUT_COMMIT_NAME" -e "HOME" -e "GITHUB_JOB" -e "GITHUB_REF" -e "GITHUB_SHA" -e "GITHUB_REPOSITORY" -e "GITHUB_REPOSITORY_OWNER" -e "GITHUB_REPOSITORY_OWNER_ID" -e "GITHUB_RUN_ID" -e "GITHUB_RUN_NUMBER" -e "GITHUB_RETENTION_DAYS" -e "GITHUB_RUN_ATTEMPT" -e "GITHUB_REPOSITORY_ID" -e "GITHUB_ACTOR_ID" -e "GITHUB_ACTOR" -e "GITHUB_TRIGGERING_ACTOR" -e "GITHUB_WORKFLOW" -e "GITHUB_HEAD_REF" -e "GITHUB_BASE_REF" -e "GITHUB_EVENT_NAME" -e "GITHUB_SERVER_URL" -e "GITHUB_API_URL" -e "GITHUB_GRAPHQL_URL" -e "GITHUB_REF_NAME" -e "GITHUB_REF_PROTECTED" -e "GITHUB_REF_TYPE" -e "GITHUB_WORKFLOW_REF" -e "GITHUB_WORKFLOW_SHA" -e "GITHUB_WORKSPACE"
+
+[17](https://github.com/positron48/budget-bot/actions/runs/12613328040/job/35151057337#step:15:18)Fatal error: Uncaught Assert\InvalidArgumentException: File "/github/workspace/clover.xml" was expected to exist. in /srv/vendor/beberlei/assert/lib/Assert/Assertion.php:2725
+
+[18](https://github.com/positron48/budget-bot/actions/runs/12613328040/job/35151057337#step:15:19)Stack trace:
+
+[19](https://github.com/positron48/budget-bot/actions/runs/12613328040/job/35151057337#step:15:20)#0 /srv/vendor/beberlei/assert/lib/Assert/Assertion.php(1604): Assert\Assertion::createException('/github/workspa...', 'File "/github/w...', 102, NULL)
+
+[20](https://github.com/positron48/budget-bot/actions/runs/12613328040/job/35151057337#step:15:21)#1 /srv/src/Config.php(32): Assert\Assertion::file('/github/workspa...') 
+
+[Update code coverage badge](https://github.com/positron48/budget-bot/commit/4b0375cd2d8dd1aa0bae7fcdd35490f8e98d0e9d)
+
+---
+
+допиши тест для основного кейса - новый пользователь /start, добавление таблицы через /add, указание её месяца, добавление записи, текущие тесты переписывать не нужно
+
+---
+
+проверь ci - make cs-fix && make ci
+
+---
+
+сделай вывод покрытия кода тестами на экран при проверке ci
+
+---
+
+удали App\Service\MessageParser, он не используется
+
+---
+
+закоммить и запушь изменения [Update code coverage badge](https://github.com/positron48/budget-bot/commit/1aadd10bcf185c807cbd732a24e16602bd66a657)
+
+---
+
+Руководствуясь принципами SOLID, DRY, KISS, YAGNI проведи рефакторинг TelegramBotService [refactor: apply SOLID principles to TelegramBotService](https://github.com/positron48/budget-bot/commit/ea5df6731e815e747e1a45fd130dd5f13452d174)
+
+---
+
+теперь проверь ci, запуская перед ним всегда фикс стиля - make cs-fix && make ci
+
+---
+
+закоммить изменения [refactor: improve TelegramBotService and tests](https://github.com/positron48/budget-bot/commit/823222b550b89c64a75fd7f283dcab153f722558)
+
+---
+
+отрефакторь по аналогии остальной код приложения, проверь CI и закоммить изменения. Перед коммитом подтяни сначала правки из удаленного репозитория
+
+---
+
+продолжай
+
+---
+
+закоммить все изменения, предварительно подтянув ветку из репозитория
+
+---
+
