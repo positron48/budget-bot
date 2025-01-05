@@ -9,9 +9,16 @@ RUN apt-get update && apt-get install -y \
     pdo_sqlite \
     intl \
     && pecl install pcov \
+    && git clone https://github.com/runkit7/runkit7.git \
+    && cd runkit7 \
+    && phpize \
+    && ./configure \
+    && make \
+    && make install \
     && docker-php-ext-enable \
     pdo_sqlite \
-    pcov
+    pcov \
+    runkit7
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser \

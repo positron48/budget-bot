@@ -7,7 +7,8 @@ parameters:
         - tests/bootstrap.php
     symfony:
         container_xml_path: var/cache/dev/App_KernelDevDebugContainer.xml
-    checkGenericClassInNonGenericObjectType: false
+    ignoreErrors:
+        - identifier: missingType.generics
 
 includes:
     - vendor/phpstan/phpstan-symfony/extension.neon

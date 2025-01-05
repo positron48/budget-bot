@@ -523,4 +523,35 @@ Run timkrase/phpunit-coverage-badge@v1.2.1
 
 ---
 
-не хватает команд /remove и /categories
+не хватает команд /remove и /categories [feat: add RemoveCommand and CategoriesCommand](https://github.com/positron48/budget-bot/commit/0a301c447cb1a4ae55c32f77c867c18d00cd5c9e)
+
+---
+
+почему так много тестов скипаются при прогоне?
+
+---
+
+доставь это расширение в докер
+
+---
+
+проверь теперь ci, запускай make cs-fix перед запуском
+
+---
+
+а можешь починить deprecation notices?
+
+---
+
+исправляй дальше x2 (**завис, пришлось создать новый чат composer**)
+
+---
+
+Проверь CI (make cs-fix && make ci), исправь deprecation notice в тестах (те, что не зависят от vendor)
+
+---
+
+закоммить и запушь изменения, предварительно подтянув из репозитория
+
+---
+
