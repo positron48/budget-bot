@@ -40,19 +40,47 @@ class CategoryService
             $defaultCategories
         );
 
-        return array_merge($userCategoryNames, $defaultCategoryNames);
+        $categories = array_merge($userCategoryNames, $defaultCategoryNames);
+        sort($categories);
+
+        return $categories;
     }
 
     public function detectCategory(string $description, string $type, User $user): ?string
     {
         $isIncome = 'income' === $type;
         $type = $isIncome ? 'income' : 'expense';
+        $description = mb_strtolower($description);
 
+        // First try exact match with full description
+        $category = $this->findCategoryByKeyword($description, $type, $user);
+        if ($category) {
+            return $category;
+        }
+
+        // Then try matching individual words
+        $words = preg_split('/\s+/', $description);
+        if (!is_array($words)) {
+            return null;
+        }
+
+        foreach ($words as $word) {
+            $category = $this->findCategoryByKeyword($word, $type, $user);
+            if ($category) {
+                return $category;
+            }
+        }
+
+        return null;
+    }
+
+    private function findCategoryByKeyword(string $keyword, string $type, User $user): ?string
+    {
         // Check user-specific categories first
         $userCategories = $this->userCategoryRepository->findByUserAndType($user, $type);
         foreach ($userCategories as $category) {
-            foreach ($category->getKeywords() as $keyword) {
-                if (str_contains(mb_strtolower($description), mb_strtolower($keyword->getKeyword()))) {
+            foreach ($category->getKeywords() as $categoryKeyword) {
+                if (mb_strtolower($keyword) === mb_strtolower($categoryKeyword->getKeyword() ?? '')) {
                     return $category->getName();
                 }
             }
@@ -61,14 +89,48 @@ class CategoryService
         // Check default categories
         $defaultCategories = $this->categoryRepository->findByType($type);
         foreach ($defaultCategories as $category) {
-            foreach ($category->getKeywords() as $keyword) {
-                if (str_contains(mb_strtolower($description), mb_strtolower($keyword->getKeyword()))) {
+            foreach ($category->getKeywords() as $categoryKeyword) {
+                if (mb_strtolower($keyword) === mb_strtolower($categoryKeyword->getKeyword() ?? '')) {
                     return $category->getName();
                 }
             }
         }
 
         return null;
+    }
+
+    public function addKeywordToCategory(string $keyword, string $categoryName, string $type, User $user): void
+    {
+        // Try to find user category first
+        $userCategory = $this->userCategoryRepository->findOneBy([
+            'user' => $user,
+            'name' => $categoryName,
+            'type' => $type,
+        ]);
+
+        if ($userCategory) {
+            $this->addKeywordsToCategory([$keyword], $userCategory);
+
+            return;
+        }
+
+        // Try to find default category
+        $defaultCategory = $this->categoryRepository->findOneBy([
+            'name' => $categoryName,
+            'type' => $type,
+            'isDefault' => true,
+        ]);
+
+        if ($defaultCategory) {
+            // If found default category, create a user category with the same name
+            $userCategory = new UserCategory();
+            $userCategory->setUser($user)
+                ->setName($categoryName)
+                ->setType($type);
+
+            $this->userCategoryRepository->save($userCategory, true);
+            $this->addKeywordsToCategory([$keyword], $userCategory);
+        }
     }
 
     /**
