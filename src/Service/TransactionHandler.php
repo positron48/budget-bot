@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\User;
+use App\Repository\UserRepository;
 use Longman\TelegramBot\Request;
 use Psr\Log\LoggerInterface;
 
@@ -11,18 +12,24 @@ class TransactionHandler
     private GoogleSheetsService $sheetsService;
     private CategoryService $categoryService;
     private LoggerInterface $logger;
+    private UserRepository $userRepository;
 
     public function __construct(
         GoogleSheetsService $sheetsService,
         CategoryService $categoryService,
         LoggerInterface $logger,
+        UserRepository $userRepository,
     ) {
         $this->sheetsService = $sheetsService;
         $this->categoryService = $categoryService;
         $this->logger = $logger;
+        $this->userRepository = $userRepository;
     }
 
-    private function sendMessage(int $chatId, string $text): void
+    /**
+     * @param array<string>|null $keyboard
+     */
+    private function sendMessage(int $chatId, string $text, ?array $keyboard = null): void
     {
         try {
             $data = [
@@ -30,6 +37,17 @@ class TransactionHandler
                 'text' => $text,
                 'parse_mode' => 'HTML',
             ];
+
+            if (null !== $keyboard) {
+                $data['reply_markup'] = [
+                    'keyboard' => array_map(
+                        static fn (string $button): array => [['text' => $button]],
+                        $keyboard
+                    ),
+                    'one_time_keyboard' => true,
+                    'resize_keyboard' => true,
+                ];
+            }
 
             $this->logger->info('Sending message to Telegram API', [
                 'request' => $data,
@@ -99,8 +117,44 @@ class TransactionHandler
                 'type' => $data['isIncome'] ? 'income' : 'expense',
             ]);
 
-            $this->sendMessage($chatId, 'Не удалось определить категорию');
+            // Get available categories
+            $categories = $this->categoryService->getCategories($data['isIncome'], $user);
 
+            // Store transaction data in user's temp data and set state
+            $user->setTempData([
+                'pending_transaction' => $data,
+            ]);
+            $user->setState('WAITING_CATEGORY_SELECTION');
+            $this->userRepository->save($user, true);
+
+            // Show categories list
+            $this->sendMessage(
+                $chatId,
+                sprintf(
+                    'Не удалось определить категорию для "%s". Выберите категорию из списка или добавьте сопоставление:',
+                    $data['description']
+                ),
+                array_merge($categories, ['Добавить сопоставление'])
+            );
+
+            return;
+        }
+
+        $this->addTransaction($chatId, $user, $data, $category);
+    }
+
+    /**
+     * @param array{
+     *     date: \DateTime,
+     *     amount: float,
+     *     description: string,
+     *     isIncome: bool
+     * } $data
+     */
+    public function addTransaction(int $chatId, User $user, array $data, string $category): void
+    {
+        $spreadsheet = $this->sheetsService->findSpreadsheetByDate($user, $data['date']);
+        if (!$spreadsheet) {
             return;
         }
 

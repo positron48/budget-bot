@@ -107,9 +107,10 @@ class TelegramBotService
     {
         $state = $user->getState();
         if ($state) {
-            $this->stateHandlerRegistry->handleState($chatId, $user, $text);
-
-            return;
+            $handled = $this->stateHandlerRegistry->handleState($chatId, $user, $text);
+            if ($handled) {
+                return;
+            }
         }
 
         // Try to parse as a transaction

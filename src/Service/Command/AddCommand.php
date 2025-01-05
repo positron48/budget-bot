@@ -20,7 +20,7 @@ class AddCommand extends AbstractCommand
         return '/add';
     }
 
-    public function execute(int $chatId, ?User $user, string $message): void
+    protected function handleCommand(int $chatId, ?User $user, string $message): void
     {
         if (!$user) {
             $this->sendMessage($chatId, 'Пожалуйста, начните с команды /start');
@@ -28,8 +28,7 @@ class AddCommand extends AbstractCommand
             return;
         }
 
-        $user->setState('WAITING_SPREADSHEET_ID');
-        $this->userRepository->save($user, true);
+        $this->setState($user, 'WAITING_SPREADSHEET_ID');
 
         $this->sendMessage(
             $chatId,

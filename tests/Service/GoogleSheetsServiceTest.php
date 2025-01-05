@@ -114,10 +114,14 @@ class GoogleSheetsServiceTest extends TestCase
         $category = 'Test category';
 
         $this->client->expects($this->once())
+            ->method('getValues')
+            ->willReturn([]);
+
+        $this->client->expects($this->once())
             ->method('updateValues')
             ->with(
                 $spreadsheetId,
-                'Транзакции!B:E',
+                'Транзакции!B5:E5',
                 [[$date, $amount, $description, $category]]
             );
 
@@ -133,10 +137,14 @@ class GoogleSheetsServiceTest extends TestCase
         $category = 'Salary';
 
         $this->client->expects($this->once())
+            ->method('getValues')
+            ->willReturn([]);
+
+        $this->client->expects($this->once())
             ->method('updateValues')
             ->with(
                 $spreadsheetId,
-                'Транзакции!G:J',
+                'Транзакции!G5:J5',
                 [[$date, $amount, $description, $category]]
             );
 

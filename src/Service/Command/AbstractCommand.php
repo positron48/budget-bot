@@ -2,6 +2,7 @@
 
 namespace App\Service\Command;
 
+use App\Entity\User;
 use App\Repository\UserRepository;
 use Longman\TelegramBot\Request;
 use Psr\Log\LoggerInterface;
@@ -82,5 +83,27 @@ abstract class AbstractCommand implements CommandInterface
     public function supports(string $command): bool
     {
         return $command === $this->getName();
+    }
+
+    public function execute(int $chatId, ?User $user, string $message): void
+    {
+        if ($user) {
+            $user->setState('');
+            $user->setTempData([]);
+        }
+        $this->handleCommand($chatId, $user, $message);
+        if ($user && '' === $user->getState()) {
+            $this->userRepository->save($user, true);
+        }
+    }
+
+    abstract protected function handleCommand(int $chatId, ?User $user, string $message): void;
+
+    protected function setState(?User $user, string $state): void
+    {
+        if ($user) {
+            $user->setState($state);
+            $this->userRepository->save($user, true);
+        }
     }
 }

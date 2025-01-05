@@ -25,7 +25,7 @@ class ListCommand extends AbstractCommand
         return '/list';
     }
 
-    public function execute(int $chatId, ?User $user, string $message): void
+    protected function handleCommand(int $chatId, ?User $user, string $message): void
     {
         if (!$user) {
             $this->sendMessage($chatId, 'Пожалуйста, начните с команды /start');

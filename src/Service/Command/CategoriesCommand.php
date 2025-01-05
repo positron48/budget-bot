@@ -20,7 +20,7 @@ class CategoriesCommand extends AbstractCommand
         return '/categories';
     }
 
-    public function execute(int $chatId, ?User $user, string $message): void
+    protected function handleCommand(int $chatId, ?User $user, string $message): void
     {
         if (!$user) {
             $this->sendMessage($chatId, 'Пожалуйста, начните с команды /start');
@@ -35,8 +35,7 @@ class CategoriesCommand extends AbstractCommand
             ['text' => 'Удалить категорию'],
         ];
 
-        $user->setState('WAITING_CATEGORIES_ACTION');
-        $this->userRepository->save($user, true);
+        $this->setState($user, 'WAITING_CATEGORIES_ACTION');
 
         $this->sendMessage(
             $chatId,

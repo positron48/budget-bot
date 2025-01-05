@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: UserCategoryRepository::class)]
+#[ORM\UniqueConstraint(name: 'UNIQ_E9B0D9895E237E06979B1AD6A76ED395', columns: ['name', 'type', 'user_id'])]
 class UserCategory
 {
     #[ORM\Id]

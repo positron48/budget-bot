@@ -718,7 +718,94 @@ WAITING_CATEGORY_NAME и WAITING_CATEGORY_TO_DELETE все еще не покр�
 
 ---
 
-актуализируй ветку, закоммить и запушь изменения    
+актуализируй ветку, закоммить и запушь изменения [feat: add map command for category mappings](https://github.com/positron48/budget-bot/commit/4d41706ee2a9c4505ee5895bb8ece1bf01767052)
+
+---
+
+если "не удалось определить категорию" при добавлении расхода -  предлагай добавить сопоставление сразу, после добавления сопоставления продолжай добавление расхода
+
+---
+
+после указания категории при добавлении расхода появляется ошибка "Неверный формат сообщения. Используйте формат: "[дата] [+]сумма описание""
+
+---
+
+судя по логам не устанавливается state, когда мы выбираем категорию для добавляемого расхода
+
+---
+
+теперь после 
+[2025-01-05T16:44:16.404695+00:00] app.INFO: Handling state {"chat_id":273894269,"state":"WAITING_CATEGORY_SELECTION","message":"Питание"} []
+
+[2025-01-05T16:44:49.139897+00:00] request.CRITICAL: Uncaught PHP Exception TypeError: "App\Service\GoogleSheetsService::findSpreadsheetByDate(): Argument #2 ($date) must be of type DateTime, array given, called in /var/www/budget-bot/src/Service/TransactionHandler.php on line 156" at /var/www/budget-bot/src/Service/GoogleSheetsService.php line 59 {"exception":"[object] (TypeError(code: 0): App\\Service\\GoogleSheetsService::findSpreadsheetByDate(): Argument #2 ($date) must be of type DateTime, array given, called in /var/www/budget-bot/src/Service/TransactionHandler.php on line 156 at /var/www/budget-bot/src/Service/GoogleSheetsService.php:59)"} []
+
+---
+
+[2025-01-05T16:48:55.367598+00:00] request.CRITICAL: Uncaught PHP Exception TypeError: "App\Service\GoogleSheetsService::findSpreadsheetByDate(): Argument #2 ($date) must be of type DateTime, array given, called in /var/www/budget-bot/src/Service/TransactionHandler.php on line 156" at /var/www/budget-bot/src/Service/GoogleSheetsService.php line 59 {"exception":"[object] (TypeError(code: 0): App\\Service\\GoogleSheetsService::findSpreadsheetByDate(): Argument #2 ($date) must be of type DateTime, array given, called in /var/www/budget-bot/src/Service/TransactionHandler.php on line 156 at /var/www/budget-bot/src/Service/GoogleSheetsService.php:59)"} [] x2
+
+---
+
+[2025-01-05T16:54:54.536493+00:00] request.CRITICAL: Uncaught PHP Exception TypeError: "DateTime::__construct(): Argument #1 ($datetime) must be of type string, array given" at /var/www/budget-bot/src/Service/StateHandler/CategoryStateHandler.php line 107 {"exception":"[object] (TypeError(code: 0): DateTime::__construct(): Argument #1 ($datetime) must be of type string, array given at /var/www/budget-bot/src/Service/StateHandler/CategoryStateHandler.php:107)"} []
+
+---
+
+первая строка для добавления записей - 5, нужно записывать данные в первую пустую строку начиная с 5, отдельно для расходов, отдельно для доходов
+
+---
+
+любая команда должна сбрасывать state либо на свой, если он нужен, либо на пустой (например, /start)
+
+---
+
+При выполнении /start все еще сохранился прежний state
+
+---
+
+Проблема не в тестах, в сервисах нужно тоже сбрасывать state
+
+---
+
+Anton Filatov, [05.01.2025 20:16]
+Добавить категорию
+
+BudgetBot, [05.01.2025 20:16]
+Выберите тип категории:
+
+Anton Filatov, [05.01.2025 20:16]
+Категория расходов
+
+BudgetBot, [05.01.2025 20:16]
+Введите название категории:
+
+Anton Filatov, [05.01.2025 20:16]
+Хобби
+
+BudgetBot, [05.01.2025 20:16]
+Пожалуйста, выберите тип категории
+
+категория должна была добавиться, последнее сообщение неверно
+
+---
+
+в /categories дублируются категории, сделай список уникальным
+
+---
+
+При указании категории при добавлении расхода нужно:
+1. Выводить уникальные категории
+2. Сохранять соответствие описание => выбранная категорий в маппинге
+
+---
+
+дублей категорий не должно существовать в принципе - на уровне БД тоже, проверь что это так, если нет - нужно поправить и написать миграцию, которая почистит дубли категорий
+
+---
+
+в списке категорий, доступной для указания при добавлении расхода все еще выводятся дубли
+
+---
+
+актуализируй ветку, закоммить все изменения и запушь 
 
 ---
 

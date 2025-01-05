@@ -11,7 +11,7 @@ class StartCommand extends AbstractCommand
         return '/start';
     }
 
-    public function execute(int $chatId, ?User $user, string $message): void
+    protected function handleCommand(int $chatId, ?User $user, string $message): void
     {
         if (!$user) {
             $user = new User();

@@ -31,7 +31,7 @@ class MapCommand extends AbstractCommand
         return str_starts_with($message, $this->getName());
     }
 
-    public function execute(int $chatId, ?User $user, string $message): void
+    protected function handleCommand(int $chatId, ?User $user, string $message): void
     {
         if (!$user) {
             $this->sendMessage($chatId, 'Пожалуйста, начните с команды /start');

@@ -33,17 +33,20 @@ class CategoryService
             $userCategories
         );
 
-        // Get default categories
+        // Get default categories that don't have user-specific overrides
         $defaultCategories = $this->categoryRepository->findByType($type);
         $defaultCategoryNames = array_map(
             static fn (Category $category): string => $category->getName() ?? '',
-            $defaultCategories
+            array_filter(
+                $defaultCategories,
+                static fn (Category $category): bool => !in_array($category->getName(), $userCategoryNames, true)
+            )
         );
 
         $categories = array_merge($userCategoryNames, $defaultCategoryNames);
         sort($categories);
 
-        return $categories;
+        return array_values(array_unique($categories));
     }
 
     public function detectCategory(string $description, string $type, User $user): ?string
