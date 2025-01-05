@@ -654,7 +654,11 @@ github actions пропускает многие тесты из-за отсут
 
 ---
 
-исключи из гита и удали кеш phpunit
+исключи из гита и удали кеш phpunit [chore: ignore phpunit cache](https://github.com/positron48/budget-bot/commit/edfa41646106bd813f996f40f74be75150793bca)
+
+---
+
+[2025-01-05T15:18:00.364372+00:00] request.ERROR: Uncaught PHP Exception Symfony\Component\HttpKernel\Exception\NotFoundHttpException: "No route found for "POST http://bot.positroid.tech/webhook"" at /var/www/budget-bot/vendor/symfony/http-kernel/EventListener/RouterListener.php line 127 {"exception":"[object] (Symfony\\Component\\HttpKernel\\Exception\\NotFoundHttpException(code: 0): No route found for \"POST http://bot.positroid.tech/webhook\" at /var/www/budget-bot/vendor/symfony/http-kernel/EventListener/RouterListener.php:127)\n[previous exception] [object] (Symfony\\Component\\Routing\\Exception\\ResourceNotFoundException(code: 0): No routes found for \"/webhook\". at /var/www/budget-bot/vendor/symfony/routing/Matcher/Dumper/CompiledUrlMatcherTrait.php:74)"} []
 
 ---
 

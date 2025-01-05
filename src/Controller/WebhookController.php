@@ -4,10 +4,14 @@ namespace App\Controller;
 
 use App\Service\TelegramBotService;
 use Psr\Log\LoggerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\AsController;
+use Symfony\Component\Routing\Annotation\Route;
 
-class WebhookController
+#[AsController]
+class WebhookController extends AbstractController
 {
     private TelegramBotService $telegramBotService;
     private LoggerInterface $logger;
@@ -18,6 +22,7 @@ class WebhookController
         $this->logger = $logger;
     }
 
+    #[Route('/webhook', name: 'webhook', methods: ['POST'])]
     public function webhook(Request $request): Response
     {
         $content = $request->getContent();
