@@ -36,4 +36,4 @@ class CommandRegistry
     {
         $command->execute($chatId, $user, $message);
     }
-} 
+}

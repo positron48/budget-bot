@@ -1,14 +1,17 @@
 <?php
 
-namespace Tests\Service;
+namespace App\Tests\Service;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
-use App\Service\CategoryService;
-use App\Service\GoogleSheetsService;
+use App\Service\CommandRegistry;
 use App\Service\MessageParserService;
+use App\Service\StateHandler\StateHandlerRegistry;
 use App\Service\TelegramBotService;
+use App\Service\TransactionHandler;
+use Longman\TelegramBot\Entities\ServerResponse;
 use Longman\TelegramBot\Request;
+use Longman\TelegramBot\Telegram;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -20,48 +23,47 @@ use Psr\Log\LoggerInterface;
  */
 class TelegramBotServiceTest extends TestCase
 {
-    /** @var UserRepository&MockObject */
-    private UserRepository $userRepository;
+    private const BOT_TOKEN = 'test_token';
+    private const BOT_USERNAME = 'test_bot';
+    private const CHAT_ID = 123456;
 
-    /** @var GoogleSheetsService&MockObject */
-    private GoogleSheetsService $sheetsService;
-
-    /** @var MessageParserService&MockObject */
-    private MessageParserService $messageParser;
-
-    /** @var CategoryService&MockObject */
-    private CategoryService $categoryService;
-
-    /** @var LoggerInterface&MockObject */
-    private LoggerInterface $logger;
-
-    private TelegramBotService $telegramBotService;
+    private TelegramBotService $service;
+    private MockObject&UserRepository $userRepository;
+    private MockObject&CommandRegistry $commandRegistry;
+    private MockObject&StateHandlerRegistry $stateHandlerRegistry;
+    private MockObject&TransactionHandler $transactionHandler;
+    private MockObject&MessageParserService $messageParser;
+    private MockObject&LoggerInterface $logger;
 
     protected function setUp(): void
     {
+        parent::setUp();
+
         $this->userRepository = $this->createMock(UserRepository::class);
-        $this->sheetsService = $this->createMock(GoogleSheetsService::class);
+        $this->commandRegistry = $this->createMock(CommandRegistry::class);
+        $this->stateHandlerRegistry = $this->createMock(StateHandlerRegistry::class);
+        $this->transactionHandler = $this->createMock(TransactionHandler::class);
         $this->messageParser = $this->createMock(MessageParserService::class);
-        $this->categoryService = $this->createMock(CategoryService::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
         // Mock Telegram API
-        $this->createMockForTelegramRequest();
+        $this->mockTelegramApi();
 
-        $this->telegramBotService = new TelegramBotService(
-            'test_token',
-            'test_username',
-            $this->sheetsService,
-            $this->messageParser,
+        $this->service = new TelegramBotService(
+            self::BOT_TOKEN,
+            self::BOT_USERNAME,
             $this->userRepository,
-            $this->categoryService,
+            $this->commandRegistry,
+            $this->stateHandlerRegistry,
+            $this->transactionHandler,
+            $this->messageParser,
             $this->logger
         );
     }
 
-    private function createMockForTelegramRequest(): void
+    private function mockTelegramApi(): void
     {
-        $serverResponse = $this->createMock(\Longman\TelegramBot\Entities\ServerResponse::class);
+        $serverResponse = $this->createMock(ServerResponse::class);
         $serverResponse->method('isOk')->willReturn(true);
 
         $requestMock = $this->getMockBuilder(Request::class)
@@ -98,215 +100,92 @@ class TelegramBotServiceTest extends TestCase
         );
     }
 
-    public function testHandleRemoveCommand(): void
+    public function testHandleUpdateWithoutMessage(): void
     {
-        $user = new User();
-        $user->setTelegramId(123);
+        $update = ['update_id' => 1];
 
-        $this->userRepository->expects($this->once())
-            ->method('findByTelegramId')
-            ->with(123)
-            ->willReturn($user);
-
-        $this->sheetsService->expects($this->once())
-            ->method('removeSpreadsheet')
-            ->with($user, 'Январь', 2024);
-
-        $this->logger->expects($this->once())
+        $this->logger->expects($this->exactly(2))
             ->method('info')
-            ->with('Sending message to chat {chat_id}: {message}', [
-                'chat_id' => 123,
-                'message' => 'Таблица за Январь 2024 успешно удалена',
-            ]);
+            ->willReturnCallback(function (string $message, array $context = []) use ($update) {
+                static $calls = 0;
+                ++$calls;
 
-        $this->telegramBotService->handleUpdate([
-            'message' => [
-                'message_id' => 1,
-                'chat' => ['id' => 123, 'type' => 'private'],
-                'date' => time(),
-                'text' => '/remove Январь 2024',
-            ],
-        ]);
-    }
-
-    public function testHandleRemoveCommandInvalidFormat(): void
-    {
-        $user = new User();
-        $user->setTelegramId(123);
-
-        $this->userRepository->expects($this->once())
-            ->method('findByTelegramId')
-            ->with(123)
-            ->willReturn($user);
-
-        $this->sheetsService->expects($this->never())
-            ->method('removeSpreadsheet');
-
-        $this->telegramBotService->handleUpdate([
-            'message' => [
-                'message_id' => 1,
-                'chat' => ['id' => 123, 'type' => 'private'],
-                'date' => time(),
-                'text' => '/remove InvalidFormat',
-            ],
-        ]);
-    }
-
-    public function testHandleRemoveCommandSpreadsheetNotFound(): void
-    {
-        $user = new User();
-        $user->setTelegramId(123);
-
-        $this->userRepository->expects($this->once())
-            ->method('findByTelegramId')
-            ->with(123)
-            ->willReturn($user);
-
-        $this->sheetsService->expects($this->once())
-            ->method('removeSpreadsheet')
-            ->with($user, 'Январь', 2024)
-            ->willThrowException(new \RuntimeException('Таблица не найдена'));
-
-        $this->telegramBotService->handleUpdate([
-            'message' => [
-                'message_id' => 1,
-                'chat' => ['id' => 123, 'type' => 'private'],
-                'date' => time(),
-                'text' => '/remove Январь 2024',
-            ],
-        ]);
-    }
-
-    public function testMainUserFlow(): void
-    {
-        $chatId = 123;
-        $spreadsheetId = 'test_spreadsheet_id';
-        $month = 'Январь';
-        $year = 2024;
-
-        // Step 1: New user starts with /start command
-        $user = new User();
-        $user->setTelegramId($chatId);
-
-        $this->userRepository->expects($this->once())
-            ->method('findByTelegramId')
-            ->with($chatId)
-            ->willReturn(null);
-
-        // Test consecutive saves
-        $this->userRepository
-            ->expects($this->exactly(4))
-            ->method('save')
-            ->willReturnCallback(function ($actualUser, $flush) use ($user) {
-                $this->assertEquals($user->getTelegramId(), $actualUser->getTelegramId());
-                $this->assertTrue($flush);
+                if (1 === $calls) {
+                    $this->assertEquals('Processing update', $message);
+                    $this->assertEquals(['update' => $update], $context);
+                } elseif (2 === $calls) {
+                    $this->assertEquals('Update does not contain a message', $message);
+                }
 
                 return null;
             });
 
-        // Test consecutive state changes
-        $expectedStates = ['WAITING_SPREADSHEET_ID', 'WAITING_MONTH'];
-        $stateIndex = 0;
+        $this->service->handleUpdate($update);
+    }
 
-        $this->userRepository
-            ->expects($this->exactly(2))
-            ->method('setUserState')
-            ->willReturnCallback(function ($actualUser, $state) use ($user, &$stateIndex, $expectedStates) {
-                $this->assertEquals($user->getTelegramId(), $actualUser->getTelegramId());
-                $this->assertEquals($expectedStates[$stateIndex], $state);
-                ++$stateIndex;
+    public function testHandleUpdateWithoutText(): void
+    {
+        $update = [
+            'update_id' => 1,
+            'message' => [
+                'message_id' => 1,
+                'chat' => ['id' => self::CHAT_ID],
+            ],
+        ];
+
+        $this->logger->expects($this->exactly(2))
+            ->method('info')
+            ->willReturnCallback(function (string $message, array $context = []) use ($update) {
+                static $calls = 0;
+                ++$calls;
+
+                if (1 === $calls) {
+                    $this->assertEquals('Processing update', $message);
+                    $this->assertEquals(['update' => $update], $context);
+                } elseif (2 === $calls) {
+                    $this->assertEquals('Message does not contain text', $message);
+                    $this->assertEquals(['chat_id' => self::CHAT_ID], $context);
+                }
 
                 return null;
             });
 
-        $this->sheetsService->expects($this->once())
-            ->method('handleSpreadsheetId')
-            ->with($spreadsheetId)
-            ->willReturn($spreadsheetId);
+        $this->service->handleUpdate($update);
+    }
 
-        // Step 3: User selects month
-        $this->sheetsService->expects($this->once())
-            ->method('addSpreadsheet')
-            ->with($user, $spreadsheetId, $month, $year);
-
-        // Step 4: User adds a record
-        $this->messageParser->expects($this->once())
-            ->method('parseMessage')
-            ->with('1000 продукты')
-            ->willReturn([
-                'amount' => 1000,
-                'description' => 'продукты',
-                'isIncome' => false,
-                'date' => new \DateTime(),
-            ]);
-
-        $this->categoryService->expects($this->once())
-            ->method('getCategoryByDescription')
-            ->with('продукты')
-            ->willReturn('Питание');
-
-        $this->sheetsService->expects($this->once())
-            ->method('addRecord')
-            ->with(
-                $user,
-                $this->callback(function ($date) {
-                    return $date instanceof \DateTime;
-                }),
-                1000,
-                'продукты',
-                'Питание',
-                false
-            );
-
-        // Execute the flow
-        // Step 1: Start command
-        $this->telegramBotService->handleUpdate([
+    public function testHandleUpdateWithCommand(): void
+    {
+        $update = [
+            'update_id' => 1,
             'message' => [
                 'message_id' => 1,
-                'chat' => ['id' => $chatId, 'type' => 'private'],
-                'date' => time(),
+                'chat' => ['id' => self::CHAT_ID],
                 'text' => '/start',
             ],
-        ]);
+        ];
 
-        // Step 2: Add command
-        $this->telegramBotService->handleUpdate([
-            'message' => [
-                'message_id' => 2,
-                'chat' => ['id' => $chatId, 'type' => 'private'],
-                'date' => time(),
-                'text' => '/add',
-            ],
-        ]);
+        $user = new User();
+        $user->setTelegramId(self::CHAT_ID);
 
-        // Step 2.1: Send spreadsheet ID
-        $this->telegramBotService->handleUpdate([
-            'message' => [
-                'message_id' => 3,
-                'chat' => ['id' => $chatId, 'type' => 'private'],
-                'date' => time(),
-                'text' => $spreadsheetId,
-            ],
-        ]);
+        $this->userRepository->expects($this->once())
+            ->method('findByTelegramId')
+            ->with(self::CHAT_ID)
+            ->willReturn($user);
 
-        // Step 3: Select month
-        $this->telegramBotService->handleUpdate([
-            'message' => [
-                'message_id' => 4,
-                'chat' => ['id' => $chatId, 'type' => 'private'],
-                'date' => time(),
-                'text' => sprintf('%s %d', $month, $year),
-            ],
-        ]);
+        $this->commandRegistry->expects($this->once())
+            ->method('findCommand')
+            ->with('/start')
+            ->willReturn($this->createMock(\App\Service\Command\CommandInterface::class));
 
-        // Step 4: Add record
-        $this->telegramBotService->handleUpdate([
-            'message' => [
-                'message_id' => 5,
-                'chat' => ['id' => $chatId, 'type' => 'private'],
-                'date' => time(),
-                'text' => '1000 продукты',
-            ],
-        ]);
+        $this->commandRegistry->expects($this->once())
+            ->method('executeCommand')
+            ->with(
+                $this->isInstanceOf(\App\Service\Command\CommandInterface::class),
+                self::CHAT_ID,
+                $user,
+                '/start'
+            );
+
+        $this->service->handleUpdate($update);
     }
 }

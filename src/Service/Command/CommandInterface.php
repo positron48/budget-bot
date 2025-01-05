@@ -11,4 +11,4 @@ interface CommandInterface
     public function execute(int $chatId, ?User $user, string $message): void;
 
     public function supports(string $command): bool;
-} 
+}

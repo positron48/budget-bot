@@ -3,8 +3,6 @@
 namespace App\Service\Command;
 
 use App\Entity\User;
-use App\Repository\UserRepository;
-use Psr\Log\LoggerInterface;
 
 class StartCommand extends AbstractCommand
 {
@@ -35,4 +33,4 @@ class StartCommand extends AbstractCommand
             '/categories - управление категориями'
         );
     }
-} 
+}

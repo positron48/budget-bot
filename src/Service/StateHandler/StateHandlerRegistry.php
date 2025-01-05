@@ -43,4 +43,4 @@ class StateHandlerRegistry
             $handler->handle($chatId, $user, $message);
         }
     }
-} 
+}

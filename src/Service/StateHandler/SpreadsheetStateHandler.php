@@ -22,7 +22,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
     public function __construct(
         UserRepository $userRepository,
         GoogleSheetsService $sheetsService,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ) {
         $this->userRepository = $userRepository;
         $this->sheetsService = $sheetsService;
@@ -38,12 +38,13 @@ class SpreadsheetStateHandler implements StateHandlerInterface
     {
         $state = $user->getState();
 
-        if ($state === 'WAITING_SPREADSHEET_ID') {
+        if ('WAITING_SPREADSHEET_ID' === $state) {
             $this->handleSpreadsheetId($chatId, $user, $message);
+
             return;
         }
 
-        if ($state === 'WAITING_MONTH') {
+        if ('WAITING_MONTH' === $state) {
             $this->handleMonthSelection($chatId, $user, $message);
         }
     }
@@ -106,6 +107,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
                 'text' => 'Произошла ошибка. Попробуйте начать сначала с команды /add',
             ]);
             $this->userRepository->clearUserState($user);
+
             return;
         }
 
@@ -276,6 +278,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
     private function getMonthName(int $month): string
     {
         $months = array_flip($this->getMonthsMap());
+
         return $months[$month] ?? '';
     }
-} 
+}

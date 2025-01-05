@@ -2,7 +2,9 @@
 
 namespace App\Service;
 
+use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\StateHandler\StateHandlerRegistry;
 use Longman\TelegramBot\Entities\Message;
 use Longman\TelegramBot\Entities\Update;
 use Longman\TelegramBot\Exception\TelegramException;
@@ -14,6 +16,8 @@ class TelegramBotService
 {
     private UserRepository $userRepository;
     private CommandRegistry $commandRegistry;
+    private StateHandlerRegistry $stateHandlerRegistry;
+    private TransactionHandler $transactionHandler;
     private MessageParserService $messageParser;
     private LoggerInterface $logger;
 
@@ -22,11 +26,15 @@ class TelegramBotService
         string $botUsername,
         UserRepository $userRepository,
         CommandRegistry $commandRegistry,
+        StateHandlerRegistry $stateHandlerRegistry,
+        TransactionHandler $transactionHandler,
         MessageParserService $messageParser,
         LoggerInterface $logger,
     ) {
         $this->userRepository = $userRepository;
         $this->commandRegistry = $commandRegistry;
+        $this->stateHandlerRegistry = $stateHandlerRegistry;
+        $this->transactionHandler = $transactionHandler;
         $this->messageParser = $messageParser;
         $this->logger = $logger;
 
@@ -53,6 +61,7 @@ class TelegramBotService
 
             if (!$message instanceof Message) {
                 $this->logger->info('Update does not contain a message');
+
                 return;
             }
 
@@ -61,6 +70,7 @@ class TelegramBotService
 
             if (null === $text) {
                 $this->logger->info('Message does not contain text', ['chat_id' => $chatId]);
+
                 return;
             }
 
@@ -75,6 +85,7 @@ class TelegramBotService
             $command = $this->commandRegistry->findCommand($text);
             if ($command) {
                 $this->commandRegistry->executeCommand($command, $chatId, $user, $text);
+
                 return;
             }
 
@@ -95,21 +106,20 @@ class TelegramBotService
     private function handleRegularMessage(int $chatId, User $user, string $text): void
     {
         $state = $user->getState();
-        
-        if ($state === 'WAITING_SPREADSHEET_ID') {
-            $this->handleSpreadsheetId($chatId, $text);
-            return;
-        }
+        if ($state) {
+            $this->stateHandlerRegistry->handleState($chatId, $user, $text);
 
-        if ($state === 'WAITING_MONTH') {
-            $this->handleMonthSelection($chatId, $text);
             return;
         }
 
         // Try to parse as a transaction
         try {
             $data = $this->messageParser->parseMessage($text);
-            $this->handleTransaction($chatId, $user, $data);
+            if (null !== $data) {
+                $this->transactionHandler->handle($chatId, $user, $data);
+            } else {
+                $this->sendMessage($chatId, 'Неверный формат сообщения. Используйте формат: "[дата] [+]сумма описание"');
+            }
         } catch (\Exception $e) {
             $this->logger->warning('Failed to parse message: '.$e->getMessage(), [
                 'chat_id' => $chatId,
@@ -119,6 +129,9 @@ class TelegramBotService
         }
     }
 
+    /**
+     * @param array<int, array<string, string>>|null $keyboard
+     */
     private function sendMessage(int $chatId, string $text, ?array $keyboard = null): void
     {
         $data = [

@@ -13,12 +13,15 @@ abstract class AbstractCommand implements CommandInterface
 
     public function __construct(
         UserRepository $userRepository,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ) {
         $this->userRepository = $userRepository;
         $this->logger = $logger;
     }
 
+    /**
+     * @param array<int, array<string, string>>|null $keyboard
+     */
     protected function sendMessage(int $chatId, string $text, ?array $keyboard = null): void
     {
         $data = [
@@ -47,4 +50,4 @@ abstract class AbstractCommand implements CommandInterface
     {
         return $command === $this->getName();
     }
-} 
+}

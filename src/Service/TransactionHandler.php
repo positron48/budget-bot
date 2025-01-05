@@ -15,7 +15,7 @@ class TransactionHandler
     public function __construct(
         GoogleSheetsService $sheetsService,
         CategoryService $categoryService,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ) {
         $this->sheetsService = $sheetsService;
         $this->categoryService = $categoryService;
@@ -147,4 +147,4 @@ class TransactionHandler
 
         return $months[$month] ?? '';
     }
-} 
+}
