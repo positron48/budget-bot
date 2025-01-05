@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1736074335">
-  <project timestamp="1736074335">
+<coverage generated="1736074662">
+  <project timestamp="1736074662">
     <file name="/home/runner/work/budget-bot/budget-bot/src/Command/SetWebhookCommand.php">
       <class name="App\Command\SetWebhookCommand" namespace="global">
         <metrics complexity="5" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="26" coveredstatements="0" elements="29" coveredelements="0"/>
@@ -128,15 +128,15 @@
     </file>
     <file name="/home/runner/work/budget-bot/budget-bot/src/Entity/User.php">
       <class name="App\Entity\User" namespace="global">
-        <metrics complexity="15" methods="15" coveredmethods="3" conditionals="0" coveredconditionals="0" statements="22" coveredstatements="4" elements="37" coveredelements="7"/>
+        <metrics complexity="15" methods="15" coveredmethods="5" conditionals="0" coveredconditionals="0" statements="22" coveredstatements="7" elements="37" coveredelements="12"/>
       </class>
       <line num="40" type="method" name="getId" visibility="public" complexity="1" crap="1" count="1"/>
       <line num="42" type="stmt" count="1"/>
       <line num="45" type="method" name="getTelegramId" visibility="public" complexity="1" crap="1" count="1"/>
       <line num="47" type="stmt" count="1"/>
-      <line num="50" type="method" name="setTelegramId" visibility="public" complexity="1" crap="1" count="3"/>
-      <line num="52" type="stmt" count="3"/>
-      <line num="54" type="stmt" count="3"/>
+      <line num="50" type="method" name="setTelegramId" visibility="public" complexity="1" crap="1" count="10"/>
+      <line num="52" type="stmt" count="10"/>
+      <line num="54" type="stmt" count="10"/>
       <line num="57" type="method" name="getUsername" visibility="public" complexity="1" crap="2" count="0"/>
       <line num="59" type="stmt" count="0"/>
       <line num="62" type="method" name="setUsername" visibility="public" complexity="1" crap="2" count="0"/>
@@ -157,17 +157,17 @@
       <line num="98" type="method" name="setCurrentSpreadsheetId" visibility="public" complexity="1" crap="2" count="0"/>
       <line num="100" type="stmt" count="0"/>
       <line num="102" type="stmt" count="0"/>
-      <line num="105" type="method" name="getState" visibility="public" complexity="1" crap="2" count="0"/>
-      <line num="107" type="stmt" count="0"/>
-      <line num="110" type="method" name="setState" visibility="public" complexity="1" crap="2" count="0"/>
-      <line num="112" type="stmt" count="0"/>
-      <line num="114" type="stmt" count="0"/>
+      <line num="105" type="method" name="getState" visibility="public" complexity="1" crap="1" count="3"/>
+      <line num="107" type="stmt" count="3"/>
+      <line num="110" type="method" name="setState" visibility="public" complexity="1" crap="1" count="3"/>
+      <line num="112" type="stmt" count="3"/>
+      <line num="114" type="stmt" count="3"/>
       <line num="120" type="method" name="getTempData" visibility="public" complexity="1" crap="2" count="0"/>
       <line num="122" type="stmt" count="0"/>
       <line num="128" type="method" name="setTempData" visibility="public" complexity="1" crap="2" count="0"/>
       <line num="130" type="stmt" count="0"/>
       <line num="132" type="stmt" count="0"/>
-      <metrics loc="135" ncloc="126" classes="1" methods="15" coveredmethods="3" conditionals="0" coveredconditionals="0" statements="22" coveredstatements="4" elements="37" coveredelements="7"/>
+      <metrics loc="135" ncloc="126" classes="1" methods="15" coveredmethods="5" conditionals="0" coveredconditionals="0" statements="22" coveredstatements="7" elements="37" coveredelements="12"/>
     </file>
     <file name="/home/runner/work/budget-bot/budget-bot/src/Entity/UserCategory.php">
       <class name="App\Entity\UserCategory" namespace="global">
@@ -460,146 +460,146 @@
     </file>
     <file name="/home/runner/work/budget-bot/budget-bot/src/Service/Command/AbstractCommand.php">
       <class name="App\Service\Command\AbstractCommand" namespace="global">
-        <metrics complexity="4" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="19" coveredstatements="0" elements="22" coveredelements="0"/>
+        <metrics complexity="4" methods="3" coveredmethods="3" conditionals="0" coveredconditionals="0" statements="19" coveredstatements="19" elements="22" coveredelements="22"/>
       </class>
-      <line num="14" type="method" name="__construct" visibility="public" complexity="1" crap="2" count="0"/>
-      <line num="18" type="stmt" count="0"/>
-      <line num="19" type="stmt" count="0"/>
-      <line num="25" type="method" name="sendMessage" visibility="protected" complexity="2" crap="6" count="0"/>
-      <line num="27" type="stmt" count="0"/>
-      <line num="28" type="stmt" count="0"/>
-      <line num="29" type="stmt" count="0"/>
-      <line num="30" type="stmt" count="0"/>
-      <line num="31" type="stmt" count="0"/>
-      <line num="33" type="stmt" count="0"/>
-      <line num="34" type="stmt" count="0"/>
-      <line num="35" type="stmt" count="0"/>
-      <line num="36" type="stmt" count="0"/>
-      <line num="37" type="stmt" count="0"/>
-      <line num="38" type="stmt" count="0"/>
-      <line num="41" type="stmt" count="0"/>
-      <line num="42" type="stmt" count="0"/>
-      <line num="43" type="stmt" count="0"/>
-      <line num="44" type="stmt" count="0"/>
-      <line num="46" type="stmt" count="0"/>
-      <line num="49" type="method" name="supports" visibility="public" complexity="1" crap="2" count="0"/>
-      <line num="51" type="stmt" count="0"/>
-      <metrics loc="54" ncloc="51" classes="1" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="19" coveredstatements="0" elements="22" coveredelements="0"/>
+      <line num="14" type="method" name="__construct" visibility="public" complexity="1" crap="1" count="18"/>
+      <line num="18" type="stmt" count="18"/>
+      <line num="19" type="stmt" count="18"/>
+      <line num="25" type="method" name="sendMessage" visibility="protected" complexity="2" crap="2" count="10"/>
+      <line num="27" type="stmt" count="10"/>
+      <line num="28" type="stmt" count="10"/>
+      <line num="29" type="stmt" count="10"/>
+      <line num="30" type="stmt" count="10"/>
+      <line num="31" type="stmt" count="10"/>
+      <line num="33" type="stmt" count="10"/>
+      <line num="34" type="stmt" count="2"/>
+      <line num="35" type="stmt" count="2"/>
+      <line num="36" type="stmt" count="2"/>
+      <line num="37" type="stmt" count="2"/>
+      <line num="38" type="stmt" count="2"/>
+      <line num="41" type="stmt" count="10"/>
+      <line num="42" type="stmt" count="10"/>
+      <line num="43" type="stmt" count="10"/>
+      <line num="44" type="stmt" count="10"/>
+      <line num="46" type="stmt" count="10"/>
+      <line num="49" type="method" name="supports" visibility="public" complexity="1" crap="1" count="4"/>
+      <line num="51" type="stmt" count="4"/>
+      <metrics loc="54" ncloc="51" classes="1" methods="3" coveredmethods="3" conditionals="0" coveredconditionals="0" statements="19" coveredstatements="19" elements="22" coveredelements="22"/>
     </file>
     <file name="/home/runner/work/budget-bot/budget-bot/src/Service/Command/AddCommand.php">
       <class name="App\Service\Command\AddCommand" namespace="global">
-        <metrics complexity="4" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="13" coveredstatements="0" elements="16" coveredelements="0"/>
+        <metrics complexity="4" methods="3" coveredmethods="3" conditionals="0" coveredconditionals="0" statements="13" coveredstatements="13" elements="16" coveredelements="16"/>
       </class>
-      <line num="11" type="method" name="__construct" visibility="public" complexity="1" crap="2" count="0"/>
-      <line num="15" type="stmt" count="0"/>
-      <line num="18" type="method" name="getName" visibility="public" complexity="1" crap="2" count="0"/>
-      <line num="20" type="stmt" count="0"/>
-      <line num="23" type="method" name="execute" visibility="public" complexity="2" crap="6" count="0"/>
-      <line num="25" type="stmt" count="0"/>
-      <line num="26" type="stmt" count="0"/>
-      <line num="28" type="stmt" count="0"/>
-      <line num="31" type="stmt" count="0"/>
-      <line num="32" type="stmt" count="0"/>
-      <line num="34" type="stmt" count="0"/>
-      <line num="35" type="stmt" count="0"/>
-      <line num="36" type="stmt" count="0"/>
-      <line num="37" type="stmt" count="0"/>
-      <line num="38" type="stmt" count="0"/>
-      <line num="39" type="stmt" count="0"/>
-      <metrics loc="42" ncloc="42" classes="1" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="13" coveredstatements="0" elements="16" coveredelements="0"/>
+      <line num="11" type="method" name="__construct" visibility="public" complexity="1" crap="1" count="4"/>
+      <line num="15" type="stmt" count="4"/>
+      <line num="18" type="method" name="getName" visibility="public" complexity="1" crap="1" count="2"/>
+      <line num="20" type="stmt" count="2"/>
+      <line num="23" type="method" name="execute" visibility="public" complexity="2" crap="2" count="2"/>
+      <line num="25" type="stmt" count="2"/>
+      <line num="26" type="stmt" count="1"/>
+      <line num="28" type="stmt" count="1"/>
+      <line num="31" type="stmt" count="1"/>
+      <line num="32" type="stmt" count="1"/>
+      <line num="34" type="stmt" count="1"/>
+      <line num="35" type="stmt" count="1"/>
+      <line num="36" type="stmt" count="1"/>
+      <line num="37" type="stmt" count="1"/>
+      <line num="38" type="stmt" count="1"/>
+      <line num="39" type="stmt" count="1"/>
+      <metrics loc="42" ncloc="42" classes="1" methods="3" coveredmethods="3" conditionals="0" coveredconditionals="0" statements="13" coveredstatements="13" elements="16" coveredelements="16"/>
     </file>
     <file name="/home/runner/work/budget-bot/budget-bot/src/Service/Command/CategoriesCommand.php">
       <class name="App\Service\Command\CategoriesCommand" namespace="global">
-        <metrics complexity="4" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="18" coveredstatements="0" elements="21" coveredelements="0"/>
+        <metrics complexity="4" methods="3" coveredmethods="3" conditionals="0" coveredconditionals="0" statements="18" coveredstatements="18" elements="21" coveredelements="21"/>
       </class>
-      <line num="11" type="method" name="__construct" visibility="public" complexity="1" crap="2" count="0"/>
-      <line num="15" type="stmt" count="0"/>
-      <line num="18" type="method" name="getName" visibility="public" complexity="1" crap="2" count="0"/>
-      <line num="20" type="stmt" count="0"/>
-      <line num="23" type="method" name="execute" visibility="public" complexity="2" crap="6" count="0"/>
-      <line num="25" type="stmt" count="0"/>
-      <line num="26" type="stmt" count="0"/>
-      <line num="28" type="stmt" count="0"/>
-      <line num="31" type="stmt" count="0"/>
-      <line num="32" type="stmt" count="0"/>
-      <line num="33" type="stmt" count="0"/>
-      <line num="34" type="stmt" count="0"/>
-      <line num="35" type="stmt" count="0"/>
-      <line num="36" type="stmt" count="0"/>
-      <line num="38" type="stmt" count="0"/>
-      <line num="39" type="stmt" count="0"/>
-      <line num="41" type="stmt" count="0"/>
-      <line num="42" type="stmt" count="0"/>
-      <line num="43" type="stmt" count="0"/>
-      <line num="44" type="stmt" count="0"/>
-      <line num="45" type="stmt" count="0"/>
-      <metrics loc="48" ncloc="48" classes="1" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="18" coveredstatements="0" elements="21" coveredelements="0"/>
+      <line num="11" type="method" name="__construct" visibility="public" complexity="1" crap="1" count="4"/>
+      <line num="15" type="stmt" count="4"/>
+      <line num="18" type="method" name="getName" visibility="public" complexity="1" crap="1" count="2"/>
+      <line num="20" type="stmt" count="2"/>
+      <line num="23" type="method" name="execute" visibility="public" complexity="2" crap="2" count="2"/>
+      <line num="25" type="stmt" count="2"/>
+      <line num="26" type="stmt" count="1"/>
+      <line num="28" type="stmt" count="1"/>
+      <line num="31" type="stmt" count="1"/>
+      <line num="32" type="stmt" count="1"/>
+      <line num="33" type="stmt" count="1"/>
+      <line num="34" type="stmt" count="1"/>
+      <line num="35" type="stmt" count="1"/>
+      <line num="36" type="stmt" count="1"/>
+      <line num="38" type="stmt" count="1"/>
+      <line num="39" type="stmt" count="1"/>
+      <line num="41" type="stmt" count="1"/>
+      <line num="42" type="stmt" count="1"/>
+      <line num="43" type="stmt" count="1"/>
+      <line num="44" type="stmt" count="1"/>
+      <line num="45" type="stmt" count="1"/>
+      <metrics loc="48" ncloc="48" classes="1" methods="3" coveredmethods="3" conditionals="0" coveredconditionals="0" statements="18" coveredstatements="18" elements="21" coveredelements="21"/>
     </file>
     <file name="/home/runner/work/budget-bot/budget-bot/src/Service/Command/CommandInterface.php">
       <metrics loc="15" ncloc="15" classes="0" methods="0" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="0" coveredstatements="0" elements="0" coveredelements="0"/>
     </file>
     <file name="/home/runner/work/budget-bot/budget-bot/src/Service/Command/ListCommand.php">
       <class name="App\Service\Command\ListCommand" namespace="global">
-        <metrics complexity="6" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="22" coveredstatements="0" elements="25" coveredelements="0"/>
+        <metrics complexity="6" methods="3" coveredmethods="3" conditionals="0" coveredconditionals="0" statements="22" coveredstatements="22" elements="25" coveredelements="25"/>
       </class>
-      <line num="14" type="method" name="__construct" visibility="public" complexity="1" crap="2" count="0"/>
-      <line num="19" type="stmt" count="0"/>
-      <line num="20" type="stmt" count="0"/>
-      <line num="23" type="method" name="getName" visibility="public" complexity="1" crap="2" count="0"/>
-      <line num="25" type="stmt" count="0"/>
-      <line num="28" type="method" name="execute" visibility="public" complexity="4" crap="20" count="0"/>
-      <line num="30" type="stmt" count="0"/>
-      <line num="31" type="stmt" count="0"/>
-      <line num="33" type="stmt" count="0"/>
-      <line num="36" type="stmt" count="0"/>
-      <line num="38" type="stmt" count="0"/>
-      <line num="39" type="stmt" count="0"/>
-      <line num="40" type="stmt" count="0"/>
-      <line num="41" type="stmt" count="0"/>
-      <line num="42" type="stmt" count="0"/>
-      <line num="44" type="stmt" count="0"/>
-      <line num="47" type="stmt" count="0"/>
-      <line num="48" type="stmt" count="0"/>
-      <line num="49" type="stmt" count="0"/>
-      <line num="50" type="stmt" count="0"/>
-      <line num="51" type="stmt" count="0"/>
-      <line num="52" type="stmt" count="0"/>
-      <line num="53" type="stmt" count="0"/>
-      <line num="54" type="stmt" count="0"/>
-      <line num="57" type="stmt" count="0"/>
-      <metrics loc="60" ncloc="60" classes="1" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="22" coveredstatements="0" elements="25" coveredelements="0"/>
+      <line num="14" type="method" name="__construct" visibility="public" complexity="1" crap="1" count="5"/>
+      <line num="19" type="stmt" count="5"/>
+      <line num="20" type="stmt" count="5"/>
+      <line num="23" type="method" name="getName" visibility="public" complexity="1" crap="1" count="2"/>
+      <line num="25" type="stmt" count="2"/>
+      <line num="28" type="method" name="execute" visibility="public" complexity="4" crap="4" count="3"/>
+      <line num="30" type="stmt" count="3"/>
+      <line num="31" type="stmt" count="1"/>
+      <line num="33" type="stmt" count="1"/>
+      <line num="36" type="stmt" count="2"/>
+      <line num="38" type="stmt" count="2"/>
+      <line num="39" type="stmt" count="1"/>
+      <line num="40" type="stmt" count="1"/>
+      <line num="41" type="stmt" count="1"/>
+      <line num="42" type="stmt" count="1"/>
+      <line num="44" type="stmt" count="1"/>
+      <line num="47" type="stmt" count="1"/>
+      <line num="48" type="stmt" count="1"/>
+      <line num="49" type="stmt" count="1"/>
+      <line num="50" type="stmt" count="1"/>
+      <line num="51" type="stmt" count="1"/>
+      <line num="52" type="stmt" count="1"/>
+      <line num="53" type="stmt" count="1"/>
+      <line num="54" type="stmt" count="1"/>
+      <line num="57" type="stmt" count="1"/>
+      <metrics loc="60" ncloc="60" classes="1" methods="3" coveredmethods="3" conditionals="0" coveredconditionals="0" statements="22" coveredstatements="22" elements="25" coveredelements="25"/>
     </file>
     <file name="/home/runner/work/budget-bot/budget-bot/src/Service/Command/RemoveCommand.php">
       <class name="App\Service\Command\RemoveCommand" namespace="global">
-        <metrics complexity="6" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="23" coveredstatements="0" elements="26" coveredelements="0"/>
+        <metrics complexity="6" methods="3" coveredmethods="3" conditionals="0" coveredconditionals="0" statements="23" coveredstatements="23" elements="26" coveredelements="26"/>
       </class>
-      <line num="14" type="method" name="__construct" visibility="public" complexity="1" crap="2" count="0"/>
-      <line num="19" type="stmt" count="0"/>
-      <line num="20" type="stmt" count="0"/>
-      <line num="23" type="method" name="getName" visibility="public" complexity="1" crap="2" count="0"/>
-      <line num="25" type="stmt" count="0"/>
-      <line num="28" type="method" name="execute" visibility="public" complexity="4" crap="20" count="0"/>
-      <line num="30" type="stmt" count="0"/>
-      <line num="31" type="stmt" count="0"/>
-      <line num="33" type="stmt" count="0"/>
-      <line num="36" type="stmt" count="0"/>
-      <line num="38" type="stmt" count="0"/>
-      <line num="39" type="stmt" count="0"/>
-      <line num="40" type="stmt" count="0"/>
-      <line num="41" type="stmt" count="0"/>
-      <line num="42" type="stmt" count="0"/>
-      <line num="44" type="stmt" count="0"/>
-      <line num="47" type="stmt" count="0"/>
-      <line num="48" type="stmt" count="0"/>
-      <line num="49" type="stmt" count="0"/>
-      <line num="52" type="stmt" count="0"/>
-      <line num="53" type="stmt" count="0"/>
-      <line num="55" type="stmt" count="0"/>
-      <line num="56" type="stmt" count="0"/>
-      <line num="57" type="stmt" count="0"/>
-      <line num="58" type="stmt" count="0"/>
-      <line num="59" type="stmt" count="0"/>
-      <metrics loc="62" ncloc="62" classes="1" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="23" coveredstatements="0" elements="26" coveredelements="0"/>
+      <line num="14" type="method" name="__construct" visibility="public" complexity="1" crap="1" count="5"/>
+      <line num="19" type="stmt" count="5"/>
+      <line num="20" type="stmt" count="5"/>
+      <line num="23" type="method" name="getName" visibility="public" complexity="1" crap="1" count="2"/>
+      <line num="25" type="stmt" count="2"/>
+      <line num="28" type="method" name="execute" visibility="public" complexity="4" crap="4" count="3"/>
+      <line num="30" type="stmt" count="3"/>
+      <line num="31" type="stmt" count="1"/>
+      <line num="33" type="stmt" count="1"/>
+      <line num="36" type="stmt" count="2"/>
+      <line num="38" type="stmt" count="2"/>
+      <line num="39" type="stmt" count="1"/>
+      <line num="40" type="stmt" count="1"/>
+      <line num="41" type="stmt" count="1"/>
+      <line num="42" type="stmt" count="1"/>
+      <line num="44" type="stmt" count="1"/>
+      <line num="47" type="stmt" count="1"/>
+      <line num="48" type="stmt" count="1"/>
+      <line num="49" type="stmt" count="1"/>
+      <line num="52" type="stmt" count="1"/>
+      <line num="53" type="stmt" count="1"/>
+      <line num="55" type="stmt" count="1"/>
+      <line num="56" type="stmt" count="1"/>
+      <line num="57" type="stmt" count="1"/>
+      <line num="58" type="stmt" count="1"/>
+      <line num="59" type="stmt" count="1"/>
+      <metrics loc="62" ncloc="62" classes="1" methods="3" coveredmethods="3" conditionals="0" coveredconditionals="0" statements="23" coveredstatements="23" elements="26" coveredelements="26"/>
     </file>
     <file name="/home/runner/work/budget-bot/budget-bot/src/Service/Command/StartCommand.php">
       <class name="App\Service\Command\StartCommand" namespace="global">
@@ -1161,43 +1161,43 @@
     </file>
     <file name="/home/runner/work/budget-bot/budget-bot/src/Service/TelegramBotService.php">
       <class name="App\Service\TelegramBotService" namespace="global">
-        <metrics complexity="14" methods="4" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="71" coveredstatements="0" elements="75" coveredelements="0"/>
+        <metrics complexity="14" methods="4" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="71" coveredstatements="28" elements="75" coveredelements="28"/>
       </class>
-      <line num="24" type="method" name="__construct" visibility="public" complexity="2" crap="6" count="0"/>
-      <line num="34" type="stmt" count="0"/>
-      <line num="35" type="stmt" count="0"/>
-      <line num="36" type="stmt" count="0"/>
-      <line num="37" type="stmt" count="0"/>
-      <line num="38" type="stmt" count="0"/>
-      <line num="39" type="stmt" count="0"/>
-      <line num="42" type="stmt" count="0"/>
-      <line num="43" type="stmt" count="0"/>
+      <line num="24" type="method" name="__construct" visibility="public" complexity="2" crap="2.23" count="3"/>
+      <line num="34" type="stmt" count="3"/>
+      <line num="35" type="stmt" count="3"/>
+      <line num="36" type="stmt" count="3"/>
+      <line num="37" type="stmt" count="3"/>
+      <line num="38" type="stmt" count="3"/>
+      <line num="39" type="stmt" count="3"/>
+      <line num="42" type="stmt" count="3"/>
+      <line num="43" type="stmt" count="3"/>
       <line num="44" type="stmt" count="0"/>
       <line num="45" type="stmt" count="0"/>
       <line num="46" type="stmt" count="0"/>
       <line num="47" type="stmt" count="0"/>
       <line num="48" type="stmt" count="0"/>
-      <line num="55" type="method" name="handleUpdate" visibility="public" complexity="6" crap="42" count="0"/>
-      <line num="58" type="stmt" count="0"/>
-      <line num="59" type="stmt" count="0"/>
-      <line num="60" type="stmt" count="0"/>
-      <line num="62" type="stmt" count="0"/>
-      <line num="63" type="stmt" count="0"/>
-      <line num="65" type="stmt" count="0"/>
-      <line num="68" type="stmt" count="0"/>
-      <line num="69" type="stmt" count="0"/>
-      <line num="71" type="stmt" count="0"/>
-      <line num="72" type="stmt" count="0"/>
-      <line num="74" type="stmt" count="0"/>
-      <line num="77" type="stmt" count="0"/>
-      <line num="78" type="stmt" count="0"/>
-      <line num="79" type="stmt" count="0"/>
-      <line num="80" type="stmt" count="0"/>
-      <line num="82" type="stmt" count="0"/>
-      <line num="85" type="stmt" count="0"/>
-      <line num="86" type="stmt" count="0"/>
-      <line num="87" type="stmt" count="0"/>
-      <line num="89" type="stmt" count="0"/>
+      <line num="55" type="method" name="handleUpdate" visibility="public" complexity="6" crap="6.84" count="3"/>
+      <line num="58" type="stmt" count="3"/>
+      <line num="59" type="stmt" count="3"/>
+      <line num="60" type="stmt" count="3"/>
+      <line num="62" type="stmt" count="3"/>
+      <line num="63" type="stmt" count="1"/>
+      <line num="65" type="stmt" count="1"/>
+      <line num="68" type="stmt" count="2"/>
+      <line num="69" type="stmt" count="2"/>
+      <line num="71" type="stmt" count="2"/>
+      <line num="72" type="stmt" count="1"/>
+      <line num="74" type="stmt" count="1"/>
+      <line num="77" type="stmt" count="1"/>
+      <line num="78" type="stmt" count="1"/>
+      <line num="79" type="stmt" count="1"/>
+      <line num="80" type="stmt" count="1"/>
+      <line num="82" type="stmt" count="1"/>
+      <line num="85" type="stmt" count="1"/>
+      <line num="86" type="stmt" count="1"/>
+      <line num="87" type="stmt" count="1"/>
+      <line num="89" type="stmt" count="1"/>
       <line num="93" type="stmt" count="0"/>
       <line num="94" type="stmt" count="0"/>
       <line num="96" type="stmt" count="0"/>
@@ -1238,7 +1238,7 @@
       <line num="153" type="stmt" count="0"/>
       <line num="154" type="stmt" count="0"/>
       <line num="156" type="stmt" count="0"/>
-      <metrics loc="159" ncloc="150" classes="1" methods="4" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="71" coveredstatements="0" elements="75" coveredelements="0"/>
+      <metrics loc="159" ncloc="150" classes="1" methods="4" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="71" coveredstatements="28" elements="75" coveredelements="28"/>
     </file>
     <file name="/home/runner/work/budget-bot/budget-bot/src/Service/TransactionHandler.php">
       <class name="App\Service\TransactionHandler" namespace="global">
@@ -1344,6 +1344,6 @@
       <line num="148" type="stmt" count="0"/>
       <metrics loc="151" ncloc="143" classes="1" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="95" coveredstatements="0" elements="98" coveredelements="0"/>
     </file>
-    <metrics files="31" loc="2673" ncloc="2544" classes="29" methods="156" coveredmethods="49" conditionals="0" coveredconditionals="0" statements="1007" coveredstatements="251" elements="1163" coveredelements="300"/>
+    <metrics files="31" loc="2673" ncloc="2544" classes="29" methods="156" coveredmethods="66" conditionals="0" coveredconditionals="0" statements="1007" coveredstatements="377" elements="1163" coveredelements="443"/>
   </project>
 </coverage>
