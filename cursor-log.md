@@ -658,7 +658,24 @@ github actions пропускает многие тесты из-за отсут
 
 ---
 
-[2025-01-05T15:18:00.364372+00:00] request.ERROR: Uncaught PHP Exception Symfony\Component\HttpKernel\Exception\NotFoundHttpException: "No route found for "POST http://bot.positroid.tech/webhook"" at /var/www/budget-bot/vendor/symfony/http-kernel/EventListener/RouterListener.php line 127 {"exception":"[object] (Symfony\\Component\\HttpKernel\\Exception\\NotFoundHttpException(code: 0): No route found for \"POST http://bot.positroid.tech/webhook\" at /var/www/budget-bot/vendor/symfony/http-kernel/EventListener/RouterListener.php:127)\n[previous exception] [object] (Symfony\\Component\\Routing\\Exception\\ResourceNotFoundException(code: 0): No routes found for \"/webhook\". at /var/www/budget-bot/vendor/symfony/routing/Matcher/Dumper/CompiledUrlMatcherTrait.php:74)"} []
+[2025-01-05T15:18:00.364372+00:00] request.ERROR: Uncaught PHP Exception Symfony\Component\HttpKernel\Exception\NotFoundHttpException: "No route found for "POST http://bot.positroid.tech/webhook"" at /var/www/budget-bot/vendor/symfony/http-kernel/EventListener/RouterListener.php line 127 {"exception":"[object] (Symfony\\Component\\HttpKernel\\Exception\\NotFoundHttpException(code: 0): No route found for \"POST http://bot.positroid.tech/webhook\" at /var/www/budget-bot/vendor/symfony/http-kernel/EventListener/RouterListener.php:127)\n[previous exception] [object] (Symfony\\Component\\Routing\\Exception\\ResourceNotFoundException(code: 0): No routes found for \"/webhook\". at /var/www/budget-bot/vendor/symfony/routing/Matcher/Dumper/CompiledUrlMatcherTrait.php:74)"} 
+[fix: add AsController attribute and extend AbstractController](https://github.com/positron48/budget-bot/commit/860cd61d2702da336624aa59a36166eab9d8daa0)
+
+---
+
+не работает /remove Февраль 2025 - нет никакого ответа
+
+---
+
+закоммить и запушь все изменения, предварительно актуализировав ветку [fix: improve spreadsheet state handler](https://github.com/positron48/budget-bot/commit/cb068e46bc8929caa7b7ef78477cd03433289908)
+
+---
+
+все еще удаление не отрабатывает
+
+---
+
+при команде /add после отправки таблицы не показывается клавиатура с выбором месяца
 
 ---
 

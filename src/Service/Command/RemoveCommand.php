@@ -44,6 +44,38 @@ class RemoveCommand extends AbstractCommand
             return;
         }
 
+        // Extract spreadsheet name from command if provided
+        $parts = explode(' ', trim($message));
+        array_shift($parts); // Remove command name
+        $spreadsheetName = implode(' ', $parts);
+
+        if ($spreadsheetName) {
+            $found = false;
+            foreach ($spreadsheets as $spreadsheet) {
+                $title = sprintf('%s %d', $spreadsheet['month'], $spreadsheet['year']);
+                if ($title === $spreadsheetName) {
+                    $found = true;
+                    try {
+                        $this->sheetsService->removeSpreadsheet(
+                            $user,
+                            (int) $spreadsheet['month'],
+                            (int) $spreadsheet['year']
+                        );
+                        $this->sendMessage($chatId, 'Таблица успешно удалена');
+                    } catch (\RuntimeException $e) {
+                        $this->sendMessage($chatId, $e->getMessage());
+                    }
+                    break;
+                }
+            }
+
+            if (!$found) {
+                $this->sendMessage($chatId, 'Таблица не найдена');
+            }
+
+            return;
+        }
+
         $keyboard = [];
         foreach ($spreadsheets as $spreadsheet) {
             $keyboard[] = ['text' => sprintf('%s %d', $spreadsheet['month'], $spreadsheet['year'])];

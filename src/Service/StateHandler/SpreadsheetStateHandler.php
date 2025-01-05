@@ -72,30 +72,24 @@ class SpreadsheetStateHandler implements StateHandlerInterface
 
             $user->setTempData(['spreadsheet_id' => $spreadsheetId]);
             $this->userRepository->save($user, true);
-            $this->userRepository->setUserState($user, 'WAITING_MONTH');
+            $user->setState('WAITING_MONTH');
+            $this->userRepository->save($user, true);
 
             $keyboard = $this->buildMonthsKeyboard();
-
-            Request::sendMessage([
-                'chat_id' => $chatId,
-                'text' => 'Выберите месяц из списка или введите в формате "Месяц Год" (например: Январь 2025):',
-                'reply_markup' => json_encode([
-                    'keyboard' => $keyboard,
-                    'one_time_keyboard' => true,
-                    'resize_keyboard' => true,
-                ]),
-            ]);
+            $this->sendMessage(
+                $chatId,
+                'Выберите месяц из списка или введите в формате "Месяц Год" (например: Январь 2025):',
+                $keyboard
+            );
         } catch (\RuntimeException $e) {
             $this->logger->warning('Failed to handle spreadsheet', [
                 'chat_id' => $chatId,
                 'spreadsheet_id' => $spreadsheetId,
                 'error' => $e->getMessage(),
             ]);
-            Request::sendMessage([
-                'chat_id' => $chatId,
-                'text' => $e->getMessage(),
-            ]);
-            $this->userRepository->clearUserState($user);
+            $this->sendMessage($chatId, $e->getMessage());
+            $user->setState('');
+            $this->userRepository->save($user, true);
         }
     }
 
