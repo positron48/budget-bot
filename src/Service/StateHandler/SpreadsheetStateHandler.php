@@ -13,6 +13,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
     private const SUPPORTED_STATES = [
         'WAITING_SPREADSHEET_ID',
         'WAITING_MONTH',
+        'WAITING_REMOVE_SPREADSHEET',
     ];
 
     private UserRepository $userRepository;
@@ -46,6 +47,12 @@ class SpreadsheetStateHandler implements StateHandlerInterface
 
         if ('WAITING_MONTH' === $state) {
             $this->handleMonthSelection($chatId, $user, $message);
+
+            return;
+        }
+
+        if ('WAITING_REMOVE_SPREADSHEET' === $state) {
+            $this->handleRemoveSpreadsheet($chatId, $user, $message);
         }
     }
 
@@ -94,172 +101,115 @@ class SpreadsheetStateHandler implements StateHandlerInterface
 
     private function handleMonthSelection(int $chatId, User $user, string $text): void
     {
-        $tempData = $user->getTempData();
-        $spreadsheetId = $tempData['spreadsheet_id'] ?? null;
+        try {
+            $monthYear = $this->parseMonthAndYear($text);
+            if (!$monthYear) {
+                throw new \RuntimeException('Неверный формат даты');
+            }
 
-        if (!$spreadsheetId) {
-            $this->logger->error('Missing spreadsheet_id in temp data', [
-                'chat_id' => $chatId,
-                'temp_data' => $tempData,
-            ]);
-            Request::sendMessage([
-                'chat_id' => $chatId,
-                'text' => 'Произошла ошибка. Попробуйте начать сначала с команды /add',
-            ]);
-            $this->userRepository->clearUserState($user);
+            $month = $monthYear['month'];
+            $year = $monthYear['year'];
+
+            $tempData = $user->getTempData();
+            $spreadsheetId = $tempData['spreadsheet_id'] ?? null;
+            if (!$spreadsheetId) {
+                throw new \RuntimeException('Не найден ID таблицы');
+            }
+
+            $this->sheetsService->addSpreadsheet($user, $spreadsheetId, $month, $year);
+
+            $this->sendMessage($chatId, sprintf('Таблица за %s %d успешно добавлена', $this->getMonthName($month), $year));
+        } catch (\RuntimeException $e) {
+            $this->sendMessage($chatId, $e->getMessage());
+            $keyboard = array_map(
+                static function (array $button) {
+                    return ['text' => $button['text']];
+                },
+                $this->buildMonthsKeyboard()
+            );
+            $this->sendMessage($chatId, 'Выберите месяц:', $keyboard);
 
             return;
         }
 
-        try {
-            [$monthNumber, $year] = $this->parseMonthAndYear($text);
-
-            $this->logger->info('Adding spreadsheet for month', [
-                'chat_id' => $chatId,
-                'spreadsheet_id' => $spreadsheetId,
-                'month' => $monthNumber,
-                'year' => $year,
-            ]);
-
-            $this->sheetsService->addSpreadsheet($user, $spreadsheetId, $monthNumber, $year);
-
-            Request::sendMessage([
-                'chat_id' => $chatId,
-                'text' => sprintf(
-                    'Таблица успешно привязана к месяцу %s %d',
-                    $this->getMonthName($monthNumber),
-                    $year
-                ),
-            ]);
-
-            $this->logger->info('Successfully added spreadsheet', [
-                'chat_id' => $chatId,
-                'spreadsheet_id' => $spreadsheetId,
-                'month' => $monthNumber,
-                'year' => $year,
-            ]);
-        } catch (\RuntimeException $e) {
-            $this->logger->error('Failed to add spreadsheet', [
-                'chat_id' => $chatId,
-                'spreadsheet_id' => $spreadsheetId,
-                'text' => $text,
-                'error' => $e->getMessage(),
-            ]);
-            Request::sendMessage([
-                'chat_id' => $chatId,
-                'text' => $e->getMessage(),
-            ]);
-        }
-
-        $this->userRepository->clearUserState($user);
+        $user->setState('');
+        $this->userRepository->save($user, true);
     }
 
-    /**
-     * @return array<int, array<array<string, string>>>
-     */
-    private function buildMonthsKeyboard(): array
+    private function handleRemoveSpreadsheet(int $chatId, User $user, string $text): void
     {
-        $months = $this->getMonthsList();
-        $keyboard = [];
-        $row = [];
-        $i = 0;
+        $spreadsheets = $this->sheetsService->getSpreadsheetsList($user);
+        $found = false;
 
-        foreach ($months as $label => $month) {
-            $row[] = ['text' => $label];
-            ++$i;
-            if (0 === $i % 3) {
-                $keyboard[] = $row;
-                $row = [];
+        foreach ($spreadsheets as $spreadsheet) {
+            $title = sprintf('%s %d', $spreadsheet['month'], $spreadsheet['year']);
+            if ($title === $text) {
+                $found = true;
+                $monthYear = $this->parseMonthAndYear($text);
+                if ($monthYear) {
+                    try {
+                        $this->sheetsService->removeSpreadsheet($user, $monthYear['month'], $monthYear['year']);
+                        $this->sendMessage($chatId, 'Таблица успешно удалена');
+                    } catch (\RuntimeException $e) {
+                        $this->sendMessage($chatId, $e->getMessage());
+                    }
+                } else {
+                    $this->sendMessage($chatId, 'Неверный формат даты');
+                }
+                break;
             }
         }
 
-        if (!empty($row)) {
-            $keyboard[] = $row;
+        if (!$found) {
+            $this->sendMessage($chatId, 'Таблица не найдена');
+        }
+
+        $user->setState('');
+        $this->userRepository->save($user, true);
+    }
+
+    /**
+     * @return array<int, array<string, string>>
+     */
+    private function buildMonthsKeyboard(): array
+    {
+        $keyboard = [];
+        $months = [
+            'Январь',
+            'Февраль',
+            'Март',
+            'Апрель',
+            'Май',
+            'Июнь',
+            'Июль',
+            'Август',
+            'Сентябрь',
+            'Октябрь',
+            'Ноябрь',
+            'Декабрь',
+        ];
+
+        foreach ($months as $text) {
+            $keyboard[] = ['text' => $text];
         }
 
         return $keyboard;
     }
 
     /**
-     * @return array{0: int, 1: int}
+     * @return array{month: int, year: int}|null
      */
-    private function parseMonthAndYear(string $text): array
+    private function parseMonthAndYear(string $text): ?array
     {
-        // Try to parse month and year from text
-        if (preg_match('/^(\p{L}+)\s+(\d{4})$/u', $text, $matches)) {
-            $monthName = $matches[1];
-            $year = (int) $matches[2];
-
-            $months = $this->getMonthsMap();
-            if (!isset($months[$monthName])) {
-                throw new \RuntimeException('Пожалуйста, используйте корректное название месяца (например: Январь 2025)');
-            }
-
-            return [$months[$monthName], $year];
+        $parts = explode(' ', trim($text));
+        if (2 !== count($parts)) {
+            return null;
         }
 
-        // Try to parse from the keyboard selection
-        $months = $this->getMonthsList();
-        if (!isset($months[$text])) {
-            throw new \RuntimeException('Пожалуйста, выберите месяц из предложенных вариантов или введите в формате "Месяц Год" (например: Январь 2025)');
-        }
+        $monthName = $parts[0];
+        $year = (int) $parts[1];
 
-        if (!preg_match('/^.*\s+(\d{4})$/', $text, $matches)) {
-            throw new \RuntimeException('Произошла ошибка при обработке выбранного месяца. Попробуйте ввести месяц и год вручную (например: Январь 2025)');
-        }
-
-        return [$months[$text], (int) $matches[1]];
-    }
-
-    /**
-     * @return array<string, int>
-     */
-    private function getMonthsList(): array
-    {
-        $months = $this->getMonthsMap();
-        $currentMonth = (int) date('m');
-        $currentYear = (int) date('Y');
-        $result = [];
-
-        // Get next month and 5 previous months
-        $nextMonth = $currentMonth + 1;
-        $nextMonthYear = $currentYear;
-        if ($nextMonth > 12) {
-            $nextMonth = 1;
-            ++$nextMonthYear;
-        }
-
-        // Add next month first
-        $monthName = array_search($nextMonth, $months, true);
-        if ($monthName) {
-            $result[$monthName.' '.$nextMonthYear] = $nextMonth;
-        }
-
-        // Then add 5 previous months
-        for ($i = 0; $i < 5; ++$i) {
-            $month = $nextMonth - 1 - $i;
-            $year = $nextMonthYear;
-
-            if ($month <= 0) {
-                $month += 12;
-                --$year;
-            }
-
-            $monthName = array_search($month, $months, true);
-            if ($monthName) {
-                $result[$monthName.' '.$year] = $month;
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * @return array<string, int>
-     */
-    private function getMonthsMap(): array
-    {
-        return [
+        $months = [
             'Январь' => 1,
             'Февраль' => 2,
             'Март' => 3,
@@ -273,12 +223,61 @@ class SpreadsheetStateHandler implements StateHandlerInterface
             'Ноябрь' => 11,
             'Декабрь' => 12,
         ];
+
+        if (!isset($months[$monthName])) {
+            return null;
+        }
+
+        return [
+            'month' => $months[$monthName],
+            'year' => $year,
+        ];
     }
 
     private function getMonthName(int $month): string
     {
-        $months = array_flip($this->getMonthsMap());
+        $months = [
+            1 => 'Январь',
+            2 => 'Февраль',
+            3 => 'Март',
+            4 => 'Апрель',
+            5 => 'Май',
+            6 => 'Июнь',
+            7 => 'Июль',
+            8 => 'Август',
+            9 => 'Сентябрь',
+            10 => 'Октябрь',
+            11 => 'Ноябрь',
+            12 => 'Декабрь',
+        ];
 
         return $months[$month] ?? '';
+    }
+
+    /**
+     * @param array<int, array<string, string>>|null $keyboard
+     */
+    protected function sendMessage(int $chatId, string $text, ?array $keyboard = null): void
+    {
+        $data = [
+            'chat_id' => $chatId,
+            'text' => $text,
+            'parse_mode' => 'HTML',
+        ];
+
+        if ($keyboard) {
+            $data['reply_markup'] = json_encode([
+                'keyboard' => array_map(
+                    static function (array $button) {
+                        return [$button];
+                    },
+                    $keyboard
+                ),
+                'resize_keyboard' => true,
+                'one_time_keyboard' => true,
+            ]);
+        }
+
+        Request::sendMessage($data);
     }
 }
