@@ -1,14 +1,11 @@
 parameters:
-    telegram.bot_token: '%env(TELEGRAM_BOT_TOKEN)%'
-    telegram.bot_username: '%env(TELEGRAM_BOT_USERNAME)%'
-    google.credentials_path: '%env(GOOGLE_SHEETS_CREDENTIALS_PATH)%'
-    google.service_account_email: '%env(GOOGLE_SERVICE_ACCOUNT_EMAIL)%'
+    telegram_bot_token: '%env(TELEGRAM_BOT_TOKEN)%'
+    telegram_bot_username: '%env(TELEGRAM_BOT_USERNAME)%'
 
 services:
     _defaults:
         autowire: true
         autoconfigure: true
-        public: false
 
     App\:
         resource: '../src/'
@@ -17,17 +14,28 @@ services:
             - '../src/Entity/'
             - '../src/Kernel.php'
 
-    App\Command\SetWebhookCommand:
-        arguments:
-            $botToken: '%telegram.bot_token%'
-            $botUsername: '%telegram.bot_username%'
-
     App\Service\TelegramBotService:
         arguments:
-            $botToken: '%telegram.bot_token%'
-            $botUsername: '%telegram.bot_username%'
+            $botToken: '%telegram_bot_token%'
+            $botUsername: '%telegram_bot_username%'
 
-    App\Service\GoogleSheetsService:
+    App\Service\Command\:
+        resource: '../src/Service/Command'
+        exclude:
+            - '../src/Service/Command/AbstractCommand.php'
+            - '../src/Service/Command/CommandInterface.php'
+        tags: ['app.command']
+
+    App\Service\StateHandler\:
+        resource: '../src/Service/StateHandler'
+        exclude:
+            - '../src/Service/StateHandler/StateHandlerInterface.php'
+        tags: ['app.state_handler']
+
+    App\Service\CommandRegistry:
         arguments:
-            $credentialsPath: '%google.credentials_path%'
-            $serviceAccountEmail: '%google.service_account_email%' 
+            $commands: !tagged_iterator app.command
+
+    App\Service\StateHandler\StateHandlerRegistry:
+        arguments:
+            $handlers: !tagged_iterator app.state_handler 
