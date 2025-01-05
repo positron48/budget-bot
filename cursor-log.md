@@ -805,7 +805,8 @@ BudgetBot, [05.01.2025 20:16]
 
 ---
 
-актуализируй ветку, закоммить все изменения и запушь 
+актуализируй ветку, закоммить все изменения и запушь [fix: prevent duplicate categories in lists and database](https://github.com/positron48/budget-bot/commit/3485952558f28ccdfbffcf2449ead5e87cf048bf)
+(**начиная с этого момента бота можно считать в целом юзабельным**)
 
 ---
 
