@@ -511,7 +511,15 @@ Run timkrase/phpunit-coverage-badge@v1.2.1
 
 ---
 
-закоммить все изменения, предварительно подтянув ветку из репозитория
+закоммить все изменения, предварительно подтянув ветку из репозитория [test: improve GoogleSheetsService test coverage and setup](https://github.com/positron48/budget-bot/commit/a42fd938a2a9336d07f1cbdea1a440b15f0f6f72)
+
+---
+
+Почему есть только StartCommand, а /add и /list не реализованы отдельными классами?
+
+---
+
+для фикса кодстайла просто запускай make cs-fix, можешь делать это всегда перед запуском ci
 
 ---
 
