@@ -82,7 +82,25 @@ abstract class IntegrationTestCase extends KernelTestCase
             Request::class,
             'sendMessage',
             '$data',
-            'error_log("Telegram API Request: " . json_encode($data, JSON_UNESCAPED_UNICODE)); if (is_array($data) && isset($data["text"])) { \App\Tests\Mock\ResponseCollector::getInstance()->addResponse($data["text"]); } $response = new \App\Tests\Mock\ServerResponseMock(["ok" => true]); error_log("Telegram API Response: " . json_encode($response, JSON_UNESCAPED_UNICODE)); return $response;',
+            'error_log("Telegram API Request: " . json_encode($data, JSON_UNESCAPED_UNICODE)); 
+            if (is_array($data) && isset($data["text"])) { 
+                $text = $data["text"];
+                if (isset($data["reply_markup"])) {
+                    $keyboard = $data["reply_markup"];
+                    if (isset($keyboard["keyboard"])) {
+                        $text .= "\nКлавиатура:\n";
+                        foreach ($keyboard["keyboard"] as $row) {
+                            foreach ($row as $button) {
+                                $text .= "- " . $button["text"] . "\n";
+                            }
+                        }
+                    }
+                }
+                \App\Tests\Mock\ResponseCollector::getInstance()->addResponse($text);
+            } 
+            $response = new \App\Tests\Mock\ServerResponseMock(["ok" => true]); 
+            error_log("Telegram API Response: " . json_encode($response, JSON_UNESCAPED_UNICODE)); 
+            return $response;',
             RUNKIT7_ACC_STATIC | RUNKIT7_ACC_PUBLIC
         );
     }

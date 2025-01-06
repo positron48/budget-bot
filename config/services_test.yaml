@@ -12,13 +12,6 @@ services:
         autowire: false
         autoconfigure: false
 
-    App\Service\TelegramBotService:
-        class: App\Tests\Mock\TestTelegramBotService
-        public: true
-        arguments:
-            $botToken: 'test_token'
-            $botUsername: 'test_bot'
-
     App\Service\TransactionHandler:
         class: App\Tests\Mock\TestTransactionHandler
         public: true

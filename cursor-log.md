@@ -948,7 +948,38 @@ git pull && git add . && git commit
 
 ---
 
-git pull && git add . && git commit
+git pull && git add . && git commit [test: simplify month selection test](https://github.com/positron48/budget-bot/commit/a552f20b2d978d3a793e0701d8add65cd5d94374)
 
 ---
 
+давай добавим xdebug в докер
+
+---
+
+проверять нужно из докера
+
+---
+
+добавь в TestTelegramBotService для addResponse в text данные клавиатуры, чтобы можно было сверять их в тестах 
+
+---
+
+добавь теперь в testFullUserJourney проверку клавиатуры выбора месяца
+
+---
+
+Telegram API Request: {"chat_id":123456,"text":"Выберите месяц и год или введите их в формате \"Месяц Год\" (например \"Январь 2024\"):","parse_mode":"HTML","reply_markup":{"keyboard":[[{"text":"Февраль 2025"}],[{"text":"Январь 2025"}],[{"text":"Декабрь 2024"}],[{"text":"Ноябрь 2024"}],[{"text":"Октябрь 2024"}],[{"text":"Сентябрь 2024"}]],"one_time_keyboard":true,"resize_keyboard":true}}
+
+проверь корректно ли в IntegrationTestCase реализован sendMessage, т.к. видимо при передаче клавиатуры метод падает
+
+---
+
+а может $data["reply_markup"] не нужно делать json_decode?
+
+---
+
+давай вернемся к CI и тестам, для проверки всегда запускай make cs-fix && make ci
+
+---
+
+одной командой: git pull && git add . && git commit && git push
