@@ -1120,4 +1120,54 @@ git pull && git add . && git commit && git push [test: adding a spreadsheet](htt
 
 ---
 
-в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push
+в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push [fix: add WAITING_REMOVE_SPREADSHEET state handling to fix spreadsheet deletion](https://github.com/positron48/budget-bot/commit/619c164b42098381bd5c7cb2e1c8dbbaeeb27eb3)
+
+---
+
+давай теперь долбавим тест на синхронизацию списка категорий с таблицей, и в целом по работе со списком категорий
+
+---
+
+в ответ на sync_categories выдается сразу 2 сообщения - категории очищены и результаты синхронизации. В тесте они сравниваются последовательно
+
+---
+
+по факту запрашивается range "Сводка!B28:B", а мы в моке добавляем Settinge!A2:A50 для расходов, аналогично для доходов - проверяется Сводка!H28:H
+
+---
+
+проверь логику, запускай make cs-fix && make ci
+
+---
+
+(**новый чат**)
+[2025-01-06T18:21:31.584271+00:00] doctrine.INFO: Connecting with parameters array{"use_savepoints":true,"driver":"pdo_sqlite","idle_connection_ttl":600,"host":"localhost","port":null,"user":"root","password":null,"driverOptions":[],"defaultTableOptions":[],"path":"/var/www/budget-bot/var/data.db","charset":"utf8"} {"params":{"use_savepoints":true,"driver":"pdo_sqlite","idle_connection_ttl":600,"host":"localhost","port":null,"user":"root","password":null,"driverOptions":[],"defaultTableOptions":[],"path":"/var/www/budget-bot/var/data.db","charset":"utf8"}} []
+[2025-01-06T18:21:31.591894+00:00] doctrine.DEBUG: Executing statement: SELECT t0.id AS id_1, t0.telegram_id AS telegram_id_2, t0.username AS username_3, t0.first_name AS first_name_4, t0.last_name AS last_name_5, t0.current_spreadsheet_id AS current_spreadsheet_id_6, t0.state AS state_7, t0.temp_data AS temp_data_8 FROM user t0 WHERE t0.telegram_id = ? LIMIT 1 (parameters: array{"1":273894269}, types: array{"1":1}) {"sql":"SELECT t0.id AS id_1, t0.telegram_id AS telegram_id_2, t0.username AS username_3, t0.first_name AS first_name_4, t0.last_name AS last_name_5, t0.current_spreadsheet_id AS current_spreadsheet_id_6, t0.state AS state_7, t0.temp_data AS temp_data_8 FROM user t0 WHERE t0.telegram_id = ? LIMIT 1","params":{"1":273894269},"types":{"1":1}} []
+[2025-01-06T18:21:31.604160+00:00] request.CRITICAL: Uncaught PHP Exception Doctrine\DBAL\Exception\DriverException: "An exception occurred while executing a query: SQLSTATE[HY000]: General error: 1 no such column: t0.is_income" at /var/www/budget-bot/vendor/doctrine/dbal/src/Driver/API/SQLite/ExceptionConverter.php line 83 {"exception":"[object] (Doctrine\\DBAL\\Exception\\DriverException(code: 1): An exception occurred while executing a query: SQLSTATE[HY000]: General error: 1 no such column: t0.is_income at /var/www/budget-bot/vendor/doctrine/dbal/src/Driver/API/SQLite/ExceptionConverter.php:83)\n[previous exception] [object] (Doctrine\\DBAL\\Driver\\PDO\\Exception(code: 1): SQLSTATE[HY000]: General error: 1 no such column: t0.is_income at /var/www/budget-bot/vendor/doctrine/dbal/src/Driver/PDO/Exception.php:28)\n[previous exception] [object] (PDOException(code: HY000): SQLSTATE[HY000]: General error: 1 no such column: t0.is_income at /var/www/budget-bot/vendor/doctrine/dbal/src/Driver/PDO/Connection.php:59)"} []
+
+
+---
+
+проверь есть ли в Dockerfile sqlite драйвер
+
+---
+
+а, вот эту команду нужно запускать было через докер:
+php bin/console doctrine:migrations:diff
+
+---
+
+проверь логику, запускай make cs-fix && make ci
+
+---
+
+дефолтные категории не нужны
+
+----
+
+проверь тесты, всегда запускай make cs-fix && make ci
+как будто не сохраняется сопоставление категории
+
+---
+
+в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push 

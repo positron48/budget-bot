@@ -40,8 +40,6 @@ class CategoryService
 
     public function detectCategory(string $description, string $type, User $user): ?string
     {
-        $isIncome = 'income' === $type;
-        $type = $isIncome ? 'income' : 'expense';
         $description = mb_strtolower($description);
 
         // First try exact match with full description
@@ -100,7 +98,8 @@ class CategoryService
         $userCategory = new UserCategory();
         $userCategory->setUser($user)
             ->setName($categoryName)
-            ->setType($type);
+            ->setType($type)
+            ->setIsIncome('income' === $type);
 
         $this->userCategoryRepository->save($userCategory, true);
         $this->addKeywordsToCategory([$keyword], $userCategory);
@@ -144,7 +143,7 @@ class CategoryService
             $categoryKeyword->setKeyword($keyword);
 
             if ($category instanceof UserCategory) {
-                $categoryKeyword->setUserCategory($category);
+                $category->addKeyword($categoryKeyword);
             } else {
                 $categoryKeyword->setCategory($category);
             }
