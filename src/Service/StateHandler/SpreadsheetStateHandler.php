@@ -14,7 +14,6 @@ class SpreadsheetStateHandler implements StateHandlerInterface
         'WAITING_SPREADSHEET_ACTION',
         'WAITING_SPREADSHEET_ID',
         'WAITING_SPREADSHEET_MONTH',
-        'WAITING_SPREADSHEET_YEAR',
         'WAITING_SPREADSHEET_TO_DELETE',
     ];
 
@@ -49,12 +48,6 @@ class SpreadsheetStateHandler implements StateHandlerInterface
 
         if ('WAITING_SPREADSHEET_MONTH' === $state && isset($tempData['spreadsheet_id'])) {
             $this->handleSpreadsheetMonth($chatId, $user, $message);
-
-            return true;
-        }
-
-        if ('WAITING_SPREADSHEET_YEAR' === $state && isset($tempData['spreadsheet_id'], $tempData['month'])) {
-            $this->handleSpreadsheetYear($chatId, $user, $message);
 
             return true;
         }
@@ -133,7 +126,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
         $keyboard[] = sprintf('%s %d', $this->getMonthName($nextMonth), $nextMonthYear);
 
         // Add 5 previous months
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 5; ++$i) {
             $now->modify('-1 month');
             $month = (int) $now->format('n');
             $year = (int) $now->format('Y');
@@ -141,8 +134,8 @@ class SpreadsheetStateHandler implements StateHandlerInterface
         }
 
         $this->sendMessage(
-            $chatId, 
-            'Выберите месяц и год или введите их в формате "Месяц Год" (например "Январь 2024"):', 
+            $chatId,
+            'Выберите месяц и год или введите их в формате "Месяц Год" (например "Январь 2024"):',
             $keyboard
         );
     }
@@ -162,7 +155,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
 
             $monthName = $matches[1];
             $year = (int) $matches[2];
-            
+
             $month = $this->getMonthNumber($monthName);
             $this->logger->info('Month number conversion', [
                 'monthName' => $monthName,
@@ -176,6 +169,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
                     'year' => $year,
                 ]);
                 $this->sendMessage($chatId, 'Неверный формат. Используйте формат "Месяц Год" (например "Январь 2024")');
+
                 return;
             }
 
@@ -192,6 +186,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
                     'year' => $year,
                 ]);
                 $this->sendMessage($chatId, 'Не удалось добавить таблицу. Попробуйте еще раз.');
+
                 return;
             }
 
@@ -200,6 +195,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
             $this->userRepository->save($user, true);
 
             $this->sendMessage($chatId, sprintf('Таблица за %s %d успешно добавлена', $this->getMonthName($month), $year));
+
             return;
         }
 

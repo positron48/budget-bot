@@ -2,11 +2,11 @@
 
 namespace App\Tests\Mock;
 
-use App\Service\TransactionHandler;
-use App\Service\GoogleSheetsService;
-use App\Service\CategoryService;
-use Psr\Log\LoggerInterface;
 use App\Repository\UserRepository;
+use App\Service\CategoryService;
+use App\Service\GoogleSheetsService;
+use App\Service\TransactionHandler;
+use Psr\Log\LoggerInterface;
 
 class TestTransactionHandler extends TransactionHandler
 {

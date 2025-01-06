@@ -944,3 +944,11 @@ git pull && git add . && git commit
 
 ---
 
+давай уберем из теста проверку наличия в ответе текущего месяца
+
+---
+
+git pull && git add . && git commit
+
+---
+

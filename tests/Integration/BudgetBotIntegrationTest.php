@@ -2,10 +2,10 @@
 
 namespace App\Tests\Integration;
 
+use App\Service\GoogleSheetsService;
 use App\Service\TelegramBotService;
 use App\Tests\Integration\DataFixtures\TestFixtures;
 use App\Tests\Mock\ResponseCollector;
-use App\Service\GoogleSheetsService;
 
 class BudgetBotIntegrationTest extends IntegrationTestCase
 {
@@ -137,29 +137,7 @@ class BudgetBotIntegrationTest extends IntegrationTestCase
         $responses = $this->getResponses();
         $this->assertCount(1, $responses);
         $this->assertStringContainsString('Выберите месяц и год', $responses[0]);
-        
-        // Check that the response contains the next month and 5 previous months
-        $now = new \DateTime();
-        // Get next month
-        $nextMonth = (int) $now->modify('first day of next month')->format('n');
-        $nextMonthYear = (int) $now->format('Y');
-        
-        // Check next month
-        $this->assertStringContainsString(
-            sprintf('%s %d', $this->getMonthName($nextMonth), $nextMonthYear),
-            $responses[0]
-        );
-
-        // Check 5 previous months
-        for ($i = 1; $i <= 5; $i++) {
-            $now->modify('-1 month');
-            $month = (int) $now->format('n');
-            $year = (int) $now->format('Y');
-            $this->assertStringContainsString(
-                sprintf('%s %d', $this->getMonthName($month), $year),
-                $responses[0]
-            );
-        }
+        $this->assertStringContainsString('введите их в формате "Месяц Год"', $responses[0]);
 
         // Reset responses for the next command
         $this->responseCollector->reset();
@@ -179,26 +157,6 @@ class BudgetBotIntegrationTest extends IntegrationTestCase
         $responses = $this->getResponses();
         $this->assertCount(1, $responses);
         $this->assertStringContainsString('успешно добавлена', $responses[0]);
-    }
-
-    private function getMonthName(int $month): string
-    {
-        $months = [
-            1 => 'Январь',
-            2 => 'Февраль',
-            3 => 'Март',
-            4 => 'Апрель',
-            5 => 'Май',
-            6 => 'Июнь',
-            7 => 'Июль',
-            8 => 'Август',
-            9 => 'Сентябрь',
-            10 => 'Октябрь',
-            11 => 'Ноябрь',
-            12 => 'Декабрь',
-        ];
-
-        return $months[$month] ?? '';
     }
 
     /**
