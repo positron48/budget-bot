@@ -14,16 +14,19 @@ class GoogleSheetsService
 {
     protected SpreadsheetManager $spreadsheetManager;
     protected TransactionRecorder $transactionRecorder;
+    protected CategoryService $categoryService;
 
     public function __construct(
         string $credentialsPath,
         string $serviceAccountEmail,
         LoggerInterface $logger,
         UserSpreadsheetRepository $spreadsheetRepository,
+        CategoryService $categoryService,
     ) {
         $client = new GoogleSheetsClient($credentialsPath, $serviceAccountEmail, $logger);
         $this->spreadsheetManager = new SpreadsheetManager($client, $spreadsheetRepository, $logger);
         $this->transactionRecorder = new TransactionRecorder($client, $logger);
+        $this->categoryService = $categoryService;
     }
 
     public function addExpense(
@@ -49,6 +52,9 @@ class GoogleSheetsService
     public function addSpreadsheet(User $user, string $spreadsheetId, int $month, int $year): void
     {
         $this->spreadsheetManager->addSpreadsheet($user, $spreadsheetId, $month, $year);
+
+        // Import categories from the spreadsheet
+        $this->syncCategories($user, $spreadsheetId);
     }
 
     public function removeSpreadsheet(User $user, int $month, int $year): void
@@ -77,5 +83,71 @@ class GoogleSheetsService
     public function handleSpreadsheetId(string $input): string
     {
         return $this->spreadsheetManager->handleSpreadsheetId($input);
+    }
+
+    /**
+     * @return array{
+     *     added_to_db: array{
+     *         expense: array<string>,
+     *         income: array<string>
+     *     },
+     *     added_to_sheet: array{
+     *         expense: array<string>,
+     *         income: array<string>
+     *     }
+     * }
+     */
+    public function syncCategories(User $user, string $spreadsheetId): array
+    {
+        $changes = [
+            'added_to_db' => [
+                'expense' => [],
+                'income' => [],
+            ],
+            'added_to_sheet' => [
+                'expense' => [],
+                'income' => [],
+            ],
+        ];
+
+        // Get categories from spreadsheet
+        $expenseCategories = $this->spreadsheetManager->getExpenseCategories($spreadsheetId);
+        $incomeCategories = $this->spreadsheetManager->getIncomeCategories($spreadsheetId);
+
+        // Get categories from database
+        $dbExpenseCategories = $this->categoryService->getCategories(false, $user);
+        $dbIncomeCategories = $this->categoryService->getCategories(true, $user);
+
+        // Add missing categories to database
+        foreach ($expenseCategories as $category) {
+            if (!in_array($category, $dbExpenseCategories, true)) {
+                $this->categoryService->addUserCategory($user, $category, false);
+                $changes['added_to_db']['expense'][] = $category;
+            }
+        }
+
+        foreach ($incomeCategories as $category) {
+            if (!in_array($category, $dbIncomeCategories, true)) {
+                $this->categoryService->addUserCategory($user, $category, true);
+                $changes['added_to_db']['income'][] = $category;
+            }
+        }
+
+        // Add missing categories to spreadsheet
+        foreach ($dbExpenseCategories as $category) {
+            if (!in_array($category, $expenseCategories, true)) {
+                $this->spreadsheetManager->addExpenseCategory($spreadsheetId, $category);
+                $changes['added_to_sheet']['expense'][] = $category;
+            }
+        }
+
+        foreach ($dbIncomeCategories as $category) {
+            if (!in_array($category, $incomeCategories, true)) {
+                $this->spreadsheetManager->addIncomeCategory($spreadsheetId, $category);
+                $changes['added_to_sheet']['income'][] = $category;
+            }
+        }
+
+        return $changes;
     }
 }

@@ -7,15 +7,15 @@ use App\Entity\CategoryKeyword;
 use App\Entity\User;
 use App\Entity\UserCategory;
 use App\Repository\CategoryKeywordRepository;
-use App\Repository\CategoryRepository;
 use App\Repository\UserCategoryRepository;
+use Doctrine\ORM\EntityManagerInterface;
 
 class CategoryService
 {
     public function __construct(
-        private readonly CategoryRepository $categoryRepository,
         private readonly UserCategoryRepository $userCategoryRepository,
         private readonly CategoryKeywordRepository $categoryKeywordRepository,
+        private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -33,20 +33,9 @@ class CategoryService
             $userCategories
         );
 
-        // Get default categories that don't have user-specific overrides
-        $defaultCategories = $this->categoryRepository->findByType($type);
-        $defaultCategoryNames = array_map(
-            static fn (Category $category): string => $category->getName() ?? '',
-            array_filter(
-                $defaultCategories,
-                static fn (Category $category): bool => !in_array($category->getName(), $userCategoryNames, true)
-            )
-        );
+        sort($userCategoryNames);
 
-        $categories = array_merge($userCategoryNames, $defaultCategoryNames);
-        sort($categories);
-
-        return array_values(array_unique($categories));
+        return array_values(array_unique($userCategoryNames));
     }
 
     public function detectCategory(string $description, string $type, User $user): ?string
@@ -89,16 +78,6 @@ class CategoryService
             }
         }
 
-        // Check default categories
-        $defaultCategories = $this->categoryRepository->findByType($type);
-        foreach ($defaultCategories as $category) {
-            foreach ($category->getKeywords() as $categoryKeyword) {
-                if (mb_strtolower($keyword) === mb_strtolower($categoryKeyword->getKeyword() ?? '')) {
-                    return $category->getName();
-                }
-            }
-        }
-
         return null;
     }
 
@@ -117,23 +96,14 @@ class CategoryService
             return;
         }
 
-        // Try to find default category
-        $defaultCategory = $this->categoryRepository->findOneBy([
-            'name' => $categoryName,
-            'type' => $type,
-            'isDefault' => true,
-        ]);
+        // Create a new user category
+        $userCategory = new UserCategory();
+        $userCategory->setUser($user)
+            ->setName($categoryName)
+            ->setType($type);
 
-        if ($defaultCategory) {
-            // If found default category, create a user category with the same name
-            $userCategory = new UserCategory();
-            $userCategory->setUser($user)
-                ->setName($categoryName)
-                ->setType($type);
-
-            $this->userCategoryRepository->save($userCategory, true);
-            $this->addKeywordsToCategory([$keyword], $userCategory);
-        }
+        $this->userCategoryRepository->save($userCategory, true);
+        $this->addKeywordsToCategory([$keyword], $userCategory);
     }
 
     /**
@@ -141,6 +111,17 @@ class CategoryService
      */
     public function addUserCategory(User $user, string $name, bool $isIncome, array $keywords = []): void
     {
+        // Check if category already exists
+        $existingCategory = $this->userCategoryRepository->findOneBy([
+            'user' => $user,
+            'name' => $name,
+            'type' => $isIncome ? 'income' : 'expense',
+        ]);
+
+        if ($existingCategory) {
+            return;
+        }
+
         $category = new UserCategory();
         $category->setUser($user)
             ->setName($name)
@@ -183,5 +164,17 @@ class CategoryService
         if ($category) {
             $this->userCategoryRepository->remove($category, true);
         }
+    }
+
+    public function clearUserCategories(User $user): void
+    {
+        $expenseCategories = $this->userCategoryRepository->findByUserAndType($user, 'expense');
+        $incomeCategories = $this->userCategoryRepository->findByUserAndType($user, 'income');
+
+        foreach ([...$expenseCategories, ...$incomeCategories] as $category) {
+            $this->userCategoryRepository->remove($category, false);
+        }
+
+        $this->entityManager->flush();
     }
 }

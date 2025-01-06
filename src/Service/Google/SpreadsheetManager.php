@@ -9,6 +9,11 @@ use Psr\Log\LoggerInterface;
 
 class SpreadsheetManager
 {
+    private const EXPENSE_CATEGORIES_COLUMN = 'Сводка!B28:B';
+    private const INCOME_CATEGORIES_COLUMN = 'Сводка!H28:H';
+    private const EXPENSE_CATEGORIES_ROW_TEMPLATE = 'Сводка!B%d:F%d';
+    private const INCOME_CATEGORIES_ROW_TEMPLATE = 'Сводка!H%d:L%d';
+
     private GoogleSheetsClient $client;
     private UserSpreadsheetRepository $spreadsheetRepository;
     private LoggerInterface $logger;
@@ -124,6 +129,98 @@ class SpreadsheetManager
         }
 
         return $input;
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getExpenseCategories(string $spreadsheetId): array
+    {
+        $values = $this->client->getValues($spreadsheetId, self::EXPENSE_CATEGORIES_COLUMN);
+        if (!$values) {
+            return [];
+        }
+
+        // Get all non-empty values from the column
+        $categories = array_filter(array_column($values, 0), static fn ($value): bool => !empty($value) && is_string($value));
+
+        return array_values(array_unique($categories));
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getIncomeCategories(string $spreadsheetId): array
+    {
+        $values = $this->client->getValues($spreadsheetId, self::INCOME_CATEGORIES_COLUMN);
+        if (!$values) {
+            return [];
+        }
+
+        // Get all non-empty values from the column
+        $categories = array_filter(array_column($values, 0), static fn ($value): bool => !empty($value) && is_string($value));
+
+        return array_values(array_unique($categories));
+    }
+
+    public function addExpenseCategory(string $spreadsheetId, string $category): void
+    {
+        $categories = $this->getExpenseCategories($spreadsheetId);
+        if (in_array($category, $categories, true)) {
+            return;
+        }
+
+        // Find the first empty cell in the column
+        $values = $this->client->getValues($spreadsheetId, self::EXPENSE_CATEGORIES_COLUMN);
+        if (!$values) {
+            // If the range is empty, add to the first cell
+            $this->client->updateValues($spreadsheetId, self::EXPENSE_CATEGORIES_COLUMN, [[$category]]);
+
+            return;
+        }
+
+        // Find the first empty row
+        $rowIndex = 28; // Start from row 28
+        foreach ($values as $value) {
+            if (empty($value[0])) {
+                break;
+            }
+            ++$rowIndex;
+        }
+
+        // Add the category to the row and copy the formula
+        $range = sprintf(self::EXPENSE_CATEGORIES_ROW_TEMPLATE, $rowIndex, $rowIndex);
+        $this->client->updateValues($spreadsheetId, $range, [[$category, '', '', '', '']]);
+    }
+
+    public function addIncomeCategory(string $spreadsheetId, string $category): void
+    {
+        $categories = $this->getIncomeCategories($spreadsheetId);
+        if (in_array($category, $categories, true)) {
+            return;
+        }
+
+        // Find the first empty cell in the column
+        $values = $this->client->getValues($spreadsheetId, self::INCOME_CATEGORIES_COLUMN);
+        if (!$values) {
+            // If the range is empty, add to the first cell
+            $this->client->updateValues($spreadsheetId, self::INCOME_CATEGORIES_COLUMN, [[$category]]);
+
+            return;
+        }
+
+        // Find the first empty row
+        $rowIndex = 28; // Start from row 28
+        foreach ($values as $value) {
+            if (empty($value[0])) {
+                break;
+            }
+            ++$rowIndex;
+        }
+
+        // Add the category to the row and copy the formula
+        $range = sprintf(self::INCOME_CATEGORIES_ROW_TEMPLATE, $rowIndex, $rowIndex);
+        $this->client->updateValues($spreadsheetId, $range, [[$category, '', '', '', '']]);
     }
 
     private function getMonthName(int $month): string

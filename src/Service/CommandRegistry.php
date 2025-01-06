@@ -2,38 +2,50 @@
 
 namespace App\Service;
 
-use App\Entity\User;
+use App\Service\Command\CategoriesCommand;
+use App\Service\Command\ClearCategoriesCommand;
 use App\Service\Command\CommandInterface;
+use App\Service\Command\ListCommand;
+use App\Service\Command\MapCommand;
+use App\Service\Command\RemoveCommand;
+use App\Service\Command\StartCommand;
+use App\Service\Command\SyncCategoriesCommand;
 
 class CommandRegistry
 {
-    /** @var CommandInterface[] */
+    /**
+     * @var array<CommandInterface>
+     */
     private array $commands;
 
-    /**
-     * @param CommandInterface[] $commands
-     */
-    public function __construct(iterable $commands)
-    {
-        $this->commands = [];
-        foreach ($commands as $command) {
-            $this->commands[] = $command;
-        }
+    public function __construct(
+        StartCommand $startCommand,
+        ListCommand $listCommand,
+        RemoveCommand $removeCommand,
+        CategoriesCommand $categoriesCommand,
+        MapCommand $mapCommand,
+        SyncCategoriesCommand $syncCategoriesCommand,
+        ClearCategoriesCommand $clearCategoriesCommand,
+    ) {
+        $this->commands = [
+            $startCommand,
+            $listCommand,
+            $removeCommand,
+            $categoriesCommand,
+            $mapCommand,
+            $syncCategoriesCommand,
+            $clearCategoriesCommand,
+        ];
     }
 
     public function findCommand(string $message): ?CommandInterface
     {
         foreach ($this->commands as $command) {
-            if ($command->supports($message)) {
+            if (str_starts_with($message, $command->getName())) {
                 return $command;
             }
         }
 
         return null;
-    }
-
-    public function executeCommand(CommandInterface $command, int $chatId, ?User $user, string $message): void
-    {
-        $command->execute($chatId, $user, $message);
     }
 }

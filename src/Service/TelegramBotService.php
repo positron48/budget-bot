@@ -84,7 +84,7 @@ class TelegramBotService
             // Try to find and execute a command
             $command = $this->commandRegistry->findCommand(message: $text);
             if ($command) {
-                $this->commandRegistry->executeCommand($command, $chatId, $user, $text);
+                $command->execute($chatId, $user, $text);
 
                 return;
             }

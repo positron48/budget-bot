@@ -2,33 +2,32 @@
 
 namespace App\Tests\Service;
 
-use App\Entity\Category;
 use App\Entity\CategoryKeyword;
 use App\Entity\User;
 use App\Entity\UserCategory;
 use App\Repository\CategoryKeywordRepository;
-use App\Repository\CategoryRepository;
 use App\Repository\UserCategoryRepository;
 use App\Service\CategoryService;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class CategoryServiceTest extends TestCase
 {
     private CategoryService $service;
-    private MockObject&CategoryRepository $repository;
     private MockObject&UserCategoryRepository $userCategoryRepository;
     private MockObject&CategoryKeywordRepository $categoryKeywordRepository;
+    private MockObject&EntityManagerInterface $entityManager;
 
     protected function setUp(): void
     {
-        $this->repository = $this->createMock(CategoryRepository::class);
         $this->userCategoryRepository = $this->createMock(UserCategoryRepository::class);
         $this->categoryKeywordRepository = $this->createMock(CategoryKeywordRepository::class);
+        $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->service = new CategoryService(
-            $this->repository,
             $this->userCategoryRepository,
-            $this->categoryKeywordRepository
+            $this->categoryKeywordRepository,
+            $this->entityManager,
         );
     }
 
@@ -38,22 +37,14 @@ class CategoryServiceTest extends TestCase
         $userCategories = [
             $this->createUserCategoryWithKeywords('Продукты', [], 'expense', $user),
             $this->createUserCategoryWithKeywords('Транспорт', [], 'expense', $user),
-        ];
-
-        $defaultCategories = [
-            $this->createCategoryWithKeywords('Развлечения', [], 'expense'),
-            $this->createCategoryWithKeywords('Здоровье', [], 'expense'),
+            $this->createUserCategoryWithKeywords('Развлечения', [], 'expense', $user),
+            $this->createUserCategoryWithKeywords('Здоровье', [], 'expense', $user),
         ];
 
         $this->userCategoryRepository->expects($this->once())
             ->method('findByUserAndType')
             ->with($user, 'expense')
             ->willReturn($userCategories);
-
-        $this->repository->expects($this->once())
-            ->method('findByType')
-            ->with('expense')
-            ->willReturn($defaultCategories);
 
         $result = $this->service->getCategories(false, $user);
 
@@ -63,22 +54,15 @@ class CategoryServiceTest extends TestCase
     public function testDetectCategory(): void
     {
         $user = new User();
-        $userCategories = [];
-
-        $defaultCategories = [
-            $this->createCategoryWithKeywords('Продукты', ['продукты', 'еда'], 'expense'),
-            $this->createCategoryWithKeywords('Транспорт', ['такси', 'метро'], 'expense'),
+        $userCategories = [
+            $this->createUserCategoryWithKeywords('Продукты', ['продукты', 'еда'], 'expense', $user),
+            $this->createUserCategoryWithKeywords('Транспорт', ['такси', 'метро'], 'expense', $user),
         ];
 
         $this->userCategoryRepository->expects($this->atLeastOnce())
             ->method('findByUserAndType')
             ->with($user, 'expense')
             ->willReturn($userCategories);
-
-        $this->repository->expects($this->atLeastOnce())
-            ->method('findByType')
-            ->with('expense')
-            ->willReturn($defaultCategories);
 
         $result = $this->service->detectCategory('поездка на такси', 'expense', $user);
 
@@ -109,22 +93,14 @@ class CategoryServiceTest extends TestCase
         $userCategories = [
             $this->createUserCategoryWithKeywords('Продукты', ['продукты', 'еда'], 'expense', $user),
             $this->createUserCategoryWithKeywords('Транспорт', ['такси', 'метро'], 'expense', $user),
-        ];
-
-        $defaultCategories = [
-            $this->createCategoryWithKeywords('Развлечения', ['кино', 'театр'], 'expense'),
-            $this->createCategoryWithKeywords('Здоровье', ['аптека', 'врач'], 'expense'),
+            $this->createUserCategoryWithKeywords('Развлечения', ['кино', 'театр'], 'expense', $user),
+            $this->createUserCategoryWithKeywords('Здоровье', ['аптека', 'врач'], 'expense', $user),
         ];
 
         $this->userCategoryRepository->expects($this->atLeastOnce())
             ->method('findByUserAndType')
             ->with($user, 'expense')
             ->willReturn($userCategories);
-
-        $this->repository->expects($this->atLeastOnce())
-            ->method('findByType')
-            ->with('expense')
-            ->willReturn($defaultCategories);
 
         $result = $this->service->detectCategory('какое-то описание', 'expense', $user);
 
@@ -137,22 +113,14 @@ class CategoryServiceTest extends TestCase
         $userCategories = [
             $this->createUserCategoryWithKeywords('Продукты', [], 'expense', $user),
             $this->createUserCategoryWithKeywords('Транспорт', [], 'expense', $user),
-        ];
-
-        $defaultCategories = [
-            $this->createCategoryWithKeywords('Развлечения', [], 'expense'),
-            $this->createCategoryWithKeywords('Здоровье', [], 'expense'),
+            $this->createUserCategoryWithKeywords('Развлечения', [], 'expense', $user),
+            $this->createUserCategoryWithKeywords('Здоровье', [], 'expense', $user),
         ];
 
         $this->userCategoryRepository->expects($this->atLeastOnce())
             ->method('findByUserAndType')
             ->with($user, 'expense')
             ->willReturn($userCategories);
-
-        $this->repository->expects($this->atLeastOnce())
-            ->method('findByType')
-            ->with('expense')
-            ->willReturn($defaultCategories);
 
         $result = $this->service->detectCategory('описание', 'expense', $user);
 
@@ -179,23 +147,44 @@ class CategoryServiceTest extends TestCase
         return $category;
     }
 
-    /**
-     * @param array<string> $keywords
-     */
-    private function createCategoryWithKeywords(string $name, array $keywords, string $type): Category
+    public function testClearUserCategories(): void
     {
-        $category = new Category();
-        $category->setName($name)
-            ->setType($type)
-            ->setIsDefault(true);
+        $user = new User();
+        $expenseCategories = [
+            $this->createUserCategoryWithKeywords('Продукты', [], 'expense', $user),
+            $this->createUserCategoryWithKeywords('Транспорт', [], 'expense', $user),
+        ];
+        $incomeCategories = [
+            $this->createUserCategoryWithKeywords('Зарплата', [], 'income', $user),
+            $this->createUserCategoryWithKeywords('Фриланс', [], 'income', $user),
+        ];
 
-        foreach ($keywords as $keyword) {
-            $categoryKeyword = new CategoryKeyword();
-            $categoryKeyword->setKeyword($keyword)
-                ->setCategory($category);
-            $category->addKeyword($categoryKeyword);
-        }
+        $this->userCategoryRepository->expects($this->exactly(2))
+            ->method('findByUserAndType')
+            ->willReturnCallback(function ($actualUser, $type) use ($user, $expenseCategories, $incomeCategories) {
+                $this->assertSame($user, $actualUser);
 
-        return $category;
+                return 'expense' === $type ? $expenseCategories : $incomeCategories;
+            });
+
+        $removedCategories = [];
+        $this->userCategoryRepository->expects($this->exactly(4))
+            ->method('remove')
+            ->willReturnCallback(function ($category, $flush) use (&$removedCategories) {
+                $this->assertFalse($flush);
+                $removedCategories[] = $category;
+            });
+
+        $this->entityManager->expects($this->once())
+            ->method('flush');
+
+        $this->service->clearUserCategories($user);
+
+        // Verify that all categories were removed
+        $this->assertCount(4, $removedCategories);
+        $this->assertContainsEquals($expenseCategories[0], $removedCategories);
+        $this->assertContainsEquals($expenseCategories[1], $removedCategories);
+        $this->assertContainsEquals($incomeCategories[0], $removedCategories);
+        $this->assertContainsEquals($incomeCategories[1], $removedCategories);
     }
 }

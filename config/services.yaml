@@ -36,17 +36,22 @@ services:
         exclude:
             - '../src/Service/Command/AbstractCommand.php'
             - '../src/Service/Command/CommandInterface.php'
-        tags: ['app.command']
+
+    App\Service\CommandRegistry:
+        arguments:
+            $startCommand: '@App\Service\Command\StartCommand'
+            $listCommand: '@App\Service\Command\ListCommand'
+            $removeCommand: '@App\Service\Command\RemoveCommand'
+            $categoriesCommand: '@App\Service\Command\CategoriesCommand'
+            $mapCommand: '@App\Service\Command\MapCommand'
+            $syncCategoriesCommand: '@App\Service\Command\SyncCategoriesCommand'
+            $clearCategoriesCommand: '@App\Service\Command\ClearCategoriesCommand'
 
     App\Service\StateHandler\:
         resource: '../src/Service/StateHandler'
         exclude:
             - '../src/Service/StateHandler/StateHandlerInterface.php'
         tags: ['app.state_handler']
-
-    App\Service\CommandRegistry:
-        arguments:
-            $commands: !tagged_iterator app.command
 
     App\Service\StateHandler\StateHandlerRegistry:
         arguments:

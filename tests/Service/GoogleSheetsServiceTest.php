@@ -5,6 +5,7 @@ namespace App\Tests\Service;
 use App\Entity\User;
 use App\Entity\UserSpreadsheet;
 use App\Repository\UserSpreadsheetRepository;
+use App\Service\CategoryService;
 use App\Service\Google\GoogleSheetsClient;
 use App\Service\Google\SpreadsheetManager;
 use App\Service\Google\TransactionRecorder;
@@ -25,18 +26,22 @@ class GoogleSheetsServiceTest extends TestCase
     private LoggerInterface $logger;
     /** @var GoogleSheetsClient&MockObject */
     private GoogleSheetsClient $client;
+    /** @var CategoryService&MockObject */
+    private CategoryService $categoryService;
 
     protected function setUp(): void
     {
         $this->spreadsheetRepository = $this->createMock(UserSpreadsheetRepository::class);
         $this->logger = $this->createMock(LoggerInterface::class);
         $this->client = $this->createMock(GoogleSheetsClient::class);
+        $this->categoryService = $this->createMock(CategoryService::class);
 
         $this->service = new GoogleSheetsService(
             self::MOCK_CREDENTIALS_PATH,
             self::SERVICE_ACCOUNT_EMAIL,
             $this->logger,
             $this->spreadsheetRepository,
+            $this->categoryService,
         );
 
         // Replace service dependencies with mocks

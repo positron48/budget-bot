@@ -175,10 +175,10 @@ class TelegramBotServiceTest extends TestCase
             ->with('/start')
             ->willReturn($command);
 
-        $this->commandRegistry
+        $command
             ->expects(self::once())
-            ->method('executeCommand')
-            ->with($command, self::CHAT_ID, $user, '/start');
+            ->method('execute')
+            ->with(self::CHAT_ID, $user, '/start');
 
         $this->service->handleUpdate($update->raw_data);
     }
