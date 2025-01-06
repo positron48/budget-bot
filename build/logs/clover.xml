@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1736195309">
-  <project timestamp="1736195309">
+<coverage generated="1736195369">
+  <project timestamp="1736195369">
     <file name="/home/runner/work/budget-bot/budget-bot/src/Command/SetWebhookCommand.php">
       <class name="App\Command\SetWebhookCommand" namespace="global">
         <metrics complexity="5" methods="3" coveredmethods="0" conditionals="0" coveredconditionals="0" statements="26" coveredstatements="0" elements="29" coveredelements="0"/>
