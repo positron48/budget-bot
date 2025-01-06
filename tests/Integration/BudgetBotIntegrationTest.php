@@ -136,13 +136,54 @@ class BudgetBotIntegrationTest extends IntegrationTestCase
 
         $responses = $this->getResponses();
         $this->assertCount(1, $responses);
-        $this->assertStringContainsString('Выберите месяц:', $responses[0]);
+        $this->assertStringContainsString('Выберите месяц и год', $responses[0]);
+        
+        // Check that the response contains the next month and 5 previous months
+        $now = new \DateTime();
+        // Get next month
+        $nextMonth = (int) $now->modify('first day of next month')->format('n');
+        $nextMonthYear = (int) $now->format('Y');
+        
+        // Check next month
+        $this->assertStringContainsString(
+            sprintf('%s %d', $this->getMonthName($nextMonth), $nextMonthYear),
+            $responses[0]
+        );
+
+        // Check 5 previous months
+        for ($i = 1; $i <= 5; $i++) {
+            $now->modify('-1 month');
+            $month = (int) $now->format('n');
+            $year = (int) $now->format('Y');
+            $this->assertStringContainsString(
+                sprintf('%s %d', $this->getMonthName($month), $year),
+                $responses[0]
+            );
+        }
 
         // Reset responses for the next command
         $this->responseCollector->reset();
 
-        // 5. Select current month
-        $monthNames = [
+        // 5. Send month and year
+        $monthName = 'Январь';
+        $year = 2025;
+        $this->botService->handleUpdate([
+            'update_id' => 5,
+            'message' => [
+                'message_id' => 5,
+                'chat' => ['id' => self::TELEGRAM_ID],
+                'text' => sprintf('%s %d', $monthName, $year),
+            ],
+        ]);
+
+        $responses = $this->getResponses();
+        $this->assertCount(1, $responses);
+        $this->assertStringContainsString('успешно добавлена', $responses[0]);
+    }
+
+    private function getMonthName(int $month): string
+    {
+        $months = [
             1 => 'Январь',
             2 => 'Февраль',
             3 => 'Март',
@@ -156,39 +197,8 @@ class BudgetBotIntegrationTest extends IntegrationTestCase
             11 => 'Ноябрь',
             12 => 'Декабрь',
         ];
-        $month = 1; // January
-        $monthName = $monthNames[$month];
 
-        $this->botService->handleUpdate([
-            'update_id' => 5,
-            'message' => [
-                'message_id' => 5,
-                'chat' => ['id' => self::TELEGRAM_ID],
-                'text' => $monthName,
-            ],
-        ]);
-
-        $responses = $this->getResponses();
-        $this->assertCount(1, $responses);
-        $this->assertStringContainsString('Введите год:', $responses[0]);
-
-        // Reset responses for the next command
-        $this->responseCollector->reset();
-
-        // 6. Send year
-        $year = 2025;
-        $this->botService->handleUpdate([
-            'update_id' => 6,
-            'message' => [
-                'message_id' => 6,
-                'chat' => ['id' => self::TELEGRAM_ID],
-                'text' => (string) $year,
-            ],
-        ]);
-
-        $responses = $this->getResponses();
-        $this->assertCount(1, $responses);
-        $this->assertStringContainsString('успешно добавлена', $responses[0]);
+        return $months[$month] ?? '';
     }
 
     /**

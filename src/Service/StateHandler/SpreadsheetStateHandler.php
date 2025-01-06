@@ -124,63 +124,90 @@ class SpreadsheetStateHandler implements StateHandlerInterface
         $this->userRepository->save($user, true);
 
         $keyboard = [];
-        for ($i = 1; $i <= 12; ++$i) {
-            $keyboard[] = $this->getMonthName($i);
+        $now = new \DateTime();
+        // Get next month
+        $nextMonth = (int) $now->modify('first day of next month')->format('n');
+        $nextMonthYear = (int) $now->format('Y');
+
+        // Add next month first
+        $keyboard[] = sprintf('%s %d', $this->getMonthName($nextMonth), $nextMonthYear);
+
+        // Add 5 previous months
+        for ($i = 1; $i <= 5; $i++) {
+            $now->modify('-1 month');
+            $month = (int) $now->format('n');
+            $year = (int) $now->format('Y');
+            $keyboard[] = sprintf('%s %d', $this->getMonthName($month), $year);
         }
 
-        $this->sendMessage($chatId, 'Выберите месяц:', $keyboard);
+        $this->sendMessage(
+            $chatId, 
+            'Выберите месяц и год или введите их в формате "Месяц Год" (например "Январь 2024"):', 
+            $keyboard
+        );
     }
 
     private function handleSpreadsheetMonth(int $chatId, User $user, string $message): void
     {
-        $month = $this->getMonthNumber($message);
-        if (!$month) {
-            $this->sendMessage($chatId, 'Неверный месяц. Попробуйте еще раз:');
+        $this->logger->info('Handling spreadsheet month selection', [
+            'message' => $message,
+            'chat_id' => $chatId,
+        ]);
 
-            return;
-        }
+        // Check if message contains both month and year
+        if (preg_match('/^\s*([а-яА-Я]+)\s+(\d{4})\s*$/u', trim($message), $matches)) {
+            $this->logger->info('Message matches pattern', [
+                'matches' => $matches,
+            ]);
 
-        $tempData = $user->getTempData();
-        $tempData['month'] = $month;
-        $user->setTempData($tempData);
-        $user->setState('WAITING_SPREADSHEET_YEAR');
-        $this->userRepository->save($user, true);
-
-        $this->sendMessage($chatId, 'Введите год:');
-    }
-
-    private function handleSpreadsheetYear(int $chatId, User $user, string $message): void
-    {
-        $year = (int) $message;
-        if ($year < 2000 || $year > 2100) {
-            $this->sendMessage($chatId, 'Неверный год. Попробуйте еще раз:');
-
-            return;
-        }
-
-        $tempData = $user->getTempData();
-        $spreadsheetId = $tempData['spreadsheet_id'];
-        $month = $tempData['month'];
-
-        try {
-            $this->sheetsService->addSpreadsheet($user, $spreadsheetId, $month, $year);
-        } catch (\Exception $e) {
-            $this->logger->error('Failed to add spreadsheet: '.$e->getMessage(), [
-                'chat_id' => $chatId,
-                'spreadsheet_id' => $spreadsheetId,
+            $monthName = $matches[1];
+            $year = (int) $matches[2];
+            
+            $month = $this->getMonthNumber($monthName);
+            $this->logger->info('Month number conversion', [
+                'monthName' => $monthName,
                 'month' => $month,
                 'year' => $year,
             ]);
-            $this->sendMessage($chatId, 'Не удалось добавить таблицу. Попробуйте еще раз.');
 
+            if (!$month || $year < 2000 || $year > 2100) {
+                $this->logger->warning('Invalid month or year', [
+                    'month' => $month,
+                    'year' => $year,
+                ]);
+                $this->sendMessage($chatId, 'Неверный формат. Используйте формат "Месяц Год" (например "Январь 2024")');
+                return;
+            }
+
+            $tempData = $user->getTempData();
+            $spreadsheetId = $tempData['spreadsheet_id'];
+
+            try {
+                $this->sheetsService->addSpreadsheet($user, $spreadsheetId, $month, $year);
+            } catch (\Exception $e) {
+                $this->logger->error('Failed to add spreadsheet: '.$e->getMessage(), [
+                    'chat_id' => $chatId,
+                    'spreadsheet_id' => $spreadsheetId,
+                    'month' => $month,
+                    'year' => $year,
+                ]);
+                $this->sendMessage($chatId, 'Не удалось добавить таблицу. Попробуйте еще раз.');
+                return;
+            }
+
+            $user->setState('');
+            $user->setTempData([]);
+            $this->userRepository->save($user, true);
+
+            $this->sendMessage($chatId, sprintf('Таблица за %s %d успешно добавлена', $this->getMonthName($month), $year));
             return;
         }
 
-        $user->setState('');
-        $user->setTempData([]);
-        $this->userRepository->save($user, true);
-
-        $this->sendMessage($chatId, sprintf('Таблица за %s %d успешно добавлена', $this->getMonthName($month), $year));
+        $this->logger->warning('Message does not match pattern', [
+            'message' => $message,
+            'pattern' => '/^\s*([а-яА-Я]+)\s+(\d{4})\s*$/u',
+        ]);
+        $this->sendMessage($chatId, 'Неверный формат. Используйте формат "Месяц Год" (например "Январь 2024")');
     }
 
     private function handleSpreadsheetToDelete(int $chatId, User $user, string $message): void
