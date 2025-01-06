@@ -7,8 +7,6 @@ use App\Entity\UserSpreadsheet;
 use App\Repository\UserSpreadsheetRepository;
 use App\Service\CategoryService;
 use App\Service\Google\GoogleApiClientInterface;
-use App\Service\Google\SpreadsheetManager;
-use App\Service\Google\TransactionRecorder;
 use App\Service\GoogleSheetsService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -16,9 +14,6 @@ use Psr\Log\LoggerInterface;
 
 class GoogleSheetsServiceTest extends TestCase
 {
-    private const MOCK_CREDENTIALS_PATH = __DIR__.'/../config/google-credentials.json';
-    private const SERVICE_ACCOUNT_EMAIL = 'test@example.com';
-
     private GoogleSheetsService $service;
     /** @var UserSpreadsheetRepository&MockObject */
     private UserSpreadsheetRepository $spreadsheetRepository;
@@ -37,26 +32,11 @@ class GoogleSheetsServiceTest extends TestCase
         $this->categoryService = $this->createMock(CategoryService::class);
 
         $this->service = new GoogleSheetsService(
-            self::MOCK_CREDENTIALS_PATH,
-            self::SERVICE_ACCOUNT_EMAIL,
-            $this->logger,
+            $this->client,
             $this->spreadsheetRepository,
+            $this->logger,
             $this->categoryService,
         );
-
-        // Replace service dependencies with mocks
-        $reflection = new \ReflectionClass($this->service);
-        $spreadsheetManagerProperty = $reflection->getProperty('spreadsheetManager');
-        $spreadsheetManagerProperty->setValue($this->service, new SpreadsheetManager(
-            $this->client,
-            $this->spreadsheetRepository,
-            $this->logger,
-        ));
-        $transactionRecorderProperty = $reflection->getProperty('transactionRecorder');
-        $transactionRecorderProperty->setValue($this->service, new TransactionRecorder(
-            $this->client,
-            $this->logger,
-        ));
     }
 
     public function testGetSpreadsheetsList(): void

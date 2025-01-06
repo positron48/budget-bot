@@ -4,7 +4,6 @@ namespace App\Service;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
-use Longman\TelegramBot\Request;
 use Psr\Log\LoggerInterface;
 
 class TransactionHandler
@@ -13,17 +12,20 @@ class TransactionHandler
     private CategoryService $categoryService;
     private LoggerInterface $logger;
     private UserRepository $userRepository;
+    private TelegramApiServiceInterface $telegramApi;
 
     public function __construct(
         GoogleSheetsService $sheetsService,
         CategoryService $categoryService,
         LoggerInterface $logger,
         UserRepository $userRepository,
+        TelegramApiServiceInterface $telegramApi,
     ) {
         $this->sheetsService = $sheetsService;
         $this->categoryService = $categoryService;
         $this->logger = $logger;
         $this->userRepository = $userRepository;
+        $this->telegramApi = $telegramApi;
     }
 
     /**
@@ -32,45 +34,21 @@ class TransactionHandler
     private function sendMessage(int $chatId, string $text, ?array $keyboard = null): void
     {
         try {
-            $data = [
+            if (null !== $keyboard) {
+                $this->telegramApi->sendMessageWithKeyboard($chatId, $text, $keyboard);
+            } else {
+                $this->telegramApi->sendMessage([
+                    'chat_id' => $chatId,
+                    'text' => $text,
+                    'parse_mode' => 'HTML',
+                ]);
+            }
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to send message: {error}', [
+                'error' => $e->getMessage(),
+                'exception' => $e,
                 'chat_id' => $chatId,
                 'text' => $text,
-                'parse_mode' => 'HTML',
-            ];
-
-            if (null !== $keyboard) {
-                $data['reply_markup'] = [
-                    'keyboard' => array_map(
-                        static fn (string $button): array => [['text' => $button]],
-                        $keyboard
-                    ),
-                    'one_time_keyboard' => true,
-                    'resize_keyboard' => true,
-                ];
-            }
-
-            $this->logger->info('Sending message to Telegram API', [
-                'request' => $data,
-            ]);
-
-            $response = Request::sendMessage($data);
-
-            $this->logger->info('Received response from Telegram API', [
-                'response' => [
-                    'ok' => $response->isOk(),
-                    'result' => $response->getResult(),
-                    'description' => $response->getDescription(),
-                    'error_code' => $response->getErrorCode(),
-                ],
-            ]);
-
-            if (!$response->isOk()) {
-                throw new \RuntimeException(sprintf('Failed to send message to Telegram API: %s (Error code: %d)', $response->getDescription() ?: 'Unknown error', $response->getErrorCode() ?: 0));
-            }
-        } catch (\Throwable $e) {
-            $this->logger->error('Error sending message to Telegram API: '.$e->getMessage(), [
-                'exception' => $e,
-                'request' => $data,
             ]);
         }
     }

@@ -7,9 +7,11 @@ use Longman\TelegramBot\Entities\ServerResponse;
 
 class TelegramApiMock implements TelegramApiServiceInterface
 {
+    /** @var array<int|string, mixed> */
+    private array $messages = [];
+
     public function initialize(string $apiKey, string $botUsername): void
     {
-        // Do nothing in tests
     }
 
     /**
@@ -22,6 +24,38 @@ class TelegramApiMock implements TelegramApiServiceInterface
      */
     public function sendMessage(array $data): ServerResponse
     {
-        return new ServerResponse(['ok' => true]);
+        $this->messages[] = $data;
+
+        return new ServerResponseMock();
+    }
+
+    /**
+     * @param array<string> $keyboard
+     */
+    public function sendMessageWithKeyboard(int $chatId, string $text, array $keyboard): ServerResponse
+    {
+        $data = [
+            'chat_id' => $chatId,
+            'text' => $text,
+            'parse_mode' => 'HTML',
+            'reply_markup' => json_encode([
+                'keyboard' => array_map(
+                    static fn (string $button): array => [['text' => $button]],
+                    $keyboard
+                ),
+                'one_time_keyboard' => true,
+                'resize_keyboard' => true,
+            ]),
+        ];
+
+        return $this->sendMessage($data);
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    public function getMessages(): array
+    {
+        return $this->messages;
     }
 }

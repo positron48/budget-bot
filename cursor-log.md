@@ -1033,3 +1033,23 @@ git add . && git commit -m 'refactor telegramApiService'
 
 ---
 
+git add . && git commit -m 'refactor googleApi'
+
+---
+
+проверь все ли запросы к google идут через интерфейс?
+
+---
+
+да
+
+---
+
+теперь проверить что все запросы к телеграм проходят через TelegramApiServiceInterface
+
+---
+
+удали все тесты, которые не проходят
+
+---
+

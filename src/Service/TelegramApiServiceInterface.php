@@ -17,4 +17,9 @@ interface TelegramApiServiceInterface
      * } $data
      */
     public function sendMessage(array $data): ServerResponse;
+
+    /**
+     * @param array<string> $keyboard
+     */
+    public function sendMessageWithKeyboard(int $chatId, string $text, array $keyboard): ServerResponse;
 }

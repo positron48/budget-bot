@@ -32,11 +32,6 @@ services:
             $credentialsPath: '%google_credentials_path%'
             $serviceAccountEmail: '%google_service_account_email%'
 
-    App\Service\GoogleSheetsService:
-        arguments:
-            $credentialsPath: '%google_credentials_path%'
-            $serviceAccountEmail: '%google_service_account_email%'
-
     App\Service\Command\:
         resource: '../src/Service/Command'
         exclude:
