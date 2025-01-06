@@ -3,7 +3,6 @@
 namespace App\Service;
 
 use App\Service\Command\CategoriesCommand;
-use App\Service\Command\ClearCategoriesCommand;
 use App\Service\Command\CommandInterface;
 use App\Service\Command\ListCommand;
 use App\Service\Command\MapCommand;
@@ -25,7 +24,6 @@ class CommandRegistry
         CategoriesCommand $categoriesCommand,
         MapCommand $mapCommand,
         SyncCategoriesCommand $syncCategoriesCommand,
-        ClearCategoriesCommand $clearCategoriesCommand,
     ) {
         $this->commands = [
             $startCommand,
@@ -34,7 +32,6 @@ class CommandRegistry
             $categoriesCommand,
             $mapCommand,
             $syncCategoriesCommand,
-            $clearCategoriesCommand,
         ];
     }
 

@@ -4,6 +4,7 @@ namespace App\Service\Command;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\CategoryService;
 use App\Service\GoogleSheetsService;
 use Psr\Log\LoggerInterface;
 
@@ -13,6 +14,7 @@ class SyncCategoriesCommand extends AbstractCommand
         UserRepository $userRepository,
         LoggerInterface $logger,
         private readonly GoogleSheetsService $sheetsService,
+        private readonly CategoryService $categoryService,
     ) {
         parent::__construct($userRepository, $logger);
     }
@@ -50,6 +52,24 @@ class SyncCategoriesCommand extends AbstractCommand
         }
 
         try {
+            // Clear existing categories first
+            $expenseCount = count($this->categoryService->getCategories(false, $user));
+            $incomeCount = count($this->categoryService->getCategories(true, $user));
+
+            $this->categoryService->clearUserCategories($user);
+
+            $this->sendMessage(
+                $chatId,
+                sprintf(
+                    'Пользовательские категории очищены:%s- Расходы: %d%s- Доходы: %d',
+                    PHP_EOL,
+                    $expenseCount,
+                    PHP_EOL,
+                    $incomeCount
+                )
+            );
+
+            // Now sync categories from spreadsheet
             $changes = $this->sheetsService->syncCategories($user, $spreadsheetId);
 
             if (empty($changes['added_to_db']['expense'])
@@ -88,7 +108,6 @@ class SyncCategoriesCommand extends AbstractCommand
         } catch (\Exception $e) {
             $this->logger->error('Failed to sync categories: '.$e->getMessage(), [
                 'chat_id' => $chatId,
-                'spreadsheet_id' => $spreadsheetId,
                 'exception' => $e,
             ]);
             $this->sendMessage($chatId, 'Не удалось синхронизировать категории. Попробуйте еще раз.');

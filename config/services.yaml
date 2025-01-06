@@ -45,7 +45,6 @@ services:
             $categoriesCommand: '@App\Service\Command\CategoriesCommand'
             $mapCommand: '@App\Service\Command\MapCommand'
             $syncCategoriesCommand: '@App\Service\Command\SyncCategoriesCommand'
-            $clearCategoriesCommand: '@App\Service\Command\ClearCategoriesCommand'
 
     App\Service\StateHandler\:
         resource: '../src/Service/StateHandler'
