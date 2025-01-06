@@ -81,23 +81,22 @@ class MessageParserService
 
         // Try different date formats
         foreach (self::DATE_FORMATS as $format) {
-            if (preg_match('/^(\d{1,2})\.(\d{1,2})(?:\.(\d{4}))?$/', $dateStr, $matches)) {
-                $day = (int) $matches[1];
-                $month = (int) $matches[2];
-                $year = isset($matches[3]) ? (int) $matches[3] : (int) date('Y');
-
-                // Validate year format
-                if (isset($matches[3]) && ($year < 1000 || $year > 9999)) {
-                    continue;
+            $date = \DateTime::createFromFormat($format, $dateStr);
+            if ($date && $date->format($format) === $dateStr) {
+                // Validate year if present
+                if (str_contains($format, 'Y')) {
+                    $year = (int) $date->format('Y');
+                    if ($year < 1000 || $year > 9999) {
+                        continue;
+                    }
                 }
 
-                // Validate date
-                if (!checkdate($month, $day, $year)) {
+                // Validate month and day
+                $month = (int) $date->format('m');
+                $day = (int) $date->format('d');
+                if (!checkdate($month, $day, (int) $date->format('Y'))) {
                     continue;
                 }
-
-                $date = new \DateTime();
-                $date->setDate($year, $month, $day);
 
                 return $date;
             }

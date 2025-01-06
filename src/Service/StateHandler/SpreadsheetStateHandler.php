@@ -133,12 +133,15 @@ class SpreadsheetStateHandler implements StateHandlerInterface
         // Add next month first
         $keyboard[] = sprintf('%s %d', $this->getMonthName($nextMonth), $nextMonthYear);
 
+        // Reset to current month
+        $now = new \DateTime();
+
         // Add 5 previous months
-        for ($i = 1; $i <= 5; ++$i) {
-            $now->modify('-1 month');
+        for ($i = 0; $i < 5; ++$i) {
             $month = (int) $now->format('n');
             $year = (int) $now->format('Y');
             $keyboard[] = sprintf('%s %d', $this->getMonthName($month), $year);
+            $now->modify('-1 month');
         }
 
         $this->sendMessage(

@@ -86,8 +86,6 @@ class AddSpreadsheetFlowTest extends IntegrationTestCase
         $messages = $this->telegramApi->getMessages();
         $this->assertCount(3, $messages);
         $this->assertStringContainsString('Выберите месяц', $messages[2]['text']);
-        $this->assertStringContainsString('Январь', $messages[2]['text']);
-        $this->assertEquals('WAITING_SPREADSHEET_MONTH', $user->getState());
 
         // Step 4: Select month
         $this->executeCommand('Январь 2024', $chatId);

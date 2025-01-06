@@ -120,4 +120,28 @@ class MessageParserServiceTest extends TestCase
             'invalid year length' => ['01.01.20244 100 такси'],
         ];
     }
+
+    public function testParseMessageWithLargeNumber(): void
+    {
+        $service = new MessageParserService();
+        $result = $service->parseMessage('1000 продукты');
+
+        $this->assertNotNull($result);
+        $this->assertInstanceOf(\DateTime::class, $result['date']);
+        $this->assertEquals(1000.0, $result['amount']);
+        $this->assertEquals('продукты', $result['description']);
+        $this->assertFalse($result['isIncome']);
+    }
+
+    public function testParseMessageWithDateLikeNumber(): void
+    {
+        $service = new MessageParserService();
+        $result = $service->parseMessage('1.00 продукты');
+
+        $this->assertNotNull($result);
+        $this->assertInstanceOf(\DateTime::class, $result['date']);
+        $this->assertEquals(1.0, $result['amount']);
+        $this->assertEquals('продукты', $result['description']);
+        $this->assertFalse($result['isIncome']);
+    }
 }

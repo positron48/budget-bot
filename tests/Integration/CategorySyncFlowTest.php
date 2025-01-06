@@ -72,7 +72,7 @@ class CategorySyncFlowTest extends IntegrationTestCase
         $this->executeCommand('/add', $chatId);
         $spreadsheetLink = 'https://docs.google.com/spreadsheets/d/1234567890/edit';
         $this->executeCommand($spreadsheetLink, $chatId);
-        $this->executeCommand('Январь 2024', $chatId);
+        $this->executeCommand('Январь 2025', $chatId);
 
         // Step 3: Sync categories
         $this->executeCommand('/sync_categories', $chatId);
@@ -124,6 +124,31 @@ class CategorySyncFlowTest extends IntegrationTestCase
         $messages = $this->telegramApi->getMessages();
         $checkMessage = end($messages);
         $this->assertStringContainsString('Описание "еда" соответствует категории "Питание"', $checkMessage['text']);
+
+        // Step 7: Add expense using mapped category
+        $this->executeCommand('1500 еда обед', $chatId);
+        $messages = $this->telegramApi->getMessages();
+        $expenseMessage = end($messages);
+        $this->assertStringContainsString('Расход успешно добавлен в категорию "Питание"', $expenseMessage['text']);
+
+        // Step 8: Add expense with unmapped category
+        $this->executeCommand('1000 продукты', $chatId);
+        $messages = $this->telegramApi->getMessages();
+        $categoryPromptMessage = end($messages);
+        $this->assertStringContainsString('Не удалось определить категорию для "продукты"', $categoryPromptMessage['text']);
+        $this->assertStringContainsString('Выберите категорию из списка', $categoryPromptMessage['text']);
+
+        // Select category for unmapped keyword
+        $this->executeCommand('Питание', $chatId);
+        $messages = $this->telegramApi->getMessages();
+        $expenseMessage = end($messages);
+        $this->assertStringContainsString('Расход успешно добавлен в категорию "Питание"', $expenseMessage['text']);
+
+        // Step 9: Verify that mapping was automatically created
+        $this->executeCommand('/map продукты', $chatId);
+        $messages = $this->telegramApi->getMessages();
+        $mapMessage = end($messages);
+        $this->assertStringContainsString('Описание "продукты" соответствует категории "Питание"', $mapMessage['text']);
     }
 
     private function executeCommand(string $text, int $chatId): void

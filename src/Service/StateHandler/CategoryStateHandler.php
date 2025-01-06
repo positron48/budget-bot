@@ -101,7 +101,7 @@ class CategoryStateHandler implements StateHandlerInterface
 
         // Add transaction with selected category
         $this->transactionHandler->addTransaction($chatId, $user, [
-            'date' => new \DateTime($transaction['date']['date']),
+            'date' => $transaction['date'] instanceof \DateTime ? $transaction['date'] : new \DateTime(),
             'amount' => $transaction['amount'],
             'description' => $transaction['description'],
             'isIncome' => $transaction['isIncome'],
@@ -165,7 +165,7 @@ class CategoryStateHandler implements StateHandlerInterface
         if ($category) {
             // Add transaction with detected category
             $this->transactionHandler->addTransaction($chatId, $user, [
-                'date' => new \DateTime($transaction['date']['date']),
+                'date' => $transaction['date'] instanceof \DateTime ? $transaction['date'] : new \DateTime(),
                 'amount' => $transaction['amount'],
                 'description' => $transaction['description'],
                 'isIncome' => $transaction['isIncome'],
