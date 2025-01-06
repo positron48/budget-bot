@@ -1209,7 +1209,7 @@ php bin/console doctrine:migrations:diff
 ---
 
 в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push 
-
+[fix: improve transaction parsing and category handling - Fix date parsing in MessageParserService to prevent numbers being parsed as dates - Add tests for parsing large numbers and decimal numbers …](https://github.com/positron48/budget-bot/commit/e1ce6d3ac2d45ca24b999cf2ae77807ca88a0fec)
 
 ---
 
