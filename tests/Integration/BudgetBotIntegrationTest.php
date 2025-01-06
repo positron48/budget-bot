@@ -5,6 +5,7 @@ namespace App\Tests\Integration;
 use App\Service\TelegramBotService;
 use App\Tests\Integration\DataFixtures\TestFixtures;
 use App\Tests\Mock\ResponseCollector;
+use App\Service\GoogleSheetsService;
 
 class BudgetBotIntegrationTest extends IntegrationTestCase
 {
@@ -13,12 +14,22 @@ class BudgetBotIntegrationTest extends IntegrationTestCase
     private TelegramBotService $botService;
     private TestFixtures $fixtures;
     private ResponseCollector $responseCollector;
+    private GoogleSheetsService $sheetsService;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->botService = self::getContainer()->get(TelegramBotService::class);
+        // Mock GoogleSheetsService
+        $this->sheetsService = $this->createMock(GoogleSheetsService::class);
+        $this->sheetsService->method('handleSpreadsheetId')
+            ->willReturnArgument(0);
+
+        // Replace real service with mock
+        $container = self::getContainer();
+        $container->set(GoogleSheetsService::class, $this->sheetsService);
+
+        $this->botService = $container->get(TelegramBotService::class);
         $this->fixtures = new TestFixtures($this->entityManager);
         ResponseCollector::resetInstance();
         $this->responseCollector = ResponseCollector::getInstance();
@@ -42,12 +53,142 @@ class BudgetBotIntegrationTest extends IntegrationTestCase
         return $this->responseCollector->getResponses();
     }
 
+    private function clearTestData(): void
+    {
+        $this->entityManager->createQuery('DELETE FROM App\Entity\UserSpreadsheet')->execute();
+        $this->entityManager->createQuery('DELETE FROM App\Entity\CategoryKeyword')->execute();
+        $this->entityManager->createQuery('DELETE FROM App\Entity\UserCategory')->execute();
+        $this->entityManager->createQuery('DELETE FROM App\Entity\User')->execute();
+    }
+
     /**
      * @group skip
      */
     public function testFullUserJourney(): void
     {
-        $this->markTestSkipped('Temporarily disabled');
+        // Clear test data
+        $this->clearTestData();
+
+        // 1. Start command - welcome message
+        $this->botService->handleUpdate([
+            'update_id' => 1,
+            'message' => [
+                'message_id' => 1,
+                'chat' => ['id' => self::TELEGRAM_ID],
+                'text' => '/start',
+            ],
+        ]);
+
+        $responses = $this->getResponses();
+        $this->assertCount(1, $responses);
+        $this->assertStringContainsString('Привет! Я помогу вести учет доходов и расходов в Google Таблицах', $responses[0]);
+        $this->assertStringContainsString('/list - список доступных таблиц', $responses[0]);
+        $this->assertStringContainsString('/add - добавить таблицу', $responses[0]);
+
+        // Reset responses for the next command
+        $this->responseCollector->reset();
+
+        // 2. List command - empty list
+        $this->botService->handleUpdate([
+            'update_id' => 2,
+            'message' => [
+                'message_id' => 2,
+                'chat' => ['id' => self::TELEGRAM_ID],
+                'text' => '/list',
+            ],
+        ]);
+
+        $responses = $this->getResponses();
+        $this->assertCount(1, $responses);
+        $this->assertStringContainsString('У вас пока нет добавленных таблиц', $responses[0]);
+        $this->assertStringContainsString('Используйте команду /add чтобы добавить таблицу', $responses[0]);
+
+        // Reset responses for the next command
+        $this->responseCollector->reset();
+
+        // 3. Add command - request spreadsheet ID
+        $this->botService->handleUpdate([
+            'update_id' => 3,
+            'message' => [
+                'message_id' => 3,
+                'chat' => ['id' => self::TELEGRAM_ID],
+                'text' => '/add',
+            ],
+        ]);
+
+        $responses = $this->getResponses();
+        $this->assertCount(1, $responses);
+        $this->assertStringContainsString('Отправьте ссылку на таблицу или её идентификатор', $responses[0]);
+
+        // Reset responses for the next command
+        $this->responseCollector->reset();
+
+        // 4. Send spreadsheet ID
+        $spreadsheetId = '1-BxqnQqyBPjyuRxMSrwQ2FDDxR-sQGQs_EZbZEn_Xzc';
+        $this->botService->handleUpdate([
+            'update_id' => 4,
+            'message' => [
+                'message_id' => 4,
+                'chat' => ['id' => self::TELEGRAM_ID],
+                'text' => $spreadsheetId,
+            ],
+        ]);
+
+        $responses = $this->getResponses();
+        $this->assertCount(1, $responses);
+        $this->assertStringContainsString('Выберите месяц:', $responses[0]);
+
+        // Reset responses for the next command
+        $this->responseCollector->reset();
+
+        // 5. Select current month
+        $monthNames = [
+            1 => 'Январь',
+            2 => 'Февраль',
+            3 => 'Март',
+            4 => 'Апрель',
+            5 => 'Май',
+            6 => 'Июнь',
+            7 => 'Июль',
+            8 => 'Август',
+            9 => 'Сентябрь',
+            10 => 'Октябрь',
+            11 => 'Ноябрь',
+            12 => 'Декабрь',
+        ];
+        $month = 1; // January
+        $monthName = $monthNames[$month];
+
+        $this->botService->handleUpdate([
+            'update_id' => 5,
+            'message' => [
+                'message_id' => 5,
+                'chat' => ['id' => self::TELEGRAM_ID],
+                'text' => $monthName,
+            ],
+        ]);
+
+        $responses = $this->getResponses();
+        $this->assertCount(1, $responses);
+        $this->assertStringContainsString('Введите год:', $responses[0]);
+
+        // Reset responses for the next command
+        $this->responseCollector->reset();
+
+        // 6. Send year
+        $year = 2025;
+        $this->botService->handleUpdate([
+            'update_id' => 6,
+            'message' => [
+                'message_id' => 6,
+                'chat' => ['id' => self::TELEGRAM_ID],
+                'text' => (string) $year,
+            ],
+        ]);
+
+        $responses = $this->getResponses();
+        $this->assertCount(1, $responses);
+        $this->assertStringContainsString('успешно добавлена', $responses[0]);
     }
 
     /**

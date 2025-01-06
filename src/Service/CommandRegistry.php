@@ -2,13 +2,7 @@
 
 namespace App\Service;
 
-use App\Service\Command\CategoriesCommand;
 use App\Service\Command\CommandInterface;
-use App\Service\Command\ListCommand;
-use App\Service\Command\MapCommand;
-use App\Service\Command\RemoveCommand;
-use App\Service\Command\StartCommand;
-use App\Service\Command\SyncCategoriesCommand;
 
 class CommandRegistry
 {
@@ -17,22 +11,16 @@ class CommandRegistry
      */
     private array $commands;
 
+    /**
+     * @param iterable<CommandInterface> $commands
+     */
     public function __construct(
-        StartCommand $startCommand,
-        ListCommand $listCommand,
-        RemoveCommand $removeCommand,
-        CategoriesCommand $categoriesCommand,
-        MapCommand $mapCommand,
-        SyncCategoriesCommand $syncCategoriesCommand,
+        iterable $commands,
     ) {
-        $this->commands = [
-            $startCommand,
-            $listCommand,
-            $removeCommand,
-            $categoriesCommand,
-            $mapCommand,
-            $syncCategoriesCommand,
-        ];
+        $this->commands = [];
+        foreach ($commands as $command) {
+            $this->commands[] = $command;
+        }
     }
 
     public function findCommand(string $message): ?CommandInterface

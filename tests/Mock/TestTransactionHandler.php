@@ -3,13 +3,22 @@
 namespace App\Tests\Mock;
 
 use App\Service\TransactionHandler;
+use App\Service\GoogleSheetsService;
+use App\Service\CategoryService;
+use Psr\Log\LoggerInterface;
+use App\Repository\UserRepository;
 
 class TestTransactionHandler extends TransactionHandler
 {
     private ResponseCollector $responseCollector;
 
-    public function __construct()
-    {
+    public function __construct(
+        GoogleSheetsService $sheetsService,
+        CategoryService $categoryService,
+        LoggerInterface $logger,
+        UserRepository $userRepository,
+    ) {
+        parent::__construct($sheetsService, $categoryService, $logger, $userRepository);
         $this->responseCollector = ResponseCollector::getInstance();
     }
 
