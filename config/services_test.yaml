@@ -1,3 +1,6 @@
+imports:
+    - { resource: services.yaml }
+
 parameters:
     telegram_bot_token: 'test_token'
     telegram_bot_username: 'test_bot'
@@ -10,20 +13,16 @@ services:
         autoconfigure: true
         public: true
 
+    # Test mocks
+    App\Tests\Mock\TelegramApiMock:
+        public: true
+
+    App\Tests\Mock\TestGoogleApiClient:
+        public: true
+
+    # Override API services with mocks
     App\Service\TelegramApiServiceInterface:
-        class: App\Tests\Mock\TelegramApiMock
+        alias: App\Tests\Mock\TelegramApiMock
 
     App\Service\Google\GoogleApiClientInterface:
-        class: App\Tests\Mock\TestGoogleApiClient
-
-    App\Service\Chat\ChatInterface:
-        class: App\Tests\Mock\ChatMock
-
-    App\:
-        resource: '../src/'
-        exclude:
-            - '../src/DependencyInjection/'
-            - '../src/Entity/'
-            - '../src/Kernel.php'
-            - '../src/Service/TelegramApiService.php'
-            - '../src/Service/Google/GoogleApiClient.php' 
+        alias: App\Tests\Mock\TestGoogleApiClient 

@@ -58,4 +58,9 @@ class TelegramApiMock implements TelegramApiServiceInterface
     {
         return $this->messages;
     }
+
+    public function clearMessages(): void
+    {
+        $this->messages = [];
+    }
 }

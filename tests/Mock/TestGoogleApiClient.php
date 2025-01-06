@@ -90,4 +90,24 @@ class TestGoogleApiClient implements GoogleApiClientInterface
             $this->serviceAccountEmail
         );
     }
+
+    public function addAccessibleSpreadsheet(string $spreadsheetId): void
+    {
+        $this->accessibleSpreadsheets[] = $spreadsheetId;
+    }
+
+    public function isSpreadsheetAccessible(string $spreadsheetId): bool
+    {
+        return in_array($spreadsheetId, $this->accessibleSpreadsheets, true);
+    }
+
+    public function getServiceAccountEmail(): string
+    {
+        return $this->serviceAccountEmail;
+    }
+
+    public function setServiceAccountEmail(string $email): void
+    {
+        $this->serviceAccountEmail = $email;
+    }
 }
