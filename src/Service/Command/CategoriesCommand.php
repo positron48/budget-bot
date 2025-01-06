@@ -31,8 +31,6 @@ class CategoriesCommand extends AbstractCommand
         $keyboard = [
             ['text' => 'Категории расходов'],
             ['text' => 'Категории доходов'],
-            ['text' => 'Добавить категорию'],
-            ['text' => 'Удалить категорию'],
         ];
 
         $this->setState($user, 'WAITING_CATEGORIES_ACTION');

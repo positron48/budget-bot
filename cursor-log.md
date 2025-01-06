@@ -876,7 +876,11 @@ B28 - F28 и H28 - L28 - это диапазоны столбцов, в кото
 
 ---
 
-закоммить изменения, предварительно актуализировав ветку
+закоммить изменения, предварительно актуализировав ветку [refactor: move clear categories functionality to sync_categories command](https://github.com/positron48/budget-bot/commit/99e505ac5c81140cf2b5bcd1b2c4b1af88d50b69)
+
+---
+
+убери возможность добавления и удаления категорий из бота 
 
 ---
 

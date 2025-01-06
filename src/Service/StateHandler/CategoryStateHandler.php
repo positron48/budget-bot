@@ -13,8 +13,6 @@ class CategoryStateHandler implements StateHandlerInterface
 {
     private const SUPPORTED_STATES = [
         'WAITING_CATEGORIES_ACTION',
-        'WAITING_CATEGORY_NAME',
-        'WAITING_CATEGORY_TO_DELETE',
         'WAITING_CATEGORY_SELECTION',
         'WAITING_CATEGORY_MAPPING',
     ];
@@ -51,18 +49,6 @@ class CategoryStateHandler implements StateHandlerInterface
 
         if ('WAITING_CATEGORIES_ACTION' === $state) {
             $this->handleCategoriesAction($chatId, $user, $message);
-
-            return true;
-        }
-
-        if ('WAITING_CATEGORY_NAME' === $state) {
-            $this->handleCategoryName($chatId, $user, $message);
-
-            return true;
-        }
-
-        if ('WAITING_CATEGORY_TO_DELETE' === $state) {
-            $this->handleCategoryToDelete($chatId, $user, $message);
 
             return true;
         }
@@ -273,84 +259,10 @@ class CategoryStateHandler implements StateHandlerInterface
                 $user->setState('');
                 $this->userRepository->save($user, true);
                 break;
-            case 'Добавить категорию':
-                $user->setState('WAITING_CATEGORY_NAME');
-                $this->userRepository->save($user, true);
-                $this->sendMessage(
-                    $chatId,
-                    'Выберите тип категории:',
-                    ['Категория расходов', 'Категория доходов']
-                );
-                break;
-            case 'Удалить категорию':
-                $user->setState('WAITING_CATEGORY_TO_DELETE');
-                $this->userRepository->save($user, true);
-
-                $expenseCategories = $this->categoryService->getCategories(false, $user);
-                $incomeCategories = $this->categoryService->getCategories(true, $user);
-
-                $this->sendMessage(
-                    $chatId,
-                    'Выберите категорию для удаления:',
-                    array_unique(array_merge($expenseCategories, $incomeCategories))
-                );
-                break;
             default:
                 $this->sendMessage($chatId, 'Неизвестное действие');
                 $user->setState('');
                 $this->userRepository->save($user, true);
         }
-    }
-
-    private function handleCategoryName(int $chatId, User $user, string $text): void
-    {
-        $tempData = $user->getTempData();
-
-        if (!isset($tempData['is_income'])) {
-            if ('Категория расходов' !== $text && 'Категория доходов' !== $text) {
-                $this->sendMessage($chatId, 'Пожалуйста, выберите тип категории');
-
-                return;
-            }
-
-            $isIncome = 'Категория доходов' === $text;
-            $user->setTempData(['is_income' => $isIncome]);
-            $this->userRepository->save($user, true);
-
-            $this->sendMessage($chatId, 'Введите название категории:');
-
-            return;
-        }
-
-        // At this point we have the type and the user has entered the name
-        $this->categoryService->addUserCategory($user, $text, $tempData['is_income']);
-
-        $user->setState('');
-        $user->setTempData([]);
-        $this->userRepository->save($user, true);
-
-        $this->sendMessage($chatId, sprintf('Категория "%s" успешно добавлена', $text));
-    }
-
-    private function handleCategoryToDelete(int $chatId, User $user, string $text): void
-    {
-        $expenseCategories = $this->categoryService->getCategories(false, $user);
-        $incomeCategories = $this->categoryService->getCategories(true, $user);
-
-        $isIncome = in_array($text, $incomeCategories, true);
-        $isExpense = in_array($text, $expenseCategories, true);
-
-        if (!$isIncome && !$isExpense) {
-            $this->sendMessage($chatId, 'Категория не найдена');
-
-            return;
-        }
-
-        $this->categoryService->removeUserCategory($user, $text, $isIncome);
-
-        $user->setState('');
-        $this->userRepository->save($user, true);
-
-        $this->sendMessage($chatId, sprintf('Категория "%s" успешно удалена', $text));
     }
 }

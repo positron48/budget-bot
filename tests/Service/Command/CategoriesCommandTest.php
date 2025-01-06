@@ -155,8 +155,6 @@ class CategoriesCommandTest extends TestCase
                                 'keyboard' => [
                                     [['text' => 'Категории расходов']],
                                     [['text' => 'Категории доходов']],
-                                    [['text' => 'Добавить категорию']],
-                                    [['text' => 'Удалить категорию']],
                                 ],
                                 'resize_keyboard' => true,
                                 'one_time_keyboard' => true,
