@@ -1,33 +1,29 @@
+parameters:
+    telegram_bot_token: 'test_token'
+    telegram_bot_username: 'test_bot'
+    google_credentials_path: 'test_credentials.json'
+    google_service_account_email: 'test@example.com'
+
 services:
     _defaults:
         autowire: true
         autoconfigure: true
         public: true
 
-    App\Tests\:
-        resource: '../tests/*'
-        exclude:
-            - '../tests/bootstrap.php'
-            - '../tests/*/DataFixtures/'
-        autowire: false
-        autoconfigure: false
-
-    App\Service\TransactionHandler:
-        class: App\Tests\Mock\TestTransactionHandler
-        public: true
-
-    App\Service\Google\GoogleSheetsClient:
-        arguments:
-            $credentialsPath: '%env(resolve:GOOGLE_CREDENTIALS_PATH)%'
-            $serviceAccountEmail: '%env(GOOGLE_SERVICE_ACCOUNT_EMAIL)%'
-
-    App\Tests\Mock\:
-        resource: '../tests/Mock/'
-
     App\Service\TelegramApiServiceInterface:
         class: App\Tests\Mock\TelegramApiMock
 
-    App\Service\TelegramBotService:
-        arguments:
-            $token: 'test_token'
-            $username: 'test_username' 
+    App\Service\Google\GoogleApiClientInterface:
+        class: App\Tests\Mock\TestGoogleApiClient
+
+    App\Service\Chat\ChatInterface:
+        class: App\Tests\Mock\ChatMock
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+            - '../src/Service/TelegramApiService.php'
+            - '../src/Service/Google/GoogleApiClient.php' 

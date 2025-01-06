@@ -14,12 +14,12 @@ class SpreadsheetManager
     private const EXPENSE_CATEGORIES_ROW_TEMPLATE = 'Сводка!B%d:F%d';
     private const INCOME_CATEGORIES_ROW_TEMPLATE = 'Сводка!H%d:L%d';
 
-    private GoogleSheetsClient $client;
+    private GoogleApiClientInterface $client;
     private UserSpreadsheetRepository $spreadsheetRepository;
     private LoggerInterface $logger;
 
     public function __construct(
-        GoogleSheetsClient $client,
+        GoogleApiClientInterface $client,
         UserSpreadsheetRepository $spreadsheetRepository,
         LoggerInterface $logger,
     ) {

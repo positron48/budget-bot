@@ -6,7 +6,7 @@ use App\Entity\User;
 use App\Entity\UserSpreadsheet;
 use App\Repository\UserSpreadsheetRepository;
 use App\Service\CategoryService;
-use App\Service\Google\GoogleSheetsClient;
+use App\Service\Google\GoogleApiClientInterface;
 use App\Service\Google\SpreadsheetManager;
 use App\Service\Google\TransactionRecorder;
 use App\Service\GoogleSheetsService;
@@ -24,8 +24,8 @@ class GoogleSheetsServiceTest extends TestCase
     private UserSpreadsheetRepository $spreadsheetRepository;
     /** @var LoggerInterface&MockObject */
     private LoggerInterface $logger;
-    /** @var GoogleSheetsClient&MockObject */
-    private GoogleSheetsClient $client;
+    /** @var GoogleApiClientInterface&MockObject */
+    private GoogleApiClientInterface $client;
     /** @var CategoryService&MockObject */
     private CategoryService $categoryService;
 
@@ -33,7 +33,7 @@ class GoogleSheetsServiceTest extends TestCase
     {
         $this->spreadsheetRepository = $this->createMock(UserSpreadsheetRepository::class);
         $this->logger = $this->createMock(LoggerInterface::class);
-        $this->client = $this->createMock(GoogleSheetsClient::class);
+        $this->client = $this->createMock(GoogleApiClientInterface::class);
         $this->categoryService = $this->createMock(CategoryService::class);
 
         $this->service = new GoogleSheetsService(

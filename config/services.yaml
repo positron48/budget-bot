@@ -26,6 +26,12 @@ services:
             $botToken: '%telegram_bot_token%'
             $botUsername: '%telegram_bot_username%'
 
+    App\Service\Google\GoogleApiClientInterface:
+        class: App\Service\Google\GoogleApiClient
+        arguments:
+            $credentialsPath: '%google_credentials_path%'
+            $serviceAccountEmail: '%google_service_account_email%'
+
     App\Service\GoogleSheetsService:
         arguments:
             $credentialsPath: '%google_credentials_path%'

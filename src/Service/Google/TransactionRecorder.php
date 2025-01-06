@@ -9,11 +9,11 @@ class TransactionRecorder
     private const EXPENSE_RANGE = 'Транзакции!B5:E';
     private const INCOME_RANGE = 'Транзакции!G5:J';
 
-    private GoogleSheetsClient $client;
+    private GoogleApiClientInterface $client;
     private LoggerInterface $logger;
 
     public function __construct(
-        GoogleSheetsClient $client,
+        GoogleApiClientInterface $client,
         LoggerInterface $logger,
     ) {
         $this->client = $client;

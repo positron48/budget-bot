@@ -5,7 +5,7 @@ namespace App\Service;
 use App\Entity\User;
 use App\Entity\UserSpreadsheet;
 use App\Repository\UserSpreadsheetRepository;
-use App\Service\Google\GoogleSheetsClient;
+use App\Service\Google\GoogleApiClient;
 use App\Service\Google\SpreadsheetManager;
 use App\Service\Google\TransactionRecorder;
 use Psr\Log\LoggerInterface;
@@ -23,7 +23,7 @@ class GoogleSheetsService
         UserSpreadsheetRepository $spreadsheetRepository,
         CategoryService $categoryService,
     ) {
-        $client = new GoogleSheetsClient($credentialsPath, $serviceAccountEmail, $logger);
+        $client = new GoogleApiClient($credentialsPath, $serviceAccountEmail, $logger);
         $this->spreadsheetManager = new SpreadsheetManager($client, $spreadsheetRepository, $logger);
         $this->transactionRecorder = new TransactionRecorder($client, $logger);
         $this->categoryService = $categoryService;

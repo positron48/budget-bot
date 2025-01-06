@@ -7,7 +7,7 @@ use Google\Service\Sheets;
 use Google\Service\Sheets\ValueRange;
 use Psr\Log\LoggerInterface;
 
-class GoogleSheetsClient
+class GoogleApiClient implements GoogleApiClientInterface
 {
     private Sheets $sheetsService;
     private Drive $driveService;
@@ -49,15 +49,20 @@ class GoogleSheetsClient
         try {
             $response = $this->sheetsService->spreadsheets_values->get($spreadsheetId, $range);
 
-            return $response->getValues();
+            if ($response instanceof ValueRange) {
+                return $response->getValues();
+            }
+
+            return null;
         } catch (\Exception $e) {
-            $this->logger->error('Failed to get values: {error}', [
+            $this->logger->error('Failed to get values from spreadsheet: {error}', [
                 'error' => $e->getMessage(),
-                'spreadsheet_id' => $spreadsheetId,
-                'range' => $range,
                 'exception' => $e,
+                'spreadsheetId' => $spreadsheetId,
+                'range' => $range,
             ]);
-            throw $e;
+
+            return null;
         }
     }
 
@@ -75,14 +80,14 @@ class GoogleSheetsClient
                 $spreadsheetId,
                 $range,
                 $body,
-                ['valueInputOption' => 'RAW']
+                ['valueInputOption' => 'USER_ENTERED']
             );
         } catch (\Exception $e) {
-            $this->logger->error('Failed to update values: {error}', [
+            $this->logger->error('Failed to update values in spreadsheet: {error}', [
                 'error' => $e->getMessage(),
-                'spreadsheet_id' => $spreadsheetId,
-                'range' => $range,
                 'exception' => $e,
+                'spreadsheetId' => $spreadsheetId,
+                'range' => $range,
             ]);
             throw $e;
         }
@@ -92,15 +97,13 @@ class GoogleSheetsClient
     {
         try {
             $this->sheetsService->spreadsheets->get($spreadsheetId);
-            $this->logger->info('Spreadsheet access validated', [
-                'spreadsheet_id' => $spreadsheetId,
-            ]);
 
             return true;
         } catch (\Exception $e) {
-            $this->logger->warning('Failed to validate spreadsheet access: {error}', [
+            $this->logger->info('Failed to validate spreadsheet access: {error}', [
                 'error' => $e->getMessage(),
-                'spreadsheet_id' => $spreadsheetId,
+                'exception' => $e,
+                'spreadsheetId' => $spreadsheetId,
             ]);
 
             return false;
@@ -111,17 +114,13 @@ class GoogleSheetsClient
     {
         try {
             $spreadsheet = $this->sheetsService->spreadsheets->get($spreadsheetId);
-            $title = $spreadsheet->getProperties()->getTitle();
-            $this->logger->info('Retrieved spreadsheet title', [
-                'spreadsheet_id' => $spreadsheetId,
-                'title' => $title,
-            ]);
 
-            return $title;
+            return $spreadsheet->getProperties()->getTitle();
         } catch (\Exception $e) {
             $this->logger->error('Failed to get spreadsheet title: {error}', [
                 'error' => $e->getMessage(),
-                'spreadsheet_id' => $spreadsheetId,
+                'exception' => $e,
+                'spreadsheetId' => $spreadsheetId,
             ]);
 
             return null;
@@ -131,23 +130,23 @@ class GoogleSheetsClient
     public function cloneSpreadsheet(string $sourceId, string $newTitle): string
     {
         try {
-            $copy = $this->driveService->files->copy(
-                $sourceId,
-                new Drive\DriveFile(['name' => $newTitle])
-            );
+            $copy = $this->driveService->files->copy($sourceId, [
+                'name' => $newTitle,
+            ]);
 
-            $this->logger->info('Spreadsheet cloned', [
-                'source_id' => $sourceId,
-                'new_id' => $copy->getId(),
-                'new_title' => $newTitle,
+            $this->driveService->permissions->create($copy->getId(), [
+                'role' => 'writer',
+                'type' => 'user',
+                'emailAddress' => $this->serviceAccountEmail,
             ]);
 
             return $copy->getId();
         } catch (\Exception $e) {
             $this->logger->error('Failed to clone spreadsheet: {error}', [
                 'error' => $e->getMessage(),
-                'source_id' => $sourceId,
                 'exception' => $e,
+                'sourceId' => $sourceId,
+                'newTitle' => $newTitle,
             ]);
             throw $e;
         }
@@ -155,18 +154,9 @@ class GoogleSheetsClient
 
     public function getSharingInstructions(string $spreadsheetId): string
     {
-        $this->logger->info('Generated sharing instructions', [
-            'spreadsheet_id' => $spreadsheetId,
-            'service_account' => $this->serviceAccountEmail,
-        ]);
-
-        return "Для работы с таблицей нужно предоставить доступ сервисному аккаунту:\n\n".
-               "1. Откройте таблицу\n".
-               "2. Нажмите кнопку \"Настройки доступа\" (или \"Share\")\n".
-               "3. В поле \"Добавить пользователей или группы\" введите:\n".
-               "{$this->serviceAccountEmail}\n".
-               "4. Выберите роль \"Редактор\"\n".
-               "5. Нажмите \"Готово\"\n\n".
-               'После этого отправьте команду /add еще раз';
+        return sprintf(
+            'Для работы с таблицей предоставьте доступ на редактирование для %s',
+            $this->serviceAccountEmail
+        );
     }
 }
