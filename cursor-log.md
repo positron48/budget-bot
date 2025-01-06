@@ -1012,7 +1012,7 @@ Telegram API Request: {"chat_id":123456,"text":"Выберите месяц и �
 
 ---
 
-git add . && git commit -m 'refactor telegramApiService'
+git add . && git commit -m 'refactor telegramApiService' [refactor telegramApiService](https://github.com/positron48/budget-bot/commit/afa6bd7807ffcc947baf7728dbdf7aaba66b5cb1)
 
 ---
 
@@ -1033,7 +1033,7 @@ git add . && git commit -m 'refactor telegramApiService'
 
 ---
 
-git add . && git commit -m 'refactor googleApi'
+git add . && git commit -m 'refactor googleApi' [refactor googleApi](https://github.com/positron48/budget-bot/commit/d69d5827e14359678fafe8c6fd75fdf2e09129d5)
 
 ---
 
@@ -1050,6 +1050,10 @@ git add . && git commit -m 'refactor googleApi'
 ---
 
 удали все тесты, которые не проходят
+
+---
+
+git add . && git commit -m 'refactor fin' [refactor fin](https://github.com/positron48/budget-bot/commit/abeb497cfec6a8881ca5b6dd5d2087234ae5b91a)
 
 ---
 
