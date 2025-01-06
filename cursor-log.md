@@ -1170,4 +1170,4 @@ php bin/console doctrine:migrations:diff
 
 ---
 
-в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push 
+в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push [CategorySyncFlowTest](https://github.com/positron48/budget-bot/commit/6d04bdd5445d30882b9ca8695c95fbc0caa197f8)
