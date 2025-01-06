@@ -1097,7 +1097,27 @@ git add . && git commit -m 'refactor fin' [refactor fin](https://github.com/posi
 
 ---
 
-git pull && git add . && git commit && git push 
+git pull && git add . && git commit && git push [test: adding a spreadsheet](https://github.com/positron48/budget-bot/commit/20c6b00599ca1a10e2ab8e9d0aed2255d7f6fb09)
 
 ---
 
+теперь после добавления проверь, что в списке появилась добавленная таблица
+
+---
+
+Мы же очищаем список таблиц,  зачем проверка Test Budget?
+
+---
+
+теперь давай добавим проверку удаления таблицы (команда /remove)
+
+---
+
+Похоже проблема не с тестом, действительно удаление не работает:
+
+[2025-01-06T17:11:55.679830+00:00] app.INFO: Handling state {"chat_id":273894269,"state":"WAITING_REMOVE_SPREADSHEET","message":"Февраль 2025"} []
+[2025-01-06T17:11:55.679999+00:00] app.INFO: Message not handled {"chat_id":273894269,"text":"Февраль 2025"} []
+
+---
+
+в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push

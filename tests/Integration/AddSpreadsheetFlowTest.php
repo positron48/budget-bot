@@ -107,6 +107,39 @@ class AddSpreadsheetFlowTest extends IntegrationTestCase
         $this->assertEquals('1234567890', $spreadsheet->getSpreadsheetId());
         $this->assertEquals(1, $spreadsheet->getMonth());
         $this->assertEquals(2024, $spreadsheet->getYear());
+
+        // Step 5: Check list command
+        $this->executeCommand('/list', $chatId);
+
+        $messages = $this->telegramApi->getMessages();
+        $this->assertCount(5, $messages);
+        $this->assertStringContainsString('Январь 2024', $messages[4]['text']);
+
+        // Step 6: Remove command
+        $this->executeCommand('/remove', $chatId);
+
+        $messages = $this->telegramApi->getMessages();
+        $this->assertCount(6, $messages);
+        $this->assertStringContainsString('Выберите таблицу для удаления', $messages[5]['text']);
+        $this->assertSame('WAITING_REMOVE_SPREADSHEET', $user->getState());
+
+        // Step 7: Select spreadsheet to delete
+        $this->executeCommand('Январь 2024', $chatId);
+
+        $messages = $this->telegramApi->getMessages();
+        $this->assertCount(7, $messages);
+        $this->assertStringContainsString('Таблица за Январь 2024 успешно удалена', $messages[6]['text']);
+
+        // Verify spreadsheet was deleted
+        $spreadsheet = $this->spreadsheetRepository->findOneBy(['user' => $user]);
+        $this->assertNull($spreadsheet);
+
+        // Step 8: Check list command shows no spreadsheets
+        $this->executeCommand('/list', $chatId);
+
+        $messages = $this->telegramApi->getMessages();
+        $this->assertCount(8, $messages);
+        $this->assertStringContainsString('У вас пока нет добавленных таблиц', $messages[7]['text']);
     }
 
     private function executeCommand(string $text, int $chatId): void

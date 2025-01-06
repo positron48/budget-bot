@@ -15,6 +15,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
         'WAITING_SPREADSHEET_ID',
         'WAITING_SPREADSHEET_MONTH',
         'WAITING_SPREADSHEET_TO_DELETE',
+        'WAITING_REMOVE_SPREADSHEET',
     ];
 
     public function __construct(
@@ -54,6 +55,12 @@ class SpreadsheetStateHandler implements StateHandlerInterface
         }
 
         if ('WAITING_SPREADSHEET_TO_DELETE' === $state) {
+            $this->handleSpreadsheetToDelete($chatId, $user, $message);
+
+            return true;
+        }
+
+        if ('WAITING_REMOVE_SPREADSHEET' === $state) {
             $this->handleSpreadsheetToDelete($chatId, $user, $message);
 
             return true;
