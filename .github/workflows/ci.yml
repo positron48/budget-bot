@@ -22,23 +22,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: pcov, runkit7
+          extensions: pcov
           coverage: pcov
-          ini-values: runkit.internal_override=1
-
-      - name: Install runkit7
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y php-dev
-          git clone https://github.com/runkit7/runkit7.git
-          cd runkit7
-          phpize
-          ./configure
-          make
-          sudo make install
-          sudo bash -c 'echo "extension=runkit7.so" > /etc/php/8.2/cli/conf.d/20-runkit7.ini'
-          sudo bash -c 'echo "runkit.internal_override=1" >> /etc/php/8.2/cli/conf.d/20-runkit7.ini'
-          php -m | grep runkit
 
       - name: Validate composer.json
         run: composer validate --strict

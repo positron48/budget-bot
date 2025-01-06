@@ -6,25 +6,15 @@ use Longman\TelegramBot\Entities\Message;
 
 class MessageMock extends Message
 {
-    public int $message_id;
-    /** @var array<string, mixed> */
-    public array $raw_data = [];
-    public string $bot_username = '';
-    public ?ChatMock $chat = null;
-    public ?string $text = null;
-
-    /**
-     * @param array<string, mixed> $data
-     */
-    public function __construct(array $data)
+    public function __construct()
     {
-        $this->raw_data = $data;
-        $this->message_id = $data['message_id'];
-        $this->bot_username = $data['bot_username'] ?? '';
-        $this->text = $data['text'] ?? null;
-
-        if (isset($data['chat'])) {
-            $this->chat = new ChatMock($data['chat']);
-        }
+        $chat = new ChatMock();
+        parent::__construct([
+            'message_id' => 1,
+            'from' => ['id' => 123456, 'first_name' => 'Test', 'is_bot' => false],
+            'chat' => $chat->getRawData(),
+            'date' => time(),
+            'text' => '/start',
+        ]);
     }
 }

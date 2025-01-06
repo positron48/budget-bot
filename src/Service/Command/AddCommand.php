@@ -4,15 +4,19 @@ namespace App\Service\Command;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
-use Psr\Log\LoggerInterface;
+use App\Service\TelegramApiServiceInterface;
 
-class AddCommand extends AbstractCommand
+class AddCommand implements CommandInterface
 {
     public function __construct(
-        UserRepository $userRepository,
-        LoggerInterface $logger,
+        private readonly UserRepository $userRepository,
+        private readonly TelegramApiServiceInterface $telegramApiService,
     ) {
-        parent::__construct($userRepository, $logger);
+    }
+
+    public function supports(string $command): bool
+    {
+        return '/add' === $command;
     }
 
     public function getName(): string
@@ -20,21 +24,27 @@ class AddCommand extends AbstractCommand
         return '/add';
     }
 
-    protected function handleCommand(int $chatId, ?User $user, string $message): void
+    public function execute(int $chatId, ?User $user, string $message): void
     {
         if (!$user) {
-            $this->sendMessage($chatId, 'Пожалуйста, начните с команды /start');
+            $this->telegramApiService->sendMessage([
+                'chat_id' => $chatId,
+                'text' => 'Пожалуйста, начните с команды /start',
+                'parse_mode' => 'HTML',
+            ]);
 
             return;
         }
 
-        $this->setState($user, 'WAITING_SPREADSHEET_ID');
+        $user->setState('WAITING_SPREADSHEET_ID');
+        $this->userRepository->save($user, true);
 
-        $this->sendMessage(
-            $chatId,
-            'Отправьте ссылку на таблицу или её идентификатор. '.
-            'Таблица должна быть создана на основе шаблона: '.
-            'https://docs.google.com/spreadsheets/d/1-BxqnQqyBPjyuRxMSrwQ2FDDxR-sQGQs_EZbZEn_Xzc'
-        );
+        $this->telegramApiService->sendMessage([
+            'chat_id' => $chatId,
+            'text' => 'Отправьте ссылку на таблицу или её идентификатор. '.
+                'Таблица должна быть создана на основе шаблона: '.
+                'https://docs.google.com/spreadsheets/d/1-BxqnQqyBPjyuRxMSrwQ2FDDxR-sQGQs_EZbZEn_Xzc',
+            'parse_mode' => 'HTML',
+        ]);
     }
 }

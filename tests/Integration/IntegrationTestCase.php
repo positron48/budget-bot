@@ -2,7 +2,8 @@
 
 namespace App\Tests\Integration;
 
-use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Tools\SchemaTool;
 use Google\Service\Drive;
 use Google\Service\Sheets;
@@ -12,23 +13,30 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 abstract class IntegrationTestCase extends KernelTestCase
 {
-    protected EntityManagerInterface $entityManager;
+    protected EntityManager $entityManager;
 
     protected function setUp(): void
     {
-        parent::setUp();
-
         self::bootKernel();
 
-        /** @var EntityManagerInterface $entityManager */
-        $entityManager = self::getContainer()->get('doctrine')->getManager();
+        $container = static::getContainer();
+        /** @var EntityManager $entityManager */
+        $entityManager = $container->get('doctrine')->getManager();
         $this->entityManager = $entityManager;
 
+        // Reset database
+        $connection = $entityManager->getConnection();
+        $platform = $connection->getDatabasePlatform();
+
+        $tables = $connection->createSchemaManager()->listTableNames();
+        foreach ($tables as $table) {
+            $connection->executeStatement($platform->getTruncateTableSQL($table, true));
+        }
+
         // Create database schema
-        $schemaTool = new SchemaTool($this->entityManager);
-        /** @var array<int, \Doctrine\ORM\Mapping\ClassMetadata> $metadata */
-        $metadata = $this->entityManager->getMetadataFactory()->getAllMetadata();
-        $schemaTool->dropSchema($metadata);
+        $schemaTool = new SchemaTool($entityManager);
+        /** @var array<ClassMetadata<object>> $metadata */
+        $metadata = $entityManager->getMetadataFactory()->getAllMetadata();
         $schemaTool->createSchema($metadata);
 
         // Mock Telegram API
@@ -42,8 +50,10 @@ abstract class IntegrationTestCase extends KernelTestCase
     {
         parent::tearDown();
 
-        $this->entityManager->close();
-        unset($this->entityManager);
+        if (isset($this->entityManager)) {
+            $this->entityManager->close();
+            unset($this->entityManager);
+        }
     }
 
     private function mockTelegramApi(): void

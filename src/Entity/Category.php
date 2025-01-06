@@ -25,6 +25,7 @@ class Category
     #[ORM\Column]
     private bool $isDefault = true;
 
+    /** @var Collection<int, CategoryKeyword> */
     #[ORM\OneToMany(mappedBy: 'category', targetEntity: CategoryKeyword::class, cascade: ['persist', 'remove'])]
     private Collection $keywords;
 
@@ -74,6 +75,7 @@ class Category
         return $this;
     }
 
+    /** @return Collection<int, CategoryKeyword> */
     public function getKeywords(): Collection
     {
         return $this->keywords;

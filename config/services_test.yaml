@@ -19,4 +19,15 @@ services:
     App\Service\Google\GoogleSheetsClient:
         arguments:
             $credentialsPath: '%env(resolve:GOOGLE_CREDENTIALS_PATH)%'
-            $serviceAccountEmail: '%env(GOOGLE_SERVICE_ACCOUNT_EMAIL)%' 
+            $serviceAccountEmail: '%env(GOOGLE_SERVICE_ACCOUNT_EMAIL)%'
+
+    App\Tests\Mock\:
+        resource: '../tests/Mock/'
+
+    App\Service\TelegramApiServiceInterface:
+        class: App\Tests\Mock\TelegramApiMock
+
+    App\Service\TelegramBotService:
+        arguments:
+            $token: 'test_token'
+            $username: 'test_username' 

@@ -3,14 +3,10 @@ parameters:
     paths:
         - src
         - tests
-    excludePaths:
-        - tests/bootstrap.php
+    treatPhpDocTypesAsCertain: false
     symfony:
         container_xml_path: var/cache/dev/App_KernelDevDebugContainer.xml
-    ignoreErrors:
-        - identifier: missingType.generics
 
 includes:
     - vendor/phpstan/phpstan-symfony/extension.neon
     - vendor/phpstan/phpstan-symfony/rules.neon
-    - vendor/phpstan/phpstan-doctrine/extension.neon

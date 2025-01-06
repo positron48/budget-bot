@@ -4,192 +4,260 @@ namespace App\Tests\Service;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
-use App\Service\Command\CommandInterface;
 use App\Service\CommandRegistry;
 use App\Service\MessageParserService;
 use App\Service\StateHandler\StateHandlerRegistry;
+use App\Service\TelegramApiServiceInterface;
 use App\Service\TelegramBotService;
 use App\Service\TransactionHandler;
-use App\Tests\Mock\UpdateMock;
-use Longman\TelegramBot\Request;
-use Longman\TelegramBot\Telegram;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Longman\TelegramBot\Entities\Update;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 class TelegramBotServiceTest extends TestCase
 {
-    private const BOT_TOKEN = 'test_token';
-    private const BOT_USERNAME = 'test_bot';
-    private const CHAT_ID = 123456;
-
     private TelegramBotService $service;
-    private UserRepository&MockObject $userRepository;
-    private CommandRegistry&MockObject $commandRegistry;
-    private StateHandlerRegistry&MockObject $stateHandlerRegistry;
-    private TransactionHandler&MockObject $transactionHandler;
-    private MessageParserService&MockObject $messageParser;
-    private LoggerInterface&MockObject $logger;
+    /** @var UserRepository&MockObject */
+    private UserRepository $userRepository;
+    /** @var CommandRegistry&MockObject */
+    private CommandRegistry $commandRegistry;
+    /** @var StateHandlerRegistry&MockObject */
+    private StateHandlerRegistry $stateHandlerRegistry;
+    /** @var TransactionHandler&MockObject */
+    private TransactionHandler $transactionHandler;
+    /** @var MessageParserService&MockObject */
+    private MessageParserService $messageParser;
+    /** @var LoggerInterface&MockObject */
+    private LoggerInterface $logger;
+    /** @var TelegramApiServiceInterface&MockObject */
+    private TelegramApiServiceInterface $telegramApi;
 
     protected function setUp(): void
     {
-        parent::setUp();
-
         $this->userRepository = $this->createMock(UserRepository::class);
         $this->commandRegistry = $this->createMock(CommandRegistry::class);
         $this->stateHandlerRegistry = $this->createMock(StateHandlerRegistry::class);
         $this->transactionHandler = $this->createMock(TransactionHandler::class);
         $this->messageParser = $this->createMock(MessageParserService::class);
         $this->logger = $this->createMock(LoggerInterface::class);
-
-        // Mock Telegram API
-        $this->mockTelegramApi();
+        $this->telegramApi = $this->createMock(TelegramApiServiceInterface::class);
 
         $this->service = new TelegramBotService(
-            self::BOT_TOKEN,
-            self::BOT_USERNAME,
             $this->userRepository,
             $this->commandRegistry,
             $this->stateHandlerRegistry,
             $this->transactionHandler,
             $this->messageParser,
-            $this->logger
-        );
-    }
-
-    private function mockTelegramApi(): void
-    {
-        if (!function_exists('runkit7_method_redefine')) {
-            $this->markTestSkipped('runkit extension is required for this test');
-        }
-
-        if (!defined('RUNKIT7_ACC_PUBLIC')) {
-            define('RUNKIT7_ACC_PUBLIC', 1);
-        }
-        if (!defined('RUNKIT7_ACC_STATIC')) {
-            define('RUNKIT7_ACC_STATIC', 4);
-        }
-
-        runkit7_method_redefine(
-            Telegram::class,
-            '__construct',
-            '$api_key, $bot_username = ""',
-            'return;',
-            RUNKIT7_ACC_PUBLIC
-        );
-
-        runkit7_method_redefine(
-            Request::class,
-            'initialize',
-            '',
-            'return;',
-            RUNKIT7_ACC_STATIC | RUNKIT7_ACC_PUBLIC
-        );
-
-        runkit7_method_redefine(
-            Request::class,
-            'sendMessage',
-            '',
-            'return new \App\Tests\Mock\ServerResponseMock(["ok" => true]);',
-            RUNKIT7_ACC_STATIC | RUNKIT7_ACC_PUBLIC
+            $this->logger,
+            $this->telegramApi,
+            'test_token',
+            'test_username'
         );
     }
 
     public function testHandleUpdateWithoutMessage(): void
     {
-        $update = new UpdateMock(['update_id' => 1]);
+        $update = new Update(['update_id' => 1]);
 
-        $this->logger
-            ->expects(self::exactly(2))
-            ->method('info')
-            ->willReturnCallback(function (string $message, array $context) use ($update) {
-                static $callNumber = 0;
-                ++$callNumber;
+        $this->logger->method('info')
+            ->with('Update does not contain a message');
 
-                match ($callNumber) {
-                    1 => $this->assertLogMessage('Processing update', ['update' => $update->raw_data], $message, $context),
-                    2 => $this->assertLogMessage('Update does not contain a message', [], $message, $context),
-                    default => self::fail('Unexpected call number'),
-                };
-            });
-
-        $this->service->handleUpdate($update->raw_data);
+        $this->service->handleUpdate($update);
     }
 
     public function testHandleUpdateWithoutText(): void
     {
-        $update = new UpdateMock([
+        $update = new Update([
             'update_id' => 1,
             'message' => [
                 'message_id' => 1,
-                'chat' => ['id' => self::CHAT_ID],
+                'chat' => ['id' => 123456],
             ],
         ]);
 
-        $this->logger
-            ->expects(self::exactly(2))
-            ->method('info')
-            ->willReturnCallback(function (string $message, array $context) use ($update) {
-                static $callNumber = 0;
-                ++$callNumber;
+        $this->logger->method('info')
+            ->with('Message does not contain text', ['chat_id' => 123456]);
 
-                match ($callNumber) {
-                    1 => $this->assertLogMessage('Processing update', ['update' => $update->raw_data], $message, $context),
-                    2 => $this->assertLogMessage('Message does not contain text', ['chat_id' => self::CHAT_ID], $message, $context),
-                    default => self::fail('Unexpected call number'),
-                };
-            });
-
-        $this->service->handleUpdate($update->raw_data);
+        $this->service->handleUpdate($update);
     }
 
     public function testHandleUpdateWithCommand(): void
     {
-        $update = new UpdateMock([
+        $chatId = 123456;
+        $text = '/start';
+        $user = new User();
+
+        $update = new Update([
             'update_id' => 1,
             'message' => [
                 'message_id' => 1,
-                'chat' => ['id' => self::CHAT_ID],
-                'text' => '/start',
+                'chat' => ['id' => $chatId],
+                'text' => $text,
             ],
         ]);
 
-        $user = new User();
-        $user->setTelegramId(self::CHAT_ID);
-
-        $this->userRepository
-            ->expects(self::once())
-            ->method('findByTelegramId')
-            ->with(self::CHAT_ID)
+        $this->userRepository->method('findByTelegramId')
+            ->with($chatId)
             ->willReturn($user);
 
-        $command = $this->createMock(CommandInterface::class);
+        $command = $this->createMock(\App\Service\Command\CommandInterface::class);
+        $command->method('execute')
+            ->with($chatId, $user, $text);
 
-        $this->commandRegistry
-            ->expects(self::once())
-            ->method('findCommand')
-            ->with('/start')
+        $this->commandRegistry->method('findCommand')
+            ->with($text)
             ->willReturn($command);
 
-        $command
-            ->expects(self::once())
-            ->method('execute')
-            ->with(self::CHAT_ID, $user, '/start');
-
-        $this->service->handleUpdate($update->raw_data);
+        $this->service->handleUpdate($update);
     }
 
-    /**
-     * @param array<string, mixed> $expectedContext
-     * @param array<string, mixed> $actualContext
-     */
-    private function assertLogMessage(string $expectedMessage, array $expectedContext, string $actualMessage, array $actualContext): void
+    public function testHandleUpdateWithState(): void
     {
-        self::assertSame($expectedMessage, $actualMessage);
-        self::assertSame($expectedContext, $actualContext);
+        $chatId = 123456;
+        $text = 'some text';
+        $user = new User();
+
+        $update = new Update([
+            'update_id' => 1,
+            'message' => [
+                'message_id' => 1,
+                'chat' => ['id' => $chatId],
+                'text' => $text,
+            ],
+        ]);
+
+        $this->userRepository->method('findByTelegramId')
+            ->with($chatId)
+            ->willReturn($user);
+
+        $this->commandRegistry->method('findCommand')
+            ->with($text)
+            ->willReturn(null);
+
+        $this->stateHandlerRegistry->method('handleState')
+            ->with($chatId, $user, $text)
+            ->willReturn(true);
+
+        $this->service->handleUpdate($update);
+    }
+
+    public function testHandleUpdateWithTransaction(): void
+    {
+        $chatId = 123456;
+        $text = '100 test';
+        $user = new User();
+        $data = ['amount' => 100, 'description' => 'test'];
+
+        $update = new Update([
+            'update_id' => 1,
+            'message' => [
+                'message_id' => 1,
+                'chat' => ['id' => $chatId],
+                'text' => $text,
+            ],
+        ]);
+
+        $this->userRepository->method('findByTelegramId')
+            ->with($chatId)
+            ->willReturn($user);
+
+        $this->commandRegistry->method('findCommand')
+            ->with($text)
+            ->willReturn(null);
+
+        $this->stateHandlerRegistry->method('handleState')
+            ->with($chatId, $user, $text)
+            ->willReturn(false);
+
+        $this->messageParser->method('parseMessage')
+            ->with($text)
+            ->willReturn($data);
+
+        $this->transactionHandler->method('handle')
+            ->with($chatId, $user, $data);
+
+        $this->service->handleUpdate($update);
+    }
+
+    public function testHandleUpdateWithParseError(): void
+    {
+        $chatId = 123456;
+        $text = 'invalid text';
+        $user = new User();
+        $exception = new \Exception('Parse error');
+
+        $update = new Update([
+            'update_id' => 1,
+            'message' => [
+                'message_id' => 1,
+                'chat' => ['id' => $chatId],
+                'text' => $text,
+            ],
+        ]);
+
+        $this->userRepository->method('findByTelegramId')
+            ->with($chatId)
+            ->willReturn($user);
+
+        $this->commandRegistry->method('findCommand')
+            ->with($text)
+            ->willReturn(null);
+
+        $this->stateHandlerRegistry->method('handleState')
+            ->with($chatId, $user, $text)
+            ->willReturn(false);
+
+        $this->messageParser->method('parseMessage')
+            ->with($text)
+            ->willThrowException($exception);
+
+        $this->logger->method('warning')
+            ->with('Failed to parse message: Parse error', [
+                'chat_id' => $chatId,
+                'text' => $text,
+            ]);
+
+        $this->service->handleUpdate($update);
+    }
+
+    public function testHandleUpdateNotHandled(): void
+    {
+        $chatId = 123456;
+        $text = 'unhandled text';
+        $user = new User();
+
+        $update = new Update([
+            'update_id' => 1,
+            'message' => [
+                'message_id' => 1,
+                'chat' => ['id' => $chatId],
+                'text' => $text,
+            ],
+        ]);
+
+        $this->userRepository->method('findByTelegramId')
+            ->with($chatId)
+            ->willReturn($user);
+
+        $this->commandRegistry->method('findCommand')
+            ->with($text)
+            ->willReturn(null);
+
+        $this->stateHandlerRegistry->method('handleState')
+            ->with($chatId, $user, $text)
+            ->willReturn(false);
+
+        $this->messageParser->method('parseMessage')
+            ->with($text)
+            ->willReturn(null);
+
+        $this->logger->method('info')
+            ->with('Message not handled', [
+                'chat_id' => $chatId,
+                'text' => $text,
+            ]);
+
+        $this->service->handleUpdate($update);
     }
 }

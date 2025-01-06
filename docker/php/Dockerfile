@@ -9,16 +9,9 @@ RUN apt-get update && apt-get install -y \
     pdo_sqlite \
     intl \
     && pecl install pcov xdebug \
-    && git clone https://github.com/runkit7/runkit7.git \
-    && cd runkit7 \
-    && phpize \
-    && ./configure \
-    && make \
-    && make install \
     && docker-php-ext-enable \
     pdo_sqlite \
     pcov \
-    runkit7 \
     xdebug \
     intl
 

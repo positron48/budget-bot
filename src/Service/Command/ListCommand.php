@@ -3,21 +3,20 @@
 namespace App\Service\Command;
 
 use App\Entity\User;
-use App\Repository\UserRepository;
 use App\Service\GoogleSheetsService;
-use Psr\Log\LoggerInterface;
+use App\Service\TelegramApiServiceInterface;
 
-class ListCommand extends AbstractCommand
+class ListCommand implements CommandInterface
 {
-    private GoogleSheetsService $sheetsService;
-
     public function __construct(
-        UserRepository $userRepository,
-        LoggerInterface $logger,
-        GoogleSheetsService $sheetsService,
+        private readonly GoogleSheetsService $sheetsService,
+        private readonly TelegramApiServiceInterface $telegramApiService,
     ) {
-        parent::__construct($userRepository, $logger);
-        $this->sheetsService = $sheetsService;
+    }
+
+    public function supports(string $command): bool
+    {
+        return '/list' === $command;
     }
 
     public function getName(): string
@@ -25,10 +24,14 @@ class ListCommand extends AbstractCommand
         return '/list';
     }
 
-    protected function handleCommand(int $chatId, ?User $user, string $message): void
+    public function execute(int $chatId, ?User $user, string $message): void
     {
         if (!$user) {
-            $this->sendMessage($chatId, 'Пожалуйста, начните с команды /start');
+            $this->telegramApiService->sendMessage([
+                'chat_id' => $chatId,
+                'text' => 'Пожалуйста, начните с команды /start',
+                'parse_mode' => 'HTML',
+            ]);
 
             return;
         }
@@ -36,24 +39,29 @@ class ListCommand extends AbstractCommand
         $spreadsheets = $this->sheetsService->getSpreadsheetsList($user);
 
         if (empty($spreadsheets)) {
-            $this->sendMessage(
-                $chatId,
-                'У вас пока нет добавленных таблиц. Используйте команду /add чтобы добавить таблицу'
-            );
+            $this->telegramApiService->sendMessage([
+                'chat_id' => $chatId,
+                'text' => 'У вас пока нет добавленных таблиц. Используйте команду /add чтобы добавить таблицу',
+                'parse_mode' => 'HTML',
+            ]);
 
             return;
         }
 
-        $message = "Ваши таблицы:\n\n";
+        $message = 'Список ваших таблиц:'.PHP_EOL;
         foreach ($spreadsheets as $spreadsheet) {
             $message .= sprintf(
-                "%s %d: %s\n",
+                '%s %d: %s'.PHP_EOL,
                 $spreadsheet['month'],
                 $spreadsheet['year'],
                 $spreadsheet['url']
             );
         }
 
-        $this->sendMessage($chatId, $message);
+        $this->telegramApiService->sendMessage([
+            'chat_id' => $chatId,
+            'text' => $message,
+            'parse_mode' => 'HTML',
+        ]);
     }
 }

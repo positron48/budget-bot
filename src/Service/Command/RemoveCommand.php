@@ -5,19 +5,20 @@ namespace App\Service\Command;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\GoogleSheetsService;
-use Psr\Log\LoggerInterface;
+use App\Service\TelegramApiServiceInterface;
 
-class RemoveCommand extends AbstractCommand
+class RemoveCommand implements CommandInterface
 {
-    private GoogleSheetsService $sheetsService;
-
     public function __construct(
-        UserRepository $userRepository,
-        LoggerInterface $logger,
-        GoogleSheetsService $sheetsService,
+        private readonly UserRepository $userRepository,
+        private readonly GoogleSheetsService $sheetsService,
+        private readonly TelegramApiServiceInterface $telegramApiService,
     ) {
-        parent::__construct($userRepository, $logger);
-        $this->sheetsService = $sheetsService;
+    }
+
+    public function supports(string $command): bool
+    {
+        return '/remove' === $command;
     }
 
     public function getName(): string
@@ -25,10 +26,14 @@ class RemoveCommand extends AbstractCommand
         return '/remove';
     }
 
-    protected function handleCommand(int $chatId, ?User $user, string $message): void
+    public function execute(int $chatId, ?User $user, string $message): void
     {
         if (!$user) {
-            $this->sendMessage($chatId, 'Пожалуйста, начните с команды /start');
+            $this->telegramApiService->sendMessage([
+                'chat_id' => $chatId,
+                'text' => 'Пожалуйста, начните с команды /start',
+                'parse_mode' => 'HTML',
+            ]);
 
             return;
         }
@@ -36,10 +41,11 @@ class RemoveCommand extends AbstractCommand
         $spreadsheets = $this->sheetsService->getSpreadsheetsList($user);
 
         if (empty($spreadsheets)) {
-            $this->sendMessage(
-                $chatId,
-                'У вас пока нет добавленных таблиц. Используйте команду /add чтобы добавить таблицу'
-            );
+            $this->telegramApiService->sendMessage([
+                'chat_id' => $chatId,
+                'text' => 'У вас пока нет добавленных таблиц. Используйте команду /add чтобы добавить таблицу',
+                'parse_mode' => 'HTML',
+            ]);
 
             return;
         }
@@ -61,16 +67,28 @@ class RemoveCommand extends AbstractCommand
                             (int) $spreadsheet['month'],
                             (int) $spreadsheet['year']
                         );
-                        $this->sendMessage($chatId, 'Таблица успешно удалена');
+                        $this->telegramApiService->sendMessage([
+                            'chat_id' => $chatId,
+                            'text' => 'Таблица успешно удалена',
+                            'parse_mode' => 'HTML',
+                        ]);
                     } catch (\RuntimeException $e) {
-                        $this->sendMessage($chatId, $e->getMessage());
+                        $this->telegramApiService->sendMessage([
+                            'chat_id' => $chatId,
+                            'text' => $e->getMessage(),
+                            'parse_mode' => 'HTML',
+                        ]);
                     }
                     break;
                 }
             }
 
             if (!$found) {
-                $this->sendMessage($chatId, 'Таблица не найдена');
+                $this->telegramApiService->sendMessage([
+                    'chat_id' => $chatId,
+                    'text' => 'Таблица не найдена',
+                    'parse_mode' => 'HTML',
+                ]);
             }
 
             return;
@@ -81,12 +99,18 @@ class RemoveCommand extends AbstractCommand
             $keyboard[] = ['text' => sprintf('%s %d', $spreadsheet['month'], $spreadsheet['year'])];
         }
 
-        $this->setState($user, 'WAITING_REMOVE_SPREADSHEET');
+        $user->setState('WAITING_REMOVE_SPREADSHEET');
+        $this->userRepository->save($user, true);
 
-        $this->sendMessage(
-            $chatId,
-            'Выберите таблицу для удаления:',
-            $keyboard
-        );
+        $this->telegramApiService->sendMessage([
+            'chat_id' => $chatId,
+            'text' => 'Выберите таблицу для удаления:',
+            'parse_mode' => 'HTML',
+            'reply_markup' => json_encode([
+                'keyboard' => array_map(fn ($button) => [$button], $keyboard),
+                'resize_keyboard' => true,
+                'one_time_keyboard' => true,
+            ]),
+        ]);
     }
 }

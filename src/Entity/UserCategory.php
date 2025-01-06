@@ -26,6 +26,10 @@ class UserCategory
     #[ORM\Column(length: 10)]
     private ?string $type = null;
 
+    #[ORM\Column]
+    private bool $isIncome = false;
+
+    /** @var Collection<int, CategoryKeyword> */
     #[ORM\OneToMany(mappedBy: 'userCategory', targetEntity: CategoryKeyword::class, cascade: ['persist', 'remove'])]
     private Collection $keywords;
 
@@ -75,6 +79,19 @@ class UserCategory
         return $this;
     }
 
+    public function isIncome(): bool
+    {
+        return $this->isIncome;
+    }
+
+    public function setIsIncome(bool $isIncome): static
+    {
+        $this->isIncome = $isIncome;
+
+        return $this;
+    }
+
+    /** @return Collection<int, CategoryKeyword> */
     public function getKeywords(): Collection
     {
         return $this->keywords;

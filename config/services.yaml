@@ -18,8 +18,8 @@ services:
 
     App\Service\TelegramBotService:
         arguments:
-            $botToken: '%telegram_bot_token%'
-            $botUsername: '%telegram_bot_username%'
+            $token: '%telegram_bot_token%'
+            $username: '%telegram_bot_username%'
 
     App\Command\SetWebhookCommand:
         arguments:
@@ -50,4 +50,7 @@ services:
 
     App\Service\StateHandler\StateHandlerRegistry:
         arguments:
-            $handlers: !tagged_iterator app.state_handler 
+            $handlers: !tagged_iterator app.state_handler
+
+    App\Service\TelegramApiServiceInterface:
+        class: App\Service\TelegramApiService 

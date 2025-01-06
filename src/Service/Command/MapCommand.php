@@ -5,20 +5,17 @@ namespace App\Service\Command;
 use App\Entity\User;
 use App\Repository\CategoryRepository;
 use App\Repository\UserCategoryRepository;
-use App\Repository\UserRepository;
 use App\Service\CategoryService;
-use Psr\Log\LoggerInterface;
+use App\Service\TelegramApiServiceInterface;
 
-class MapCommand extends AbstractCommand
+class MapCommand implements CommandInterface
 {
     public function __construct(
         private readonly CategoryService $categoryService,
         private readonly CategoryRepository $categoryRepository,
         private readonly UserCategoryRepository $userCategoryRepository,
-        UserRepository $userRepository,
-        LoggerInterface $logger,
+        private readonly TelegramApiServiceInterface $telegramApi,
     ) {
-        parent::__construct($userRepository, $logger);
     }
 
     public function getName(): string
@@ -31,17 +28,25 @@ class MapCommand extends AbstractCommand
         return str_starts_with($message, $this->getName());
     }
 
-    protected function handleCommand(int $chatId, ?User $user, string $message): void
+    public function execute(int $chatId, ?User $user, string $message): void
     {
         if (!$user) {
-            $this->sendMessage($chatId, 'Пожалуйста, начните с команды /start');
+            $this->telegramApi->sendMessage([
+                'chat_id' => $chatId,
+                'text' => 'Пожалуйста, начните с команды /start',
+                'parse_mode' => 'HTML',
+            ]);
 
             return;
         }
 
         $parts = preg_split('/\s+/', trim($message), 2);
         if (!is_array($parts) || count($parts) < 2) {
-            $this->sendMessage($chatId, 'Пожалуйста, укажите описание расхода после команды /map. Например: /map еда');
+            $this->telegramApi->sendMessage([
+                'chat_id' => $chatId,
+                'text' => 'Пожалуйста, укажите описание расхода после команды /map. Например: /map еда',
+                'parse_mode' => 'HTML',
+            ]);
 
             return;
         }
@@ -63,22 +68,31 @@ class MapCommand extends AbstractCommand
         $category = $this->categoryService->detectCategory($description, 'expense', $user);
 
         if (!$category) {
-            $this->sendMessage($chatId, sprintf('Для описания "%s" категория не найдена', $description));
+            $this->telegramApi->sendMessage([
+                'chat_id' => $chatId,
+                'text' => sprintf('Для описания "%s" категория не найдена', $description),
+                'parse_mode' => 'HTML',
+            ]);
 
             return;
         }
 
-        $this->sendMessage(
-            $chatId,
-            sprintf('Описание "%s" соответствует категории "%s"', $description, $category)
-        );
+        $this->telegramApi->sendMessage([
+            'chat_id' => $chatId,
+            'text' => sprintf('Описание "%s" соответствует категории "%s"', $description, $category),
+            'parse_mode' => 'HTML',
+        ]);
     }
 
     private function handleMapping(int $chatId, User $user, string $input): void
     {
         $parts = array_map('trim', explode('=', $input));
         if (2 !== count($parts)) {
-            $this->sendMessage($chatId, 'Неверный формат. Используйте: слово = категория');
+            $this->telegramApi->sendMessage([
+                'chat_id' => $chatId,
+                'text' => 'Неверный формат. Используйте: слово = категория',
+                'parse_mode' => 'HTML',
+            ]);
 
             return;
         }
@@ -89,24 +103,26 @@ class MapCommand extends AbstractCommand
         // Get sorted list of categories
         $categories = $this->categoryService->getCategories(false, $user);
         if (!in_array($categoryName, $categories, true)) {
-            $this->sendMessage(
-                $chatId,
-                sprintf(
+            $this->telegramApi->sendMessage([
+                'chat_id' => $chatId,
+                'text' => sprintf(
                     'Категория "%s" не найдена. Доступные категории:%s%s',
                     $categoryName,
                     PHP_EOL,
                     implode(PHP_EOL, $categories)
-                )
-            );
+                ),
+                'parse_mode' => 'HTML',
+            ]);
 
             return;
         }
 
         $this->categoryService->addKeywordToCategory($keyword, $categoryName, 'expense', $user);
-        $this->sendMessage(
-            $chatId,
-            sprintf('Добавлено сопоставление: "%s" → "%s"', $keyword, $categoryName)
-        );
+        $this->telegramApi->sendMessage([
+            'chat_id' => $chatId,
+            'text' => sprintf('Добавлено сопоставление: "%s" → "%s"', $keyword, $categoryName),
+            'parse_mode' => 'HTML',
+        ]);
     }
 
     private function showAllMappings(int $chatId, User $user): void
@@ -150,6 +166,10 @@ class MapCommand extends AbstractCommand
             $message .= "Сопоставлений пока нет. Чтобы добавить сопоставление, используйте команду:\n/map слово = категория\n\nНапример:\n/map еда = Питание";
         }
 
-        $this->sendMessage($chatId, $message);
+        $this->telegramApi->sendMessage([
+            'chat_id' => $chatId,
+            'text' => $message,
+            'parse_mode' => 'HTML',
+        ]);
     }
 }

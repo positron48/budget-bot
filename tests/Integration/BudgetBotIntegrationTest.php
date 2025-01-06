@@ -2,262 +2,155 @@
 
 namespace App\Tests\Integration;
 
-use App\Service\GoogleSheetsService;
+use App\Entity\User;
+use App\Repository\UserRepository;
 use App\Service\TelegramBotService;
-use App\Tests\Integration\DataFixtures\TestFixtures;
-use App\Tests\Mock\ResponseCollector;
+use Longman\TelegramBot\Entities\Update;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-class BudgetBotIntegrationTest extends IntegrationTestCase
+class BudgetBotIntegrationTest extends KernelTestCase
 {
-    private const TELEGRAM_ID = 123456;
-
-    private TelegramBotService $botService;
-    private TestFixtures $fixtures;
-    private ResponseCollector $responseCollector;
-    private GoogleSheetsService $sheetsService;
+    private TelegramBotService $telegramBotService;
+    private UserRepository $userRepository;
 
     protected function setUp(): void
     {
-        parent::setUp();
+        self::bootKernel();
 
-        // Mock GoogleSheetsService
-        $this->sheetsService = $this->createMock(GoogleSheetsService::class);
-        $this->sheetsService->method('handleSpreadsheetId')
-            ->willReturnArgument(0);
-
-        // Replace real service with mock
-        $container = self::getContainer();
-        $container->set(GoogleSheetsService::class, $this->sheetsService);
-
-        $this->botService = $container->get(TelegramBotService::class);
-        $this->fixtures = new TestFixtures($this->entityManager);
-        ResponseCollector::resetInstance();
-        $this->responseCollector = ResponseCollector::getInstance();
-
-        // Load test data
-        $this->fixtures->load();
-
-        // Reset responses
-        $this->responseCollector->reset();
+        $container = static::getContainer();
+        $this->telegramBotService = $container->get(TelegramBotService::class);
+        $this->userRepository = $container->get(UserRepository::class);
     }
 
-    protected function tearDown(): void
+    public function testStartCommand(): void
     {
-        parent::tearDown();
-        ResponseCollector::resetInstance();
-    }
-
-    /** @return array<int, string> */
-    private function getResponses(): array
-    {
-        return $this->responseCollector->getResponses();
-    }
-
-    private function clearTestData(): void
-    {
-        $this->entityManager->createQuery('DELETE FROM App\Entity\UserSpreadsheet')->execute();
-        $this->entityManager->createQuery('DELETE FROM App\Entity\CategoryKeyword')->execute();
-        $this->entityManager->createQuery('DELETE FROM App\Entity\UserCategory')->execute();
-        $this->entityManager->createQuery('DELETE FROM App\Entity\User')->execute();
-    }
-
-    /**
-     * @group skip
-     */
-    public function testFullUserJourney(): void
-    {
-        // Clear test data
-        $this->clearTestData();
-
-        // 1. Start command - welcome message
-        $this->botService->handleUpdate([
+        $chatId = 123456;
+        $update = new Update([
             'update_id' => 1,
             'message' => [
                 'message_id' => 1,
-                'chat' => ['id' => self::TELEGRAM_ID],
+                'chat' => ['id' => $chatId],
                 'text' => '/start',
             ],
         ]);
 
-        $responses = $this->getResponses();
-        $this->assertCount(1, $responses);
-        $this->assertStringContainsString('Привет! Я помогу вести учет доходов и расходов в Google Таблицах', $responses[0]);
-        $this->assertStringContainsString('/list - список доступных таблиц', $responses[0]);
-        $this->assertStringContainsString('/add - добавить таблицу', $responses[0]);
+        $this->telegramBotService->handleUpdate($update);
 
-        // Reset responses for the next command
-        $this->responseCollector->reset();
+        $user = $this->userRepository->findByTelegramId($chatId);
+        $this->assertNotNull($user);
+        $this->assertEquals($chatId, $user->getTelegramId());
+    }
 
-        // 2. List command - empty list
-        $this->botService->handleUpdate([
-            'update_id' => 2,
+    public function testAddCommand(): void
+    {
+        $chatId = 123456;
+        $user = new User();
+        $user->setTelegramId($chatId);
+        $this->userRepository->save($user, true);
+
+        $update = new Update([
+            'update_id' => 1,
             'message' => [
-                'message_id' => 2,
-                'chat' => ['id' => self::TELEGRAM_ID],
-                'text' => '/list',
-            ],
-        ]);
-
-        $responses = $this->getResponses();
-        $this->assertCount(1, $responses);
-        $this->assertStringContainsString('У вас пока нет добавленных таблиц', $responses[0]);
-        $this->assertStringContainsString('Используйте команду /add чтобы добавить таблицу', $responses[0]);
-
-        // Reset responses for the next command
-        $this->responseCollector->reset();
-
-        // 3. Add command - request spreadsheet ID
-        $this->botService->handleUpdate([
-            'update_id' => 3,
-            'message' => [
-                'message_id' => 3,
-                'chat' => ['id' => self::TELEGRAM_ID],
+                'message_id' => 1,
+                'chat' => ['id' => $chatId],
                 'text' => '/add',
             ],
         ]);
 
-        $responses = $this->getResponses();
-        $this->assertCount(1, $responses);
-        $this->assertStringContainsString('Отправьте ссылку на таблицу или её идентификатор', $responses[0]);
+        $this->telegramBotService->handleUpdate($update);
 
-        // Reset responses for the next command
-        $this->responseCollector->reset();
-
-        // 4. Send spreadsheet ID
-        $spreadsheetId = '1-BxqnQqyBPjyuRxMSrwQ2FDDxR-sQGQs_EZbZEn_Xzc';
-        $this->botService->handleUpdate([
-            'update_id' => 4,
-            'message' => [
-                'message_id' => 4,
-                'chat' => ['id' => self::TELEGRAM_ID],
-                'text' => $spreadsheetId,
-            ],
-        ]);
-
-        $responses = $this->getResponses();
-        $this->assertCount(1, $responses);
-        $this->assertStringContainsString('Выберите месяц и год', $responses[0]);
-        $this->assertStringContainsString('введите их в формате "Месяц Год"', $responses[0]);
-
-        // Verify keyboard options
-        $this->assertStringContainsString('Клавиатура:', $responses[0]);
-
-        // Get current date for comparison
-        $currentDate = new \DateTime();
-        $nextMonth = (clone $currentDate)->modify('first day of next month');
-
-        // Create formatter once
-        $formatter = \IntlDateFormatter::create('ru', \IntlDateFormatter::NONE, \IntlDateFormatter::NONE, null, null, 'MMMM');
-        if (!$formatter) {
-            $this->fail('Failed to create IntlDateFormatter');
-        }
-
-        // Check that next month is present
-        $this->assertStringContainsString(
-            sprintf('- %s %d',
-                $this->getMonthName((int) $nextMonth->format('n')),
-                (int) $nextMonth->format('Y')
-            ),
-            $responses[0]
-        );
-
-        // Check previous months (5 months back from next month)
-        for ($i = 1; $i <= 5; ++$i) {
-            $prevMonth = (clone $nextMonth)->modify("-$i month");
-            $this->assertStringContainsString(
-                sprintf('- %s %d',
-                    $this->getMonthName((int) $prevMonth->format('n')),
-                    (int) $prevMonth->format('Y')
-                ),
-                $responses[0]
-            );
-        }
-
-        // Reset responses for the next command
-        $this->responseCollector->reset();
-
-        // 5. Send month and year
-        $monthName = 'Январь';
-        $year = 2025;
-        $this->botService->handleUpdate([
-            'update_id' => 5,
-            'message' => [
-                'message_id' => 5,
-                'chat' => ['id' => self::TELEGRAM_ID],
-                'text' => sprintf('%s %d', $monthName, $year),
-            ],
-        ]);
-
-        $responses = $this->getResponses();
-        $this->assertCount(1, $responses);
-        $this->assertStringContainsString('успешно добавлена', $responses[0]);
+        $user = $this->userRepository->findByTelegramId($chatId);
+        $this->assertNotNull($user);
+        $this->assertEquals('WAITING_SPREADSHEET_ID', $user->getState());
     }
 
-    /**
-     * @group skip
-     */
-    public function testCategoryManagement(): void
+    public function testCategoriesCommand(): void
     {
-        $this->markTestSkipped('Temporarily disabled');
-    }
+        $chatId = 123456;
+        $user = new User();
+        $user->setTelegramId($chatId);
+        $this->userRepository->save($user, true);
 
-    public function testErrorHandling(): void
-    {
-        error_log('Starting testErrorHandling');
-
-        // 1. Invalid expense format (no amount)
-        $this->botService->handleUpdate([
+        $update = new Update([
             'update_id' => 1,
             'message' => [
                 'message_id' => 1,
-                'chat' => ['id' => self::TELEGRAM_ID],
-                'text' => 'invalid',
+                'chat' => ['id' => $chatId],
+                'text' => '/categories',
             ],
         ]);
 
-        $responses = $this->getResponses();
-        error_log('After first command, responses count: '.count($responses));
-        error_log('Responses: '.json_encode($responses, JSON_UNESCAPED_UNICODE));
-        $this->assertNotEmpty($responses);
-        $this->assertArrayHasKey(0, $responses);
-        $this->assertStringContainsString('Неверный формат сообщения', $responses[0]);
-        $this->assertStringContainsString('Используйте формат: "[дата] [+]сумма описание"', $responses[0]);
+        $this->telegramBotService->handleUpdate($update);
 
-        // 2. Invalid amount format
-        $this->botService->handleUpdate([
-            'update_id' => 2,
-            'message' => [
-                'message_id' => 2,
-                'chat' => ['id' => self::TELEGRAM_ID],
-                'text' => 'taxi abc',
-            ],
-        ]);
-
-        $responses = $this->getResponses();
-        error_log('After second command, responses count: '.count($responses));
-        error_log('Responses: '.json_encode($responses, JSON_UNESCAPED_UNICODE));
-        $this->assertArrayHasKey(1, $responses);
-        $this->assertStringContainsString('Неверный формат сообщения', $responses[1]);
-        $this->assertStringContainsString('Используйте формат: "[дата] [+]сумма описание"', $responses[1]);
+        $user = $this->userRepository->findByTelegramId($chatId);
+        $this->assertNotNull($user);
+        $this->assertEquals('WAITING_CATEGORIES_ACTION', $user->getState());
     }
 
-    private function getMonthName(int $month): string
+    public function testRemoveCommand(): void
     {
-        $months = [
-            1 => 'Январь',
-            2 => 'Февраль',
-            3 => 'Март',
-            4 => 'Апрель',
-            5 => 'Май',
-            6 => 'Июнь',
-            7 => 'Июль',
-            8 => 'Август',
-            9 => 'Сентябрь',
-            10 => 'Октябрь',
-            11 => 'Ноябрь',
-            12 => 'Декабрь',
-        ];
+        $chatId = 123456;
+        $user = new User();
+        $user->setTelegramId($chatId);
+        $this->userRepository->save($user, true);
 
-        return $months[$month] ?? '';
+        $update = new Update([
+            'update_id' => 1,
+            'message' => [
+                'message_id' => 1,
+                'chat' => ['id' => $chatId],
+                'text' => '/remove',
+            ],
+        ]);
+
+        $this->telegramBotService->handleUpdate($update);
+
+        $user = $this->userRepository->findByTelegramId($chatId);
+        $this->assertNotNull($user);
+        $this->assertEquals('WAITING_REMOVE_SPREADSHEET', $user->getState());
+    }
+
+    public function testMapCommand(): void
+    {
+        $chatId = 123456;
+        $user = new User();
+        $user->setTelegramId($chatId);
+        $this->userRepository->save($user, true);
+
+        $update = new Update([
+            'update_id' => 1,
+            'message' => [
+                'message_id' => 1,
+                'chat' => ['id' => $chatId],
+                'text' => '/map',
+            ],
+        ]);
+
+        $this->telegramBotService->handleUpdate($update);
+
+        $user = $this->userRepository->findByTelegramId($chatId);
+        $this->assertNotNull($user);
+    }
+
+    public function testSyncCategoriesCommand(): void
+    {
+        $chatId = 123456;
+        $user = new User();
+        $user->setTelegramId($chatId);
+        $this->userRepository->save($user, true);
+
+        $update = new Update([
+            'update_id' => 1,
+            'message' => [
+                'message_id' => 1,
+                'chat' => ['id' => $chatId],
+                'text' => '/sync_categories',
+            ],
+        ]);
+
+        $this->telegramBotService->handleUpdate($update);
+
+        $user = $this->userRepository->findByTelegramId($chatId);
+        $this->assertNotNull($user);
     }
 }

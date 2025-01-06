@@ -4,15 +4,19 @@ namespace App\Service\Command;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
-use Psr\Log\LoggerInterface;
+use App\Service\TelegramApiServiceInterface;
 
-class CategoriesCommand extends AbstractCommand
+class CategoriesCommand implements CommandInterface
 {
     public function __construct(
-        UserRepository $userRepository,
-        LoggerInterface $logger,
+        private readonly UserRepository $userRepository,
+        private readonly TelegramApiServiceInterface $telegramApiService,
     ) {
-        parent::__construct($userRepository, $logger);
+    }
+
+    public function supports(string $command): bool
+    {
+        return '/categories' === $command;
     }
 
     public function getName(): string
@@ -20,10 +24,14 @@ class CategoriesCommand extends AbstractCommand
         return '/categories';
     }
 
-    protected function handleCommand(int $chatId, ?User $user, string $message): void
+    public function execute(int $chatId, ?User $user, string $message): void
     {
         if (!$user) {
-            $this->sendMessage($chatId, 'Пожалуйста, начните с команды /start');
+            $this->telegramApiService->sendMessage([
+                'chat_id' => $chatId,
+                'text' => 'Пожалуйста, начните с команды /start',
+                'parse_mode' => 'HTML',
+            ]);
 
             return;
         }
@@ -33,12 +41,18 @@ class CategoriesCommand extends AbstractCommand
             ['text' => 'Категории доходов'],
         ];
 
-        $this->setState($user, 'WAITING_CATEGORIES_ACTION');
+        $user->setState('WAITING_CATEGORIES_ACTION');
+        $this->userRepository->save($user, true);
 
-        $this->sendMessage(
-            $chatId,
-            'Выберите действие:',
-            $keyboard
-        );
+        $this->telegramApiService->sendMessage([
+            'chat_id' => $chatId,
+            'text' => 'Выберите действие:',
+            'parse_mode' => 'HTML',
+            'reply_markup' => json_encode([
+                'keyboard' => array_map(fn ($button) => [$button], $keyboard),
+                'resize_keyboard' => true,
+                'one_time_keyboard' => true,
+            ]),
+        ]);
     }
 }
