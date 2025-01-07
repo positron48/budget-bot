@@ -1251,7 +1251,7 @@ Could not find a Coverage file! Searched for lcov.info, cov.xml, coverage.xml, c
 
 ---
 
-в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push 
+в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push [refactor: rename AbstractBotIntegrationTest to AbstractBotIntegrationTestCase following PHPUnit naming convention](https://github.com/positron48/budget-bot/commit/bb949590a770d61957ea6b535c41b4e402e11a61)
 
 ---
 
