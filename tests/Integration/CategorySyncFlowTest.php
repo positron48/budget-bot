@@ -65,13 +65,13 @@ class CategorySyncFlowTest extends AbstractBotIntegrationTestCase
 
         // Verify categories cleared message
         $this->assertStringContainsString('Пользовательские категории очищены:', $lastMessages[0]['text']);
-        $this->assertStringContainsString('- Расходы: 3', $lastMessages[0]['text']);
-        $this->assertStringContainsString('- Доходы: 2', $lastMessages[0]['text']);
+        $this->assertStringContainsString('- Расходы: 16', $lastMessages[0]['text']);
+        $this->assertStringContainsString('- Доходы: 6', $lastMessages[0]['text']);
 
         // Verify sync results message
         $this->assertStringContainsString('Синхронизация категорий завершена:', $lastMessages[1]['text']);
-        $this->assertStringContainsString('- Расходы: Питание, Транспорт, Развлечения', $lastMessages[1]['text']);
-        $this->assertStringContainsString('- Доходы: Зарплата, Фриланс', $lastMessages[1]['text']);
+        $this->assertStringContainsString('- Расходы: Питание, Подарки, Здоровье/медицина, Дом, Транспорт, Личные расходы, Домашние животные, Коммунальные услуги, Путешествия, Одежда, Развлечения, Кафе/Ресторан, Алко, Образование, Услуги, Авто', $lastMessages[1]['text']);
+        $this->assertStringContainsString('- Доходы: Зарплата, Премия, Кешбек, др. бонусы, Процентный доход, Инвестиции, Другое', $lastMessages[1]['text']);
     }
 
     public function testCategoryListing(): void
@@ -86,14 +86,17 @@ class CategorySyncFlowTest extends AbstractBotIntegrationTestCase
         // Check expense categories
         $this->executeCommand('Категории расходов', self::TEST_CHAT_ID);
         $this->assertLastMessageContains('Питание');
+        $this->assertLastMessageContains('Подарки');
+        $this->assertLastMessageContains('Здоровье/медицина');
         $this->assertLastMessageContains('Транспорт');
-        $this->assertLastMessageContains('Развлечения');
+        $this->assertLastMessageContains('Кафе/Ресторан');
 
         // Check income categories
         $this->executeCommand('/categories', self::TEST_CHAT_ID);
         $this->executeCommand('Категории доходов', self::TEST_CHAT_ID);
         $this->assertLastMessageContains('Зарплата');
-        $this->assertLastMessageContains('Фриланс');
+        $this->assertLastMessageContains('Премия');
+        $this->assertLastMessageContains('Кешбек, др. бонусы');
     }
 
     public function testCategoryMapping(): void
@@ -102,12 +105,12 @@ class CategorySyncFlowTest extends AbstractBotIntegrationTestCase
         $this->testCategorySync();
 
         // Add mapping
-        $this->executeCommand('/map еда = Питание', self::TEST_CHAT_ID);
-        $this->assertLastMessageContains('Добавлено сопоставление: "еда" → "Питание"');
+        $this->executeCommand('/map продукты = Питание', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Добавлено сопоставление: "продукты" → "Питание"');
 
         // Verify mapping
-        $this->executeCommand('/map еда', self::TEST_CHAT_ID);
-        $this->assertLastMessageContains('Описание "еда" соответствует категории "Питание"');
+        $this->executeCommand('/map продукты', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Описание "продукты" соответствует категории "Питание"');
     }
 
     public function testExpenseAdditionWithMapping(): void
@@ -116,20 +119,20 @@ class CategorySyncFlowTest extends AbstractBotIntegrationTestCase
         $this->testCategoryMapping();
 
         // Add expense with mapped category
-        $this->executeCommand('1500 еда обед', self::TEST_CHAT_ID);
+        $this->executeCommand('1500 продукты пятерочка', self::TEST_CHAT_ID);
         $this->assertLastMessageContains('Расход успешно добавлен в категорию "Питание"');
 
         // Add expense with unmapped category
-        $this->executeCommand('1000 продукты', self::TEST_CHAT_ID);
-        $this->assertLastMessageContains('Не удалось определить категорию для "продукты"');
+        $this->executeCommand('1000 такси', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Не удалось определить категорию для "такси"');
         $this->assertLastMessageContains('Выберите категорию из списка');
 
         // Select category for unmapped keyword
-        $this->executeCommand('Питание', self::TEST_CHAT_ID);
-        $this->assertLastMessageContains('Расход успешно добавлен в категорию "Питание"');
+        $this->executeCommand('Транспорт', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Расход успешно добавлен в категорию "Транспорт"');
 
         // Verify automatic mapping creation
-        $this->executeCommand('/map продукты', self::TEST_CHAT_ID);
-        $this->assertLastMessageContains('Описание "продукты" соответствует категории "Питание"');
+        $this->executeCommand('/map такси', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Описание "такси" соответствует категории "Транспорт"');
     }
 }

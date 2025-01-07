@@ -73,7 +73,7 @@ abstract class AbstractBotIntegrationTestCase extends IntegrationTestCase
         $this->assertCount($expectedCount, $messages);
     }
 
-    protected function setupTestSpreadsheet(string $spreadsheetId, string $title = 'Test Budget'): void
+    protected function setupTestSpreadsheet(string $spreadsheetId, string $title = 'Бюджет'): void
     {
         $this->googleApiClient->addAccessibleSpreadsheet($spreadsheetId);
         $this->googleApiClient->setSpreadsheetTitle($spreadsheetId, $title);
@@ -83,12 +83,30 @@ abstract class AbstractBotIntegrationTestCase extends IntegrationTestCase
     {
         $this->googleApiClient->setValues($spreadsheetId, 'Сводка!B28:B', [
             ['Питание'],
+            ['Подарки'],
+            ['Здоровье/медицина'],
+            ['Дом'],
             ['Транспорт'],
+            ['Личные расходы'],
+            ['Домашние животные'],
+            ['Коммунальные услуги'],
+            ['Путешествия'],
+            ['Одежда'],
             ['Развлечения'],
+            ['Кафе/Ресторан'],
+            ['Алко'],
+            ['Образование'],
+            ['Услуги'],
+            ['Авто'],
         ]);
+
         $this->googleApiClient->setValues($spreadsheetId, 'Сводка!H28:H', [
             ['Зарплата'],
-            ['Фриланс'],
+            ['Премия'],
+            ['Кешбек, др. бонусы'],
+            ['Процентный доход'],
+            ['Инвестиции'],
+            ['Другое'],
         ]);
     }
 }

@@ -1255,3 +1255,15 @@ Could not find a Coverage file! Searched for lcov.info, cov.xml, coverage.xml, c
 
 ---
 
+просмотри текстуры и имеющиеся интеграционные тесты и поправь фикстуры, чтобы они содержали похожие на реальные данные 
+
+---
+
+проверь тесты, всегда запускай make cs-fix && make ci
+
+---
+
+в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push
+
+---
+
