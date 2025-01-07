@@ -67,7 +67,7 @@ class MessageParserService
         ];
     }
 
-    private function parseDate(string $dateStr): ?\DateTime
+    public function parseDate(string $dateStr): ?\DateTime
     {
         $dateStr = mb_strtolower($dateStr);
 

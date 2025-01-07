@@ -5,6 +5,9 @@ namespace App\Tests\Service;
 use App\Service\MessageParserService;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @covers \App\Service\MessageParserService
+ */
 class MessageParserServiceTest extends TestCase
 {
     private MessageParserService $parser;
@@ -173,8 +176,7 @@ class MessageParserServiceTest extends TestCase
 
     public function testParseMessageWithLargeNumber(): void
     {
-        $service = new MessageParserService();
-        $result = $service->parseMessage('1000 продукты');
+        $result = $this->parser->parseMessage('1000 продукты');
 
         $this->assertNotNull($result);
         $this->assertInstanceOf(\DateTime::class, $result['date']);
@@ -185,13 +187,67 @@ class MessageParserServiceTest extends TestCase
 
     public function testParseMessageWithDateLikeNumber(): void
     {
-        $service = new MessageParserService();
-        $result = $service->parseMessage('1.00 продукты');
+        $result = $this->parser->parseMessage('1.00 продукты');
 
         $this->assertNotNull($result);
         $this->assertInstanceOf(\DateTime::class, $result['date']);
         $this->assertEquals(1.0, $result['amount']);
         $this->assertEquals('продукты', $result['description']);
         $this->assertFalse($result['isIncome']);
+    }
+
+    /**
+     * @dataProvider validDateProvider
+     */
+    public function testParseDate(string $dateStr, \DateTime $expected): void
+    {
+        $result = $this->parser->parseDate($dateStr);
+        $this->assertNotNull($result);
+        $this->assertEquals($expected->format('Y-m-d'), $result->format('Y-m-d'));
+    }
+
+    /**
+     * @return array<string, array{0: string, 1: \DateTime}>
+     */
+    public function validDateProvider(): array
+    {
+        $today = new \DateTime();
+        $yesterday = new \DateTime('-1 day');
+
+        return [
+            'today keyword' => ['сегодня', $today],
+            'yesterday keyword' => ['вчера', $yesterday],
+            'd.m.Y format' => ['01.01.2024', new \DateTime('2024-01-01')],
+            'd.m format' => ['01.01', (new \DateTime())->setDate((int) $today->format('Y'), 1, 1)],
+            'd/m/Y format' => ['01/01/2024', new \DateTime('2024-01-01')],
+            'd/m format' => ['01/01', (new \DateTime())->setDate((int) $today->format('Y'), 1, 1)],
+        ];
+    }
+
+    /**
+     * @dataProvider invalidDateProvider
+     */
+    public function testParseDateWithInvalidInput(string $dateStr): void
+    {
+        $result = $this->parser->parseDate($dateStr);
+        $this->assertNull($result);
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public function invalidDateProvider(): array
+    {
+        return [
+            'empty string' => [''],
+            'invalid format' => ['2024.01.01'],
+            'invalid separator' => ['01-01-2024'],
+            'invalid day' => ['32.01.2024'],
+            'invalid month' => ['01.13.2024'],
+            'invalid year format' => ['01.01.24'],
+            'invalid year length' => ['01.01.20244'],
+            'invalid day for month' => ['31.04.2024'],
+            'random text' => ['some text'],
+        ];
     }
 }
