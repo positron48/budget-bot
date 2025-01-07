@@ -1533,3 +1533,7 @@ list-tables нужно поменять на list_tables, телеграм не 
 
 ---
 
+запусти в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push [/list with pagen](https://github.com/positron48/budget-bot/commit/2c8e7a0ca38bb5a3eb42ea444bb60d38a07fb7cc)
+
+---
+
