@@ -6,7 +6,7 @@ use App\Entity\User;
 use App\Service\GoogleSheetsService;
 use App\Service\TelegramApiServiceInterface;
 
-class ListCommand implements CommandInterface
+class ListTablesCommand implements CommandInterface
 {
     public function __construct(
         private readonly GoogleSheetsService $sheetsService,
