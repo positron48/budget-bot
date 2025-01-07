@@ -2,175 +2,134 @@
 
 namespace App\Tests\Integration;
 
-use App\Entity\User;
 use App\Repository\UserRepository;
-use App\Service\Google\GoogleApiClientInterface;
-use App\Service\TelegramApiServiceInterface;
-use App\Service\TelegramBotService;
-use App\Tests\Mock\TelegramApiMock;
-use App\Tests\Mock\TestGoogleApiClient;
-use Longman\TelegramBot\Entities\Update;
 
-class CategorySyncFlowTest extends IntegrationTestCase
+class CategorySyncFlowTest extends AbstractBotIntegrationTest
 {
-    private TelegramBotService $botService;
+    private const TEST_CHAT_ID = 123456;
+    private const TEST_SPREADSHEET_ID = '1234567890';
+
     private UserRepository $userRepository;
-    private TelegramApiServiceInterface&TelegramApiMock $telegramApi;
-    private GoogleApiClientInterface&TestGoogleApiClient $googleApiClient;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $container = self::getContainer();
+        $this->userRepository = self::getContainer()->get(UserRepository::class);
 
-        // Get services from container
-        /** @var TelegramApiServiceInterface&TelegramApiMock $telegramApi */
-        $telegramApi = $container->get(TelegramApiServiceInterface::class);
-        $this->telegramApi = $telegramApi;
-
-        /** @var GoogleApiClientInterface&TestGoogleApiClient $googleApiClient */
-        $googleApiClient = $container->get(GoogleApiClientInterface::class);
-        $this->googleApiClient = $googleApiClient;
-
-        $this->botService = $container->get(TelegramBotService::class);
-        $this->userRepository = $container->get(UserRepository::class);
-
-        // Set up a test spreadsheet in Google API mock
-        $spreadsheetId = '1234567890';
-        $this->googleApiClient->addAccessibleSpreadsheet($spreadsheetId);
-        $this->googleApiClient->setSpreadsheetTitle($spreadsheetId, 'Test Budget');
-
-        // Set up mock data for categories in the spreadsheet
-        $this->googleApiClient->setValues($spreadsheetId, 'Сводка!B28:B', [
-            ['Питание'],
-            ['Транспорт'],
-            ['Развлечения'],
-        ]);
-        $this->googleApiClient->setValues($spreadsheetId, 'Сводка!H28:H', [
-            ['Зарплата'],
-            ['Фриланс'],
-        ]);
+        // Set up test data
+        $this->setupTestSpreadsheet(self::TEST_SPREADSHEET_ID);
+        $this->setupTestCategories(self::TEST_SPREADSHEET_ID);
     }
 
-    public function testCategorySyncFlow(): void
+    public function testUserCreationOnStart(): void
     {
-        $chatId = 123456;
+        // Execute /start command
+        $this->executeCommand('/start', self::TEST_CHAT_ID);
 
-        // Step 1: Start command
-        $this->executeCommand('/start', $chatId);
+        // Verify welcome message
+        $this->assertMessageCount(1);
+        $this->assertLastMessageContains('Привет!');
 
-        $messages = $this->telegramApi->getMessages();
-        $this->assertCount(1, $messages);
-        $this->assertStringContainsString('Привет!', $messages[0]['text']);
-
-        // Verify user was created
-        $user = $this->userRepository->findOneBy(['telegramId' => $chatId]);
+        // Verify user creation
+        $user = $this->userRepository->findOneBy(['telegramId' => self::TEST_CHAT_ID]);
         $this->assertNotNull($user);
+    }
 
-        // Step 2: Add spreadsheet
-        $this->executeCommand('/add', $chatId);
-        $spreadsheetLink = 'https://docs.google.com/spreadsheets/d/1234567890/edit';
-        $this->executeCommand($spreadsheetLink, $chatId);
-        $this->executeCommand('Январь 2025', $chatId);
+    public function testSpreadsheetSetup(): void
+    {
+        // Start with user creation
+        $this->executeCommand('/start', self::TEST_CHAT_ID);
 
-        // Step 3: Sync categories
-        $this->executeCommand('/sync_categories', $chatId);
+        // Add spreadsheet
+        $this->executeCommand('/add', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Отправьте ссылку на таблицу');
+
+        $this->executeCommand('https://docs.google.com/spreadsheets/d/'.self::TEST_SPREADSHEET_ID.'/edit', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Выберите месяц');
+
+        $this->executeCommand('Январь 2025', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Таблица за Январь 2025 успешно добавлена');
+    }
+
+    public function testCategorySync(): void
+    {
+        // Setup initial state
+        $this->testSpreadsheetSetup();
+
+        // Sync categories
+        $this->executeCommand('/sync_categories', self::TEST_CHAT_ID);
 
         $messages = $this->telegramApi->getMessages();
-        $lastMessages = array_slice($messages, -2); // Get last 2 messages
+        $lastMessages = array_slice($messages, -2);
 
-        // Check first message about clearing categories
+        // Verify categories cleared message
         $this->assertStringContainsString('Пользовательские категории очищены:', $lastMessages[0]['text']);
         $this->assertStringContainsString('- Расходы: 3', $lastMessages[0]['text']);
         $this->assertStringContainsString('- Доходы: 2', $lastMessages[0]['text']);
 
-        // Check second message about sync results
+        // Verify sync results message
         $this->assertStringContainsString('Синхронизация категорий завершена:', $lastMessages[1]['text']);
-        $this->assertStringContainsString('Добавлены в базу данных:', $lastMessages[1]['text']);
         $this->assertStringContainsString('- Расходы: Питание, Транспорт, Развлечения', $lastMessages[1]['text']);
         $this->assertStringContainsString('- Доходы: Зарплата, Фриланс', $lastMessages[1]['text']);
-
-        // Step 4: Check categories list
-        $this->executeCommand('/categories', $chatId);
-        $messages = $this->telegramApi->getMessages();
-        $categoriesMessage = end($messages);
-        $this->assertStringContainsString('Выберите действие', $categoriesMessage['text']);
-
-        // Select expense categories
-        $this->executeCommand('Категории расходов', $chatId);
-        $messages = $this->telegramApi->getMessages();
-        $expenseCategoriesMessage = end($messages);
-        $this->assertStringContainsString('Питание', $expenseCategoriesMessage['text']);
-        $this->assertStringContainsString('Транспорт', $expenseCategoriesMessage['text']);
-        $this->assertStringContainsString('Развлечения', $expenseCategoriesMessage['text']);
-
-        // Select income categories
-        $this->executeCommand('/categories', $chatId);
-        $this->executeCommand('Категории доходов', $chatId);
-        $messages = $this->telegramApi->getMessages();
-        $incomeCategoriesMessage = end($messages);
-        $this->assertStringContainsString('Зарплата', $incomeCategoriesMessage['text']);
-        $this->assertStringContainsString('Фриланс', $incomeCategoriesMessage['text']);
-
-        // Step 5: Add category mapping
-        $this->executeCommand('/map еда = Питание', $chatId);
-        $messages = $this->telegramApi->getMessages();
-        $mapMessage = end($messages);
-        $this->assertStringContainsString('Добавлено сопоставление: "еда" → "Питание"', $mapMessage['text']);
-
-        // Step 6: Check that mapping works
-        $this->executeCommand('/map еда', $chatId);
-        $messages = $this->telegramApi->getMessages();
-        $checkMessage = end($messages);
-        $this->assertStringContainsString('Описание "еда" соответствует категории "Питание"', $checkMessage['text']);
-
-        // Step 7: Add expense using mapped category
-        $this->executeCommand('1500 еда обед', $chatId);
-        $messages = $this->telegramApi->getMessages();
-        $expenseMessage = end($messages);
-        $this->assertStringContainsString('Расход успешно добавлен в категорию "Питание"', $expenseMessage['text']);
-
-        // Step 8: Add expense with unmapped category
-        $this->executeCommand('1000 продукты', $chatId);
-        $messages = $this->telegramApi->getMessages();
-        $categoryPromptMessage = end($messages);
-        $this->assertStringContainsString('Не удалось определить категорию для "продукты"', $categoryPromptMessage['text']);
-        $this->assertStringContainsString('Выберите категорию из списка', $categoryPromptMessage['text']);
-
-        // Select category for unmapped keyword
-        $this->executeCommand('Питание', $chatId);
-        $messages = $this->telegramApi->getMessages();
-        $expenseMessage = end($messages);
-        $this->assertStringContainsString('Расход успешно добавлен в категорию "Питание"', $expenseMessage['text']);
-
-        // Step 9: Verify that mapping was automatically created
-        $this->executeCommand('/map продукты', $chatId);
-        $messages = $this->telegramApi->getMessages();
-        $mapMessage = end($messages);
-        $this->assertStringContainsString('Описание "продукты" соответствует категории "Питание"', $mapMessage['text']);
     }
 
-    private function executeCommand(string $text, int $chatId): void
+    public function testCategoryListing(): void
     {
-        $update = new Update([
-            'update_id' => random_int(1, 100000),
-            'message' => [
-                'message_id' => random_int(1, 100000),
-                'from' => [
-                    'id' => $chatId,
-                    'first_name' => 'Test User',
-                    'is_bot' => false,
-                ],
-                'chat' => [
-                    'id' => $chatId,
-                    'type' => 'private',
-                ],
-                'date' => time(),
-                'text' => $text,
-            ],
-        ]);
+        // Setup categories
+        $this->testCategorySync();
 
-        $this->botService->handleUpdate($update);
+        // Check categories list
+        $this->executeCommand('/categories', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Выберите действие');
+
+        // Check expense categories
+        $this->executeCommand('Категории расходов', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Питание');
+        $this->assertLastMessageContains('Транспорт');
+        $this->assertLastMessageContains('Развлечения');
+
+        // Check income categories
+        $this->executeCommand('/categories', self::TEST_CHAT_ID);
+        $this->executeCommand('Категории доходов', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Зарплата');
+        $this->assertLastMessageContains('Фриланс');
+    }
+
+    public function testCategoryMapping(): void
+    {
+        // Setup categories
+        $this->testCategorySync();
+
+        // Add mapping
+        $this->executeCommand('/map еда = Питание', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Добавлено сопоставление: "еда" → "Питание"');
+
+        // Verify mapping
+        $this->executeCommand('/map еда', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Описание "еда" соответствует категории "Питание"');
+    }
+
+    public function testExpenseAdditionWithMapping(): void
+    {
+        // Setup mapping
+        $this->testCategoryMapping();
+
+        // Add expense with mapped category
+        $this->executeCommand('1500 еда обед', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Расход успешно добавлен в категорию "Питание"');
+
+        // Add expense with unmapped category
+        $this->executeCommand('1000 продукты', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Не удалось определить категорию для "продукты"');
+        $this->assertLastMessageContains('Выберите категорию из списка');
+
+        // Select category for unmapped keyword
+        $this->executeCommand('Питание', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Расход успешно добавлен в категорию "Питание"');
+
+        // Verify automatic mapping creation
+        $this->executeCommand('/map продукты', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('Описание "продукты" соответствует категории "Питание"');
     }
 }

@@ -1223,7 +1223,19 @@ Could not find a Coverage file! Searched for lcov.info, cov.xml, coverage.xml, c
 
 ---
 
-в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push
+в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push [chore: exclude build directory and add test coverage configuration](https://github.com/positron48/budget-bot/commit/900008f8501be87340b61aba1a969c839dd02bd1)
+
+---
+
+Сделай ревью интеграционных тестов и давай их отрефакторим
+
+---
+
+проверь тесты, всегда запускай make cs-fix && make ci
+
+---
+
+в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push 
 
 ---
 

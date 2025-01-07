@@ -8,6 +8,7 @@
 /vendor/
 /config/credentials/
 /build/
+build/logs/clover.xml
 ###< symfony/framework-bundle ###
 
 ###> IDE files ###
