@@ -26,7 +26,7 @@ class CommandRegistry
     public function findCommand(string $message): ?CommandInterface
     {
         foreach ($this->commands as $command) {
-            if (str_starts_with($message, $command->getName())) {
+            if ($command->supports($message)) {
                 return $command;
             }
         }

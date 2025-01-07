@@ -16,12 +16,12 @@ class ListTablesCommand implements CommandInterface
 
     public function supports(string $command): bool
     {
-        return '/list-tables' === $command;
+        return '/list_tables' === $command;
     }
 
     public function getName(): string
     {
-        return '/list-tables';
+        return '/list_tables';
     }
 
     public function execute(int $chatId, ?User $user, string $message): void

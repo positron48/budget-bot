@@ -30,13 +30,14 @@ class ListTablesCommandTest extends TestCase
 
     public function testGetName(): void
     {
-        $this->assertEquals('/list-tables', $this->command->getName());
+        $this->assertEquals('/list_tables', $this->command->getName());
     }
 
     public function testSupports(): void
     {
-        $this->assertTrue($this->command->supports('/list-tables'));
-        $this->assertFalse($this->command->supports('/start'));
+        $this->assertTrue($this->command->supports('/list_tables'));
+        $this->assertFalse($this->command->supports('/list'));
+        $this->assertFalse($this->command->supports('/list_tables 123'));
     }
 
     public function testExecuteWithoutUser(): void
@@ -51,7 +52,7 @@ class ListTablesCommandTest extends TestCase
                 'parse_mode' => 'HTML',
             ]);
 
-        $this->command->execute($chatId, null, '/list-tables');
+        $this->command->execute($chatId, null, '/list_tables');
     }
 
     public function testExecuteWithEmptySpreadsheets(): void
@@ -72,7 +73,7 @@ class ListTablesCommandTest extends TestCase
                 'parse_mode' => 'HTML',
             ]);
 
-        $this->command->execute($chatId, $user, '/list-tables');
+        $this->command->execute($chatId, $user, '/list_tables');
     }
 
     public function testExecuteWithSpreadsheets(): void
@@ -108,6 +109,6 @@ class ListTablesCommandTest extends TestCase
                 'parse_mode' => 'HTML',
             ]);
 
-        $this->command->execute($chatId, $user, '/list-tables');
+        $this->command->execute($chatId, $user, '/list_tables');
     }
 }

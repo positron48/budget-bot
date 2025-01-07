@@ -18,7 +18,7 @@ class RemoveCommand implements CommandInterface
 
     public function supports(string $command): bool
     {
-        return '/remove' === $command;
+        return '/remove' === trim($command) || str_starts_with(trim($command), '/remove ');
     }
 
     public function getName(): string

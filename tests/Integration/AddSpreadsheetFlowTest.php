@@ -80,18 +80,28 @@ class AddSpreadsheetFlowTest extends AbstractBotIntegrationTestCase
 
     public function testListSpreadsheets(): void
     {
-        // Setup spreadsheet
-        $this->testAddSpreadsheetFlow();
+        // Execute /start command
+        $this->executeCommand('/start', self::TEST_CHAT_ID);
+
+        // Add command
+        $this->executeCommand('/add', self::TEST_CHAT_ID);
+        $this->executeCommand('https://docs.google.com/spreadsheets/d/'.self::TEST_SPREADSHEET_ID.'/edit', self::TEST_CHAT_ID);
+        $this->executeCommand('Январь 2024', self::TEST_CHAT_ID);
 
         // Check list command
-        $this->executeCommand('/list-tables', self::TEST_CHAT_ID);
+        $this->executeCommand('/list_tables', self::TEST_CHAT_ID);
         $this->assertLastMessageContains('Январь 2024');
     }
 
     public function testRemoveSpreadsheet(): void
     {
-        // Setup spreadsheet
-        $this->testAddSpreadsheetFlow();
+        // Execute /start command
+        $this->executeCommand('/start', self::TEST_CHAT_ID);
+
+        // Add command
+        $this->executeCommand('/add', self::TEST_CHAT_ID);
+        $this->executeCommand('https://docs.google.com/spreadsheets/d/'.self::TEST_SPREADSHEET_ID.'/edit', self::TEST_CHAT_ID);
+        $this->executeCommand('Январь 2024', self::TEST_CHAT_ID);
 
         // Remove command
         $this->executeCommand('/remove', self::TEST_CHAT_ID);
@@ -110,7 +120,7 @@ class AddSpreadsheetFlowTest extends AbstractBotIntegrationTestCase
         $this->assertNull($spreadsheet);
 
         // Verify empty list
-        $this->executeCommand('/list-tables', self::TEST_CHAT_ID);
+        $this->executeCommand('/list_tables', self::TEST_CHAT_ID);
         $this->assertLastMessageContains('У вас пока нет добавленных таблиц');
     }
 }
