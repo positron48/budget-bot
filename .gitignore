@@ -7,6 +7,7 @@
 /var/
 /vendor/
 /config/credentials/
+/build/
 ###< symfony/framework-bundle ###
 
 ###> IDE files ###

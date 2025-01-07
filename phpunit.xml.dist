@@ -36,4 +36,11 @@
             <directory>src</directory>
         </include>
     </source>
+
+    <coverage>
+        <report>
+            <clover outputFile="build/logs/clover.xml"/>
+            <cobertura outputFile="build/logs/coverage.cobertura.xml"/>
+        </report>
+    </coverage>
 </phpunit>

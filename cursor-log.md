@@ -1213,3 +1213,17 @@ php bin/console doctrine:migrations:diff
 
 ---
 
+Мне нужно добавить отчет по поктытию тестами в одном из этих форматов:
+
+Could not find a Coverage file! Searched for lcov.info, cov.xml, coverage.xml, cobertura.xml, jacoco.xml, coverage.cobertura.xml
+
+---
+
+убери build из git
+
+---
+
+в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push
+
+---
+
