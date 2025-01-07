@@ -30,12 +30,12 @@ class ListCommandTest extends TestCase
 
     public function testGetName(): void
     {
-        $this->assertEquals('/list', $this->command->getName());
+        $this->assertEquals('/list-tables', $this->command->getName());
     }
 
     public function testSupports(): void
     {
-        $this->assertTrue($this->command->supports('/list'));
+        $this->assertTrue($this->command->supports('/list-tables'));
         $this->assertFalse($this->command->supports('/start'));
     }
 
@@ -51,7 +51,7 @@ class ListCommandTest extends TestCase
                 'parse_mode' => 'HTML',
             ]);
 
-        $this->command->execute($chatId, null, '/list');
+        $this->command->execute($chatId, null, '/list-tables');
     }
 
     public function testExecuteWithEmptySpreadsheets(): void
@@ -72,7 +72,7 @@ class ListCommandTest extends TestCase
                 'parse_mode' => 'HTML',
             ]);
 
-        $this->command->execute($chatId, $user, '/list');
+        $this->command->execute($chatId, $user, '/list-tables');
     }
 
     public function testExecuteWithSpreadsheets(): void
@@ -108,6 +108,6 @@ class ListCommandTest extends TestCase
                 'parse_mode' => 'HTML',
             ]);
 
-        $this->command->execute($chatId, $user, '/list');
+        $this->command->execute($chatId, $user, '/list-tables');
     }
 }

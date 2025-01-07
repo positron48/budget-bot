@@ -41,7 +41,7 @@ class StartCommandTest extends TestCase
     public function testSupports(): void
     {
         $this->assertTrue($this->command->supports('/start'));
-        $this->assertFalse($this->command->supports('/list'));
+        $this->assertFalse($this->command->supports('/list-tables'));
     }
 
     public function testExecuteWithNewUser(): void
@@ -70,7 +70,7 @@ class StartCommandTest extends TestCase
                 'text' => 'Привет! Я помогу вести учет доходов и расходов в Google Таблицах. '.
                     'Отправляйте сообщения в формате: "[дата] [+]сумма описание"'.
                     "\n\nДоступные команды:\n".
-                    "/list - список доступных таблиц\n".
+                    "/list-tables - список доступных таблиц\n".
                     "/add - добавить таблицу\n".
                     '/categories - управление категориями',
                 'parse_mode' => 'HTML',
@@ -98,7 +98,7 @@ class StartCommandTest extends TestCase
                 'text' => 'Привет! Я помогу вести учет доходов и расходов в Google Таблицах. '.
                     'Отправляйте сообщения в формате: "[дата] [+]сумма описание"'.
                     "\n\nДоступные команды:\n".
-                    "/list - список доступных таблиц\n".
+                    "/list-tables - список доступных таблиц\n".
                     "/add - добавить таблицу\n".
                     '/categories - управление категориями',
                 'parse_mode' => 'HTML',

@@ -1419,7 +1419,16 @@ CI перестал обновлять процент покрытия кода 
 
 ---
 
-запусти в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push 
+запусти в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push [test: improve test coverage for spreadsheet removal functionality](https://github.com/positron48/budget-bot/commit/85031a7322df567d025eb1a8a1bd43a1b7a0ca47)
 
 ---
 
+Переименуй команду /list в /list-tables.
+Обнови тесты, readme и весь код, где это нужно
+для проверки всегда запускай make cs-fix && make ci
+
+---
+
+запусти в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push
+
+---

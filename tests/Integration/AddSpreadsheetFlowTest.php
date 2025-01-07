@@ -84,7 +84,7 @@ class AddSpreadsheetFlowTest extends AbstractBotIntegrationTestCase
         $this->testAddSpreadsheetFlow();
 
         // Check list command
-        $this->executeCommand('/list', self::TEST_CHAT_ID);
+        $this->executeCommand('/list-tables', self::TEST_CHAT_ID);
         $this->assertLastMessageContains('Январь 2024');
     }
 
@@ -110,7 +110,7 @@ class AddSpreadsheetFlowTest extends AbstractBotIntegrationTestCase
         $this->assertNull($spreadsheet);
 
         // Verify empty list
-        $this->executeCommand('/list', self::TEST_CHAT_ID);
+        $this->executeCommand('/list-tables', self::TEST_CHAT_ID);
         $this->assertLastMessageContains('У вас пока нет добавленных таблиц');
     }
 }

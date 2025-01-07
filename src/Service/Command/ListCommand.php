@@ -16,12 +16,12 @@ class ListCommand implements CommandInterface
 
     public function supports(string $command): bool
     {
-        return '/list' === $command;
+        return '/list-tables' === $command;
     }
 
     public function getName(): string
     {
-        return '/list';
+        return '/list-tables';
     }
 
     public function execute(int $chatId, ?User $user, string $message): void
