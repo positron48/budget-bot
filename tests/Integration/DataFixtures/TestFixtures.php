@@ -7,54 +7,42 @@ use App\Entity\CategoryKeyword;
 use App\Entity\User;
 use App\Entity\UserCategory;
 use App\Entity\UserSpreadsheet;
-use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\Persistence\ObjectManager;
 
-class TestFixtures
+class TestFixtures extends Fixture
 {
-    private EntityManagerInterface $entityManager;
-
-    public function __construct(EntityManagerInterface $entityManager)
-    {
-        $this->entityManager = $entityManager;
-    }
-
-    public function load(): void
-    {
-        $this->loadCategories();
-        $this->entityManager->flush();
-    }
-
-    private function loadCategories(): void
+    public function load(ObjectManager $manager): void
     {
         // Create test user
         $user = new User();
         $user->setTelegramId(123456);
-        $this->entityManager->persist($user);
+        $manager->persist($user);
 
         // Create user categories
         $foodCategory = new UserCategory();
         $foodCategory->setUser($user);
         $foodCategory->setName('Питание');
         $foodCategory->setType('expense');
-        $this->entityManager->persist($foodCategory);
+        $manager->persist($foodCategory);
 
         $cafeCategory = new UserCategory();
         $cafeCategory->setUser($user);
         $cafeCategory->setName('Кафе/Ресторан');
         $cafeCategory->setType('expense');
-        $this->entityManager->persist($cafeCategory);
+        $manager->persist($cafeCategory);
 
         $transportCategory = new UserCategory();
         $transportCategory->setUser($user);
         $transportCategory->setName('Транспорт');
         $transportCategory->setType('expense');
-        $this->entityManager->persist($transportCategory);
+        $manager->persist($transportCategory);
 
         $salaryCategory = new UserCategory();
         $salaryCategory->setUser($user);
         $salaryCategory->setName('Зарплата');
         $salaryCategory->setType('income');
-        $this->entityManager->persist($salaryCategory);
+        $manager->persist($salaryCategory);
 
         // Create category keywords
         $foodKeywords = ['еда', 'продукты', 'магазин', 'супермаркет', 'пятерочка', 'перекресток', 'магнит', 'ашан', 'продуктовый', 'готовая еда'];
@@ -62,7 +50,7 @@ class TestFixtures
             $categoryKeyword = new CategoryKeyword();
             $categoryKeyword->setKeyword(mb_strtolower($keyword));
             $categoryKeyword->setUserCategory($foodCategory);
-            $this->entityManager->persist($categoryKeyword);
+            $manager->persist($categoryKeyword);
         }
 
         $cafeKeywords = ['кафе', 'ресторан', 'столовая', 'кофейня', 'бар', 'кофе', 'обед', 'ланч', 'бизнес-ланч'];
@@ -70,7 +58,7 @@ class TestFixtures
             $categoryKeyword = new CategoryKeyword();
             $categoryKeyword->setKeyword(mb_strtolower($keyword));
             $categoryKeyword->setUserCategory($cafeCategory);
-            $this->entityManager->persist($categoryKeyword);
+            $manager->persist($categoryKeyword);
         }
 
         $transportKeywords = ['такси', 'метро', 'автобус', 'трамвай', 'маршрутка', 'транспорт', 'проезд', 'uber', 'яндекс.такси', 'ситимобил'];
@@ -78,7 +66,7 @@ class TestFixtures
             $categoryKeyword = new CategoryKeyword();
             $categoryKeyword->setKeyword(mb_strtolower($keyword));
             $categoryKeyword->setUserCategory($transportCategory);
-            $this->entityManager->persist($categoryKeyword);
+            $manager->persist($categoryKeyword);
         }
 
         $salaryKeywords = ['зп', 'зарплата', 'аванс', 'получка'];
@@ -86,7 +74,7 @@ class TestFixtures
             $categoryKeyword = new CategoryKeyword();
             $categoryKeyword->setKeyword(mb_strtolower($keyword));
             $categoryKeyword->setUserCategory($salaryCategory);
-            $this->entityManager->persist($categoryKeyword);
+            $manager->persist($categoryKeyword);
         }
 
         // Create test spreadsheet for current month
@@ -97,9 +85,8 @@ class TestFixtures
         $spreadsheet->setTitle('Бюджет');
         $spreadsheet->setMonth((int) $now->format('n'));
         $spreadsheet->setYear((int) $now->format('Y'));
-        $this->entityManager->persist($spreadsheet);
+        $manager->persist($spreadsheet);
 
-        // Flush all changes
-        $this->entityManager->flush();
+        $manager->flush();
     }
 }

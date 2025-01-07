@@ -1263,7 +1263,23 @@ Could not find a Coverage file! Searched for lcov.info, cov.xml, coverage.xml, c
 
 ---
 
-в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push
+в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push [test: fixtures update](https://github.com/positron48/budget-bot/commit/a7f066d1069c8a2c3d21aaab5aaaf2c803233485)
+
+---
+
+создай новый интеграционный тест для транзакций, но для начала просто проверь, что список категорий отображается корректно
+
+---
+
+проверь тесты, всегда запускай make cs-fix && make ci
+
+---
+
+попробуй подгрузить фикстуры через DI или может у symfony есть своя механика загрузки их в тестах
+
+---
+
+нет, давай добавим бандл, если он нужен
 
 ---
 
