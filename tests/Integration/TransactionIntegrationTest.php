@@ -290,4 +290,124 @@ class TransactionIntegrationTest extends AbstractBotIntegrationTestCase
         $this->assertLastMessageContains('Описание: подработка');
         $this->assertLastMessageContains('Категория: Зарплата');
     }
+
+    public function testHandleSpreadsheetNotFound(): void
+    {
+        // Execute /start command to ensure user exists
+        $this->executeCommand('/start', self::TEST_CHAT_ID);
+
+        // Try to add expense for a month without spreadsheet
+        $this->executeCommand('01.03.2025 1500 продукты', self::TEST_CHAT_ID);
+        $this->assertLastMessageContains('У вас нет таблицы за Март 2025');
+        $this->assertLastMessageContains('Пожалуйста, добавьте её с помощью команды /add');
+    }
+
+    public function testHandleMessageSendingFailure(): void
+    {
+        // Skip this test for now as we need to find a better way to mock services
+        $this->markTestSkipped('Need to find a better way to mock services in integration tests');
+    }
+
+    public function testHandleNullSpreadsheetId(): void
+    {
+        // Execute /start command to ensure user exists
+        $this->executeCommand('/start', self::TEST_CHAT_ID);
+
+        // Create spreadsheet with empty ID
+        $user = $this->userRepository->findOneBy(['telegramId' => self::TEST_CHAT_ID]);
+        $this->assertNotNull($user);
+
+        // Remove any existing spreadsheets for January 2025
+        $existingSpreadsheets = $this->entityManager->getRepository(\App\Entity\UserSpreadsheet::class)
+            ->findBy([
+                'user' => $user,
+                'year' => 2025,
+                'month' => 1,
+            ]);
+
+        foreach ($existingSpreadsheets as $spreadsheet) {
+            $this->entityManager->remove($spreadsheet);
+        }
+        $this->entityManager->flush();
+
+        // Create a new spreadsheet with empty ID
+        $spreadsheet = new \App\Entity\UserSpreadsheet();
+        $spreadsheet->setUser($user);
+        $spreadsheet->setYear(2025);
+        $spreadsheet->setMonth(1);
+        $spreadsheet->setSpreadsheetId('');
+        $spreadsheet->setTitle('Test Spreadsheet');
+        $this->entityManager->persist($spreadsheet);
+        $this->entityManager->flush();
+
+        // Clear entity manager to force reload
+        $this->entityManager->clear();
+
+        // Get the transaction handler service
+        $transactionHandler = self::getContainer()->get(\App\Service\TransactionHandler::class);
+
+        // Try to add transaction directly - should throw RuntimeException
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Spreadsheet ID is null');
+
+        $transactionHandler->handle(self::TEST_CHAT_ID, $user, [
+            'date' => new \DateTime('2025-01-01'),
+            'amount' => 1500.0,
+            'description' => 'продукты',
+            'isIncome' => false,
+        ]);
+    }
+
+    /**
+     * @dataProvider monthNameProvider
+     */
+    public function testMonthNameTranslations(int $month, string $expectedName): void
+    {
+        // Execute /start command to ensure user exists
+        $this->executeCommand('/start', self::TEST_CHAT_ID);
+
+        // Remove any existing spreadsheets for the test month
+        $user = $this->userRepository->findOneBy(['telegramId' => self::TEST_CHAT_ID]);
+        $this->assertNotNull($user);
+
+        $spreadsheets = $this->entityManager->getRepository(\App\Entity\UserSpreadsheet::class)
+            ->findBy([
+                'user' => $user,
+                'year' => 2025,
+                'month' => $month,
+            ]);
+
+        foreach ($spreadsheets as $spreadsheet) {
+            $this->entityManager->remove($spreadsheet);
+        }
+        $this->entityManager->flush();
+
+        // Clear entity manager to force reload
+        $this->entityManager->clear();
+
+        // Try to add expense for each month
+        $this->executeCommand(sprintf('01.%02d.2025 1500 продукты', $month), self::TEST_CHAT_ID);
+        $this->assertLastMessageContains(sprintf('У вас нет таблицы за %s 2025', $expectedName));
+    }
+
+    /**
+     * @return array<string, array{month: int, name: string}>
+     */
+    public function monthNameProvider(): array
+    {
+        return [
+            'January' => ['month' => 1, 'name' => 'Январь'],
+            'February' => ['month' => 2, 'name' => 'Февраль'],
+            'March' => ['month' => 3, 'name' => 'Март'],
+            'April' => ['month' => 4, 'name' => 'Апрель'],
+            'May' => ['month' => 5, 'name' => 'Май'],
+            'June' => ['month' => 6, 'name' => 'Июнь'],
+            'July' => ['month' => 7, 'name' => 'Июль'],
+            'August' => ['month' => 8, 'name' => 'Август'],
+            'September' => ['month' => 9, 'name' => 'Сентябрь'],
+            'October' => ['month' => 10, 'name' => 'Октябрь'],
+            'November' => ['month' => 11, 'name' => 'Ноябрь'],
+            'December' => ['month' => 12, 'name' => 'Декабрь'],
+        ];
+    }
 }

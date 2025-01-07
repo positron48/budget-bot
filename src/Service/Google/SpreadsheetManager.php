@@ -118,9 +118,10 @@ class SpreadsheetManager
         // Extract ID from URL if needed
         if (str_contains($input, 'docs.google.com/spreadsheets/d/')) {
             if (preg_match('/spreadsheets\/d\/([a-zA-Z0-9-_]+)/', $input, $matches)) {
-                return $matches[1];
+                $input = $matches[1];
+            } else {
+                throw new \RuntimeException('Неверный формат ссылки. Пожалуйста, убедитесь, что вы скопировали полную ссылку на таблицу.');
             }
-            throw new \RuntimeException('Неверный формат ссылки. Пожалуйста, убедитесь, что вы скопировали полную ссылку на таблицу.');
         }
 
         // Validate access to the spreadsheet

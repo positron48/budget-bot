@@ -95,7 +95,7 @@ class TestFixtures extends Fixture
         $now = new \DateTime();
         $spreadsheet = new UserSpreadsheet();
         $spreadsheet->setUser($user);
-        $spreadsheet->setSpreadsheetId('test_spreadsheet_id');
+        $spreadsheet->setSpreadsheetId('current_month_spreadsheet');
         $spreadsheet->setTitle('Бюджет');
         $spreadsheet->setMonth((int) $now->format('n'));
         $spreadsheet->setYear((int) $now->format('Y'));
@@ -104,7 +104,7 @@ class TestFixtures extends Fixture
         // Create test spreadsheet for December 2024
         $december2024 = new UserSpreadsheet();
         $december2024->setUser($user);
-        $december2024->setSpreadsheetId('test_spreadsheet_id');
+        $december2024->setSpreadsheetId('december_2024_spreadsheet');
         $december2024->setTitle('Бюджет');
         $december2024->setMonth(12);
         $december2024->setYear(2024);
@@ -113,11 +113,20 @@ class TestFixtures extends Fixture
         // Create test spreadsheet for January 2025
         $january2025 = new UserSpreadsheet();
         $january2025->setUser($user);
-        $january2025->setSpreadsheetId('test_spreadsheet_id');
+        $january2025->setSpreadsheetId('january_2025_spreadsheet');
         $january2025->setTitle('Бюджет');
         $january2025->setMonth(1);
         $january2025->setYear(2025);
         $manager->persist($january2025);
+
+        // Create test spreadsheet for February 2025
+        $february2025 = new UserSpreadsheet();
+        $february2025->setUser($user);
+        $february2025->setSpreadsheetId('february_2025_spreadsheet');
+        $february2025->setTitle('Бюджет');
+        $february2025->setMonth(2);
+        $february2025->setYear(2025);
+        $manager->persist($february2025);
 
         $manager->flush();
     }

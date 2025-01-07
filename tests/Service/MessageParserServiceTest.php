@@ -35,6 +35,7 @@ class MessageParserServiceTest extends TestCase
     public function validMessageProvider(): array
     {
         $today = new \DateTime();
+        $yesterday = new \DateTime('-1 day');
 
         return [
             'expense without date' => [
@@ -91,6 +92,51 @@ class MessageParserServiceTest extends TestCase
                     'isIncome' => false,
                 ],
             ],
+            'expense with today keyword' => [
+                'сегодня 150 обед',
+                [
+                    'date' => $today,
+                    'amount' => 150.0,
+                    'description' => 'обед',
+                    'isIncome' => false,
+                ],
+            ],
+            'expense with yesterday keyword' => [
+                'вчера 300 ужин',
+                [
+                    'date' => $yesterday,
+                    'amount' => 300.0,
+                    'description' => 'ужин',
+                    'isIncome' => false,
+                ],
+            ],
+            'expense with d/m/Y format' => [
+                '01/01/2024 200 такси',
+                [
+                    'date' => new \DateTime('2024-01-01'),
+                    'amount' => 200.0,
+                    'description' => 'такси',
+                    'isIncome' => false,
+                ],
+            ],
+            'expense with d/m format' => [
+                '01/01 200 такси',
+                [
+                    'date' => (new \DateTime())->setDate((int) $today->format('Y'), 1, 1),
+                    'amount' => 200.0,
+                    'description' => 'такси',
+                    'isIncome' => false,
+                ],
+            ],
+            'expense with d.m format' => [
+                '01.01 200 такси',
+                [
+                    'date' => (new \DateTime())->setDate((int) $today->format('Y'), 1, 1),
+                    'amount' => 200.0,
+                    'description' => 'такси',
+                    'isIncome' => false,
+                ],
+            ],
         ];
     }
 
@@ -118,6 +164,10 @@ class MessageParserServiceTest extends TestCase
             'negative amount' => ['01.01.2024 -100 такси'],
             'invalid year format' => ['01.01.24 100 такси'],
             'invalid year length' => ['01.01.20244 100 такси'],
+            'invalid month' => ['01.13.2024 100 такси'],
+            'invalid day for month' => ['31.04.2024 100 такси'],
+            'invalid date format' => ['2024.01.01 100 такси'],
+            'invalid date separator' => ['01-01-2024 100 такси'],
         ];
     }
 

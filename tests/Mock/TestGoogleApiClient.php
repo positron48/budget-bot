@@ -73,7 +73,7 @@ class TestGoogleApiClient implements GoogleApiClientInterface
 
     public function cloneSpreadsheet(string $sourceId, string $newTitle): string
     {
-        $newId = 'cloned_'.$sourceId;
+        $newId = $sourceId;
         if (isset($this->values[$sourceId])) {
             $this->values[$newId] = $this->values[$sourceId];
         }
@@ -94,6 +94,9 @@ class TestGoogleApiClient implements GoogleApiClientInterface
     public function addAccessibleSpreadsheet(string $spreadsheetId): void
     {
         $this->accessibleSpreadsheets[] = $spreadsheetId;
+        if (!isset($this->spreadsheetTitles[$spreadsheetId])) {
+            $this->spreadsheetTitles[$spreadsheetId] = 'Бюджет';
+        }
     }
 
     public function isSpreadsheetAccessible(string $spreadsheetId): bool
