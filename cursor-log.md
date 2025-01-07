@@ -1553,6 +1553,6 @@ ListStateHandler почему-то не видится в handlers StateHandlerR
 
 ---
 
-запусти в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push
+запусти в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push [fix /list](https://github.com/positron48/budget-bot/commit/9dce67a96e876aad46759564323cd7f818229e6e)
 
 ---
