@@ -392,6 +392,11 @@ class SpreadsheetManagerTest extends TestCase
             ->with($user, $month, $year)
             ->willReturn($spreadsheet);
 
+        $this->client->expects($this->once())
+            ->method('validateSpreadsheetAccess')
+            ->with('test-spreadsheet')
+            ->willReturn(true);
+
         $this->logger->expects($this->once())
             ->method('info')
             ->with('Removing spreadsheet {spreadsheet_id} for user {telegram_id}', [
@@ -411,6 +416,7 @@ class SpreadsheetManagerTest extends TestCase
     public function testRemoveSpreadsheetFailsWhenNotFound(): void
     {
         $user = new User();
+        $user->setTelegramId(123456);
         $month = 1;
         $year = 2024;
 
@@ -421,6 +427,31 @@ class SpreadsheetManagerTest extends TestCase
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Таблица за Январь 2024 не найдена');
+
+        $this->manager->removeSpreadsheet($user, $month, $year);
+    }
+
+    public function testRemoveSpreadsheetFailsWhenNoAccess(): void
+    {
+        $user = new User();
+        $user->setTelegramId(123456);
+        $month = 1;
+        $year = 2024;
+        $spreadsheet = new UserSpreadsheet();
+        $spreadsheet->setSpreadsheetId('test-spreadsheet');
+
+        $this->spreadsheetRepository->expects($this->once())
+            ->method('findByMonthAndYear')
+            ->with($user, $month, $year)
+            ->willReturn($spreadsheet);
+
+        $this->client->expects($this->once())
+            ->method('validateSpreadsheetAccess')
+            ->with('test-spreadsheet')
+            ->willReturn(false);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Не удалось получить доступ к таблице');
 
         $this->manager->removeSpreadsheet($user, $month, $year);
     }

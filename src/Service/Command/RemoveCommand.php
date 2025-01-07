@@ -64,7 +64,7 @@ class RemoveCommand implements CommandInterface
                     try {
                         $this->sheetsService->removeSpreadsheet(
                             $user,
-                            (int) $spreadsheet['month'],
+                            $this->getMonthNumber($spreadsheet['month']),
                             (int) $spreadsheet['year']
                         );
                         $this->telegramApiService->sendMessage([
@@ -112,5 +112,25 @@ class RemoveCommand implements CommandInterface
                 'one_time_keyboard' => true,
             ]),
         ]);
+    }
+
+    private function getMonthNumber(string $monthName): int
+    {
+        $months = [
+            'Январь' => 1,
+            'Февраль' => 2,
+            'Март' => 3,
+            'Апрель' => 4,
+            'Май' => 5,
+            'Июнь' => 6,
+            'Июль' => 7,
+            'Август' => 8,
+            'Сентябрь' => 9,
+            'Октябрь' => 10,
+            'Ноябрь' => 11,
+            'Декабрь' => 12,
+        ];
+
+        return $months[$monthName] ?? 0;
     }
 }

@@ -187,9 +187,58 @@ class GoogleSheetsServiceTest extends TestCase
             ->with($user, $month, $year)
             ->willReturn($spreadsheet);
 
+        $this->client->method('validateSpreadsheetAccess')
+            ->with('test-spreadsheet')
+            ->willReturn(true);
+
         $this->spreadsheetRepository->expects($this->once())
             ->method('remove')
             ->with($spreadsheet, true);
+
+        $this->service->removeSpreadsheet($user, $month, $year);
+    }
+
+    public function testRemoveSpreadsheetFailsWhenNotFound(): void
+    {
+        $user = new User();
+        $user->setTelegramId(123456);
+        $month = 1;
+        $year = 2024;
+
+        $this->spreadsheetRepository->method('findByMonthAndYear')
+            ->with($user, $month, $year)
+            ->willReturn(null);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Таблица за Январь 2024 не найдена');
+
+        $this->service->removeSpreadsheet($user, $month, $year);
+    }
+
+    public function testRemoveSpreadsheetFailsWhenNoAccess(): void
+    {
+        $user = new User();
+        $user->setTelegramId(123456);
+        $month = 1;
+        $year = 2024;
+
+        $spreadsheet = new UserSpreadsheet();
+        $spreadsheet->setUser($user)
+            ->setSpreadsheetId('test-spreadsheet')
+            ->setTitle('Test Spreadsheet')
+            ->setMonth($month)
+            ->setYear($year);
+
+        $this->spreadsheetRepository->method('findByMonthAndYear')
+            ->with($user, $month, $year)
+            ->willReturn($spreadsheet);
+
+        $this->client->method('validateSpreadsheetAccess')
+            ->with('test-spreadsheet')
+            ->willReturn(false);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Не удалось получить доступ к таблице');
 
         $this->service->removeSpreadsheet($user, $month, $year);
     }

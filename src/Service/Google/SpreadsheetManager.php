@@ -66,8 +66,17 @@ class SpreadsheetManager
             throw new \RuntimeException(sprintf('Таблица за %s %d не найдена', $this->getMonthName($month), $year));
         }
 
+        $spreadsheetId = $spreadsheet->getSpreadsheetId();
+        if (null === $spreadsheetId) {
+            throw new \RuntimeException('Не удалось получить доступ к таблице');
+        }
+
+        if (!$this->client->validateSpreadsheetAccess($spreadsheetId)) {
+            throw new \RuntimeException('Не удалось получить доступ к таблице');
+        }
+
         $this->logger->info('Removing spreadsheet {spreadsheet_id} for user {telegram_id}', [
-            'spreadsheet_id' => $spreadsheet->getSpreadsheetId(),
+            'spreadsheet_id' => $spreadsheetId,
             'telegram_id' => $user->getTelegramId(),
             'month' => $month,
             'year' => $year,
