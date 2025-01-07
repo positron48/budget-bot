@@ -107,6 +107,88 @@ class TelegramBotServiceTest extends AbstractBotIntegrationTestCase
         $this->assertNotEmpty($this->telegramApi->getMessages());
     }
 
+    public function testHandleUpdateWithStateHandler(): void
+    {
+        $user = $this->createUser();
+        $user->setState('WAITING_SPREADSHEET_ID');
+        $this->entityManager->flush();
+
+        $chat = new Chat([
+            'id' => self::TEST_CHAT_ID,
+            'type' => 'private',
+        ]);
+
+        $message = new Message([
+            'message_id' => 1,
+            'chat' => $chat,
+            'date' => time(),
+            'text' => 'https://docs.google.com/spreadsheets/d/test-id',
+        ]);
+
+        $update = new Update([
+            'update_id' => 1,
+            'message' => $message,
+        ]);
+
+        $this->telegramBotService->handleUpdate($update);
+
+        // Verify that the state handler processed the message
+        $this->assertNotEmpty($this->telegramApi->getMessages());
+    }
+
+    public function testHandleUpdateWithInvalidTransaction(): void
+    {
+        $user = $this->createUser();
+        $this->setupTestSpreadsheet('test-spreadsheet-id');
+
+        $chat = new Chat([
+            'id' => self::TEST_CHAT_ID,
+            'type' => 'private',
+        ]);
+
+        $message = new Message([
+            'message_id' => 1,
+            'chat' => $chat,
+            'date' => time(),
+            'text' => 'invalid transaction format',
+        ]);
+
+        $update = new Update([
+            'update_id' => 1,
+            'message' => $message,
+        ]);
+
+        $this->telegramBotService->handleUpdate($update);
+
+        // Message should be logged but not processed
+        $this->assertEmpty($this->telegramApi->getMessages());
+    }
+
+    public function testHandleUpdateWithoutUser(): void
+    {
+        $chat = new Chat([
+            'id' => self::TEST_CHAT_ID,
+            'type' => 'private',
+        ]);
+
+        $message = new Message([
+            'message_id' => 1,
+            'chat' => $chat,
+            'date' => time(),
+            'text' => '100 продукты',
+        ]);
+
+        $update = new Update([
+            'update_id' => 1,
+            'message' => $message,
+        ]);
+
+        $this->telegramBotService->handleUpdate($update);
+
+        // Message should be logged but not processed since user doesn't exist
+        $this->assertEmpty($this->telegramApi->getMessages());
+    }
+
     private function createUser(): User
     {
         $user = new User();

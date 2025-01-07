@@ -187,4 +187,184 @@ class CategoryServiceTest extends TestCase
         $this->assertContainsEquals($incomeCategories[0], $removedCategories);
         $this->assertContainsEquals($incomeCategories[1], $removedCategories);
     }
+
+    public function testAddKeywordToCategory(): void
+    {
+        $user = new User();
+        $keyword = 'продукты';
+        $categoryName = 'Питание';
+        $type = 'expense';
+
+        // Test when category exists
+        $existingCategory = $this->createUserCategoryWithKeywords($categoryName, [], $type, $user);
+        $this->userCategoryRepository->expects($this->once())
+            ->method('findOneBy')
+            ->with([
+                'user' => $user,
+                'name' => $categoryName,
+                'type' => $type,
+            ])
+            ->willReturn($existingCategory);
+
+        $this->categoryKeywordRepository->expects($this->once())
+            ->method('save')
+            ->with(
+                $this->callback(function (CategoryKeyword $keyword) use ($existingCategory) {
+                    return $keyword->getUserCategory() === $existingCategory;
+                }),
+                true
+            );
+
+        $this->service->addKeywordToCategory($keyword, $categoryName, $type, $user);
+    }
+
+    public function testAddKeywordToCategoryWithNewCategory(): void
+    {
+        $user = new User();
+        $keyword = 'продукты';
+        $categoryName = 'Питание';
+        $type = 'expense';
+
+        // Test when category doesn't exist
+        $this->userCategoryRepository->expects($this->once())
+            ->method('findOneBy')
+            ->with([
+                'user' => $user,
+                'name' => $categoryName,
+                'type' => $type,
+            ])
+            ->willReturn(null);
+
+        $this->userCategoryRepository->expects($this->once())
+            ->method('save')
+            ->with(
+                $this->callback(function (UserCategory $category) use ($user, $categoryName, $type) {
+                    return $category->getUser() === $user
+                        && $category->getName() === $categoryName
+                        && $category->getType() === $type
+                        && !$category->isIncome();
+                }),
+                true
+            );
+
+        $this->categoryKeywordRepository->expects($this->once())
+            ->method('save')
+            ->with(
+                $this->callback(function (CategoryKeyword $keywordEntity) use ($keyword) {
+                    return $keywordEntity->getKeyword() === $keyword;
+                }),
+                true
+            );
+
+        $this->service->addKeywordToCategory($keyword, $categoryName, $type, $user);
+    }
+
+    public function testAddUserCategory(): void
+    {
+        $user = new User();
+        $name = 'Питание';
+        $keywords = ['продукты', 'еда'];
+
+        // Test when category doesn't exist
+        $this->userCategoryRepository->expects($this->once())
+            ->method('findOneBy')
+            ->with([
+                'user' => $user,
+                'name' => $name,
+                'type' => 'expense',
+            ])
+            ->willReturn(null);
+
+        $this->userCategoryRepository->expects($this->once())
+            ->method('save')
+            ->with(
+                $this->callback(function (UserCategory $category) use ($user, $name) {
+                    return $category->getUser() === $user
+                        && $category->getName() === $name
+                        && 'expense' === $category->getType()
+                        && !$category->isIncome();
+                }),
+                true
+            );
+
+        $this->categoryKeywordRepository->expects($this->exactly(2))
+            ->method('save')
+            ->with(
+                $this->callback(function (CategoryKeyword $keyword) use ($keywords) {
+                    return in_array($keyword->getKeyword(), $keywords, true);
+                }),
+                true
+            );
+
+        $this->service->addUserCategory($user, $name, false, $keywords);
+    }
+
+    public function testAddUserCategoryWhenExists(): void
+    {
+        $user = new User();
+        $name = 'Питание';
+        $existingCategory = $this->createUserCategoryWithKeywords($name, [], 'expense', $user);
+
+        // Test when category exists
+        $this->userCategoryRepository->expects($this->once())
+            ->method('findOneBy')
+            ->with([
+                'user' => $user,
+                'name' => $name,
+                'type' => 'expense',
+            ])
+            ->willReturn($existingCategory);
+
+        $this->userCategoryRepository->expects($this->never())
+            ->method('save');
+
+        $this->categoryKeywordRepository->expects($this->never())
+            ->method('save');
+
+        $this->service->addUserCategory($user, $name, false);
+    }
+
+    public function testRemoveUserCategory(): void
+    {
+        $user = new User();
+        $name = 'Питание';
+        $existingCategory = $this->createUserCategoryWithKeywords($name, [], 'expense', $user);
+
+        // Test when category exists
+        $this->userCategoryRepository->expects($this->once())
+            ->method('findOneBy')
+            ->with([
+                'user' => $user,
+                'name' => $name,
+                'type' => 'expense',
+            ])
+            ->willReturn($existingCategory);
+
+        $this->userCategoryRepository->expects($this->once())
+            ->method('remove')
+            ->with($existingCategory, true);
+
+        $this->service->removeUserCategory($user, $name, false);
+    }
+
+    public function testRemoveUserCategoryWhenNotExists(): void
+    {
+        $user = new User();
+        $name = 'Питание';
+
+        // Test when category doesn't exist
+        $this->userCategoryRepository->expects($this->once())
+            ->method('findOneBy')
+            ->with([
+                'user' => $user,
+                'name' => $name,
+                'type' => 'expense',
+            ])
+            ->willReturn(null);
+
+        $this->userCategoryRepository->expects($this->never())
+            ->method('remove');
+
+        $this->service->removeUserCategory($user, $name, false);
+    }
 }

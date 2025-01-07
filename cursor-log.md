@@ -1360,3 +1360,15 @@ CI перестал обновлять процент покрытия кода 
 
 ---
 
+в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push [add tests](https://github.com/positron48/budget-bot/commit/7787c6a23e2099fc10275b2d93a5a3914571d392)
+
+---
+
+продолжай, не трогай MessageParserService, он какой-то аномальный
+
+---
+
+в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push
+
+---
+
