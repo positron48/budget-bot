@@ -120,7 +120,11 @@ class CategorySyncFlowTest extends AbstractBotIntegrationTestCase
 
         // Add expense with mapped category
         $this->executeCommand('1500 продукты пятерочка', self::TEST_CHAT_ID);
-        $this->assertLastMessageContains('Расход успешно добавлен в категорию "Питание"');
+        $this->assertLastMessageContains('Расход успешно добавлен');
+        $this->assertLastMessageContains('Сумма: 1500');
+        $this->assertLastMessageContains('Тип: расход');
+        $this->assertLastMessageContains('Описание: продукты пятерочка');
+        $this->assertLastMessageContains('Категория: Питание');
 
         // Add expense with unmapped category
         $this->executeCommand('1000 такси', self::TEST_CHAT_ID);
@@ -129,7 +133,11 @@ class CategorySyncFlowTest extends AbstractBotIntegrationTestCase
 
         // Select category for unmapped keyword
         $this->executeCommand('Транспорт', self::TEST_CHAT_ID);
-        $this->assertLastMessageContains('Расход успешно добавлен в категорию "Транспорт"');
+        $this->assertLastMessageContains('Расход успешно добавлен');
+        $this->assertLastMessageContains('Сумма: 1000');
+        $this->assertLastMessageContains('Тип: расход');
+        $this->assertLastMessageContains('Описание: такси');
+        $this->assertLastMessageContains('Категория: Транспорт');
 
         // Verify automatic mapping creation
         $this->executeCommand('/map такси', self::TEST_CHAT_ID);

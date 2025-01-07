@@ -163,7 +163,16 @@ class TransactionHandler
                 $category
             );
 
-            $this->sendMessage($chatId, sprintf('Доход успешно добавлен в категорию "%s"', $category));
+            $this->sendMessage(
+                $chatId,
+                sprintf(
+                    "Доход успешно добавлен\nДата: %s\nСумма: %.2f\nТип: доход\nОписание: %s\nКатегория: %s",
+                    $data['date']->format('d.m.Y'),
+                    $data['amount'],
+                    $data['description'],
+                    $category
+                )
+            );
         } else {
             $this->logger->info('Adding expense', [
                 'chat_id' => $chatId,
@@ -182,7 +191,16 @@ class TransactionHandler
                 $category
             );
 
-            $this->sendMessage($chatId, sprintf('Расход успешно добавлен в категорию "%s"', $category));
+            $this->sendMessage(
+                $chatId,
+                sprintf(
+                    "Расход успешно добавлен\nДата: %s\nСумма: %.2f\nТип: расход\nОписание: %s\nКатегория: %s",
+                    $data['date']->format('d.m.Y'),
+                    $data['amount'],
+                    $data['description'],
+                    $category
+                )
+            );
         }
     }
 
