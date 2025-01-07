@@ -294,4 +294,195 @@ class SpreadsheetManagerTest extends TestCase
         $result = $this->manager->findLatestSpreadsheet($user);
         $this->assertSame($spreadsheet, $result);
     }
+
+    public function testAddSpreadsheet(): void
+    {
+        $user = new User();
+        $spreadsheetId = 'test-spreadsheet';
+        $month = 1;
+        $year = 2024;
+        $title = 'Test Budget';
+
+        $this->client->expects($this->once())
+            ->method('getSpreadsheetTitle')
+            ->with($spreadsheetId)
+            ->willReturn($title);
+
+        $this->spreadsheetRepository->expects($this->once())
+            ->method('findByMonthAndYear')
+            ->with($user, $month, $year)
+            ->willReturn(null);
+
+        $this->spreadsheetRepository->expects($this->once())
+            ->method('save')
+            ->with($this->callback(function (UserSpreadsheet $spreadsheet) use ($user, $spreadsheetId, $month, $year, $title) {
+                return $spreadsheet->getUser() === $user
+                    && $spreadsheet->getSpreadsheetId() === $spreadsheetId
+                    && $spreadsheet->getMonth() === $month
+                    && $spreadsheet->getYear() === $year
+                    && $spreadsheet->getTitle() === $title;
+            }), true);
+
+        $this->logger->expects($this->once())
+            ->method('info')
+            ->with('Spreadsheet added for user', [
+                'user_id' => null,
+                'spreadsheet_id' => $spreadsheetId,
+                'title' => $title,
+                'month' => $month,
+                'year' => $year,
+            ]);
+
+        $this->manager->addSpreadsheet($user, $spreadsheetId, $month, $year);
+    }
+
+    public function testAddSpreadsheetFailsWhenTitleNotFound(): void
+    {
+        $user = new User();
+        $spreadsheetId = 'test-spreadsheet';
+        $month = 1;
+        $year = 2024;
+
+        $this->client->expects($this->once())
+            ->method('getSpreadsheetTitle')
+            ->with($spreadsheetId)
+            ->willReturn(null);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Failed to get spreadsheet title');
+
+        $this->manager->addSpreadsheet($user, $spreadsheetId, $month, $year);
+    }
+
+    public function testAddSpreadsheetFailsWhenSpreadsheetExists(): void
+    {
+        $user = new User();
+        $spreadsheetId = 'test-spreadsheet';
+        $month = 1;
+        $year = 2024;
+        $title = 'Test Budget';
+
+        $this->client->expects($this->once())
+            ->method('getSpreadsheetTitle')
+            ->with($spreadsheetId)
+            ->willReturn($title);
+
+        $this->spreadsheetRepository->expects($this->once())
+            ->method('findByMonthAndYear')
+            ->with($user, $month, $year)
+            ->willReturn(new UserSpreadsheet());
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Таблица для этого месяца и года уже существует');
+
+        $this->manager->addSpreadsheet($user, $spreadsheetId, $month, $year);
+    }
+
+    public function testRemoveSpreadsheet(): void
+    {
+        $user = new User();
+        $user->setTelegramId(123456);
+        $month = 1;
+        $year = 2024;
+        $spreadsheet = new UserSpreadsheet();
+        $spreadsheet->setSpreadsheetId('test-spreadsheet');
+
+        $this->spreadsheetRepository->expects($this->once())
+            ->method('findByMonthAndYear')
+            ->with($user, $month, $year)
+            ->willReturn($spreadsheet);
+
+        $this->logger->expects($this->once())
+            ->method('info')
+            ->with('Removing spreadsheet {spreadsheet_id} for user {telegram_id}', [
+                'spreadsheet_id' => 'test-spreadsheet',
+                'telegram_id' => 123456,
+                'month' => $month,
+                'year' => $year,
+            ]);
+
+        $this->spreadsheetRepository->expects($this->once())
+            ->method('remove')
+            ->with($spreadsheet, true);
+
+        $this->manager->removeSpreadsheet($user, $month, $year);
+    }
+
+    public function testRemoveSpreadsheetFailsWhenNotFound(): void
+    {
+        $user = new User();
+        $month = 1;
+        $year = 2024;
+
+        $this->spreadsheetRepository->expects($this->once())
+            ->method('findByMonthAndYear')
+            ->with($user, $month, $year)
+            ->willReturn(null);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Таблица за Январь 2024 не найдена');
+
+        $this->manager->removeSpreadsheet($user, $month, $year);
+    }
+
+    public function testGetSpreadsheetsList(): void
+    {
+        $user = new User();
+        $spreadsheet1 = new UserSpreadsheet();
+        $spreadsheet1->setMonth(1);
+        $spreadsheet1->setYear(2024);
+        $spreadsheet1->setSpreadsheetId('spreadsheet1');
+
+        $spreadsheet2 = new UserSpreadsheet();
+        $spreadsheet2->setMonth(2);
+        $spreadsheet2->setYear(2024);
+        $spreadsheet2->setSpreadsheetId('spreadsheet2');
+
+        $this->spreadsheetRepository->expects($this->once())
+            ->method('findBy')
+            ->with(['user' => $user], ['year' => 'DESC', 'month' => 'DESC'])
+            ->willReturn([$spreadsheet1, $spreadsheet2]);
+
+        $result = $this->manager->getSpreadsheetsList($user);
+
+        $this->assertEquals([
+            [
+                'month' => 'Январь',
+                'year' => 2024,
+                'url' => 'https://docs.google.com/spreadsheets/d/spreadsheet1',
+            ],
+            [
+                'month' => 'Февраль',
+                'year' => 2024,
+                'url' => 'https://docs.google.com/spreadsheets/d/spreadsheet2',
+            ],
+        ], $result);
+    }
+
+    public function testGetSpreadsheetsListSkipsInvalidSpreadsheets(): void
+    {
+        $user = new User();
+        $spreadsheet1 = new UserSpreadsheet();
+        $spreadsheet1->setMonth(1);
+        $spreadsheet1->setYear(2024);
+        $spreadsheet1->setSpreadsheetId('spreadsheet1');
+
+        $spreadsheet2 = new UserSpreadsheet();
+        // Missing month, year, and spreadsheetId
+
+        $this->spreadsheetRepository->expects($this->once())
+            ->method('findBy')
+            ->with(['user' => $user], ['year' => 'DESC', 'month' => 'DESC'])
+            ->willReturn([$spreadsheet1, $spreadsheet2]);
+
+        $result = $this->manager->getSpreadsheetsList($user);
+
+        $this->assertEquals([
+            [
+                'month' => 'Январь',
+                'year' => 2024,
+                'url' => 'https://docs.google.com/spreadsheets/d/spreadsheet1',
+            ],
+        ], $result);
+    }
 }

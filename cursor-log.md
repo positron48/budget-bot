@@ -1381,6 +1381,31 @@ CI перестал обновлять процент покрытия кода 
 
 ---
 
+запусти в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push [test(sync-categories): add comprehensive integration tests for SyncCategoriesCommand - Add test cases for various sync scenarios (empty/invalid/partial/multiple) - Fix test setup to properly handle…](https://github.com/positron48/budget-bot/commit/8be45a93db1380f417c28f05f5d79f9181305be4)
+
+---
+
+проанализируй покрытие кода тестами и поднимай постепенно покрытие через интеграционные тесты
+для проверки всегда запускай make cs-fix && make ci
+
+упор делай на классы, которые совсем не покрыты тестами, а также на классы, в которых минимальное количество *строк* покрыто тестами
+
+не трогай MessageParserService, он какой-то аномальный
+
+---
+
+продолжай
+
+---
+
+для проверки всегда запускай make cs-fix && make ci
+
+---
+
+продолжай
+
+---
+
 запусти в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push
 
 ---
