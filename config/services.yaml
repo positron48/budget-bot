@@ -3,6 +3,7 @@ parameters:
     telegram_bot_username: '%env(TELEGRAM_BOT_USERNAME)%'
     google_credentials_path: '%env(GOOGLE_CREDENTIALS_PATH)%'
     google_service_account_email: '%env(GOOGLE_SERVICE_ACCOUNT_EMAIL)%'
+    app.transactions_per_page: 20
 
 services:
     _defaults:
@@ -55,3 +56,7 @@ services:
 
     App\Service\TelegramApiServiceInterface:
         class: App\Service\TelegramApiService 
+
+    App\Service\StateHandler\ListStateHandler:
+        arguments:
+            $transactionsPerPage: '%app.transactions_per_page%' 

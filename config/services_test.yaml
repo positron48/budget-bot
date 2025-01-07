@@ -6,6 +6,7 @@ parameters:
     telegram_bot_username: 'test_bot'
     google_credentials_path: 'test_credentials.json'
     google_service_account_email: 'test@example.com'
+    app.transactions_per_page: 5
 
 services:
     _defaults:
@@ -25,4 +26,8 @@ services:
         alias: App\Tests\Mock\TelegramApiMock
 
     App\Service\Google\GoogleApiClientInterface:
-        alias: App\Tests\Mock\TestGoogleApiClient 
+        alias: App\Tests\Mock\TestGoogleApiClient
+
+    App\Service\StateHandler\ListStateHandler:
+        arguments:
+            $transactionsPerPage: '%app.transactions_per_page%' 

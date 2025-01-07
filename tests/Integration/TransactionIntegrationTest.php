@@ -302,12 +302,6 @@ class TransactionIntegrationTest extends AbstractBotIntegrationTestCase
         $this->assertLastMessageContains('Пожалуйста, добавьте её с помощью команды /add');
     }
 
-    public function testHandleMessageSendingFailure(): void
-    {
-        // Skip this test for now as we need to find a better way to mock services
-        $this->markTestSkipped('Need to find a better way to mock services in integration tests');
-    }
-
     public function testHandleNullSpreadsheetId(): void
     {
         // Execute /start command to ensure user exists

@@ -1517,7 +1517,19 @@ list-tables нужно поменять на list_tables, телеграм не 
 
 ---
 
-запусти в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push
+запусти в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push [test: improve ListStateHandler coverage - Add income, filtering and validation tests](https://github.com/positron48/budget-bot/commit/22b0d294381fd1ca87a249c5534458e53dbc2bc8)
+
+---
+
+ок, давай добавим пагинацию через клавиатуру телеграма на случай, если транзакций прям много. Сделай количество транзакций на странице параметром
+
+---
+
+сделай лимит на страницу 20, но для тестов нужно оставить 5, мб вынести это в параметры конфига
+
+---
+
+удали тест, который мы скипаем
 
 ---
 

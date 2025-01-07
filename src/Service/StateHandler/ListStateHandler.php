@@ -10,26 +10,41 @@ use Psr\Log\LoggerInterface;
 
 class ListStateHandler implements StateHandlerInterface
 {
+    private const SUPPORTED_STATES = [
+        'WAITING_LIST_ACTION',
+        'WAITING_LIST_PAGE',
+    ];
+
+    private readonly int $transactionsPerPage;
+
     public function __construct(
         private readonly UserRepository $userRepository,
         private readonly TelegramApiServiceInterface $telegramApi,
         private readonly GoogleApiClientInterface $googleApiClient,
         private readonly LoggerInterface $logger,
+        int $transactionsPerPage,
     ) {
+        $this->transactionsPerPage = $transactionsPerPage;
     }
 
     public function supports(string $state): bool
     {
-        return 'WAITING_LIST_ACTION' === $state;
+        return in_array($state, self::SUPPORTED_STATES, true);
     }
 
     public function handle(int $chatId, User $user, string $message): bool
     {
+        $state = $user->getState();
+        $tempData = $user->getTempData();
+
+        if ('WAITING_LIST_PAGE' === $state) {
+            return $this->handlePageNavigation($chatId, $user, $message);
+        }
+
         if (!in_array($message, ['Расходы', 'Доходы'])) {
             return false;
         }
 
-        $tempData = $user->getTempData();
         if (!isset($tempData['list_month'], $tempData['list_year'], $tempData['spreadsheet_id'])) {
             $this->logger->error('Missing required temp data', [
                 'chat_id' => $chatId,
@@ -116,11 +131,88 @@ class ListStateHandler implements StateHandlerInterface
             return strcmp((string) $b['date'], (string) $a['date']);
         });
 
-        // Format message
-        $text = sprintf("%s за %s %d:\n\n", $message, $this->getMonthName($month), $year);
-        $total = 0;
+        // Save transactions in temp data for pagination
+        $tempData['transactions'] = $transactions;
+        $tempData['current_page'] = 1;
+        $tempData['type'] = $message;
+        $user->setTempData($tempData);
+        $user->setState('WAITING_LIST_PAGE');
+        $this->userRepository->save($user, true);
 
-        foreach ($transactions as $t) {
+        return $this->showTransactionsPage($chatId, $user);
+    }
+
+    private function handlePageNavigation(int $chatId, User $user, string $message): bool
+    {
+        $tempData = $user->getTempData();
+        if (!isset($tempData['transactions'], $tempData['current_page'], $tempData['type'])) {
+            $user->setState('');
+            $user->setTempData([]);
+            $this->userRepository->save($user, true);
+
+            return false;
+        }
+
+        $totalPages = ceil(count($tempData['transactions']) / $this->transactionsPerPage);
+
+        switch ($message) {
+            case '⬅️ Назад':
+                if ($tempData['current_page'] > 1) {
+                    --$tempData['current_page'];
+                    $user->setTempData($tempData);
+                    $this->userRepository->save($user, true);
+                }
+                break;
+            case '➡️ Вперед':
+                if ($tempData['current_page'] < $totalPages) {
+                    ++$tempData['current_page'];
+                    $user->setTempData($tempData);
+                    $this->userRepository->save($user, true);
+                }
+                break;
+            case '❌ Закрыть':
+                $user->setState('');
+                $user->setTempData([]);
+                $this->userRepository->save($user, true);
+                $this->telegramApi->sendMessage([
+                    'chat_id' => $chatId,
+                    'text' => 'Просмотр транзакций завершен',
+                    'parse_mode' => 'HTML',
+                    'reply_markup' => json_encode([
+                        'remove_keyboard' => true,
+                    ]),
+                ]);
+
+                return true;
+            default:
+                return false;
+        }
+
+        return $this->showTransactionsPage($chatId, $user);
+    }
+
+    private function showTransactionsPage(int $chatId, User $user): bool
+    {
+        $tempData = $user->getTempData();
+        $transactions = $tempData['transactions'];
+        $currentPage = $tempData['current_page'];
+        $totalPages = ceil(count($transactions) / $this->transactionsPerPage);
+
+        $start = ($currentPage - 1) * $this->transactionsPerPage;
+        $pageTransactions = array_slice($transactions, $start, $this->transactionsPerPage);
+
+        // Format message
+        $text = sprintf(
+            "%s за %s %d (страница %d из %d):\n\n",
+            $tempData['type'],
+            $this->getMonthName($tempData['list_month']),
+            $tempData['list_year'],
+            $currentPage,
+            $totalPages
+        );
+
+        $total = 0;
+        foreach ($pageTransactions as $t) {
             $text .= sprintf(
                 "%s | %s руб. | [%s] %s\n",
                 $t['date'],
@@ -131,17 +223,36 @@ class ListStateHandler implements StateHandlerInterface
             $total += (float) $t['amount'];
         }
 
-        $text .= sprintf("\nИтого: %.2f руб.", $total);
+        // Add total for all transactions, not just current page
+        $totalAll = array_sum(array_map(fn ($t) => (float) $t['amount'], $transactions));
+        $text .= sprintf("\nИтого за страницу: %.2f руб.", $total);
+        $text .= sprintf("\nОбщий итог: %.2f руб.", $totalAll);
+
+        // Prepare navigation buttons
+        $keyboard = [];
+        $row = [];
+
+        if ($currentPage > 1) {
+            $row[] = ['text' => '⬅️ Назад'];
+        }
+        if ($currentPage < $totalPages) {
+            $row[] = ['text' => '➡️ Вперед'];
+        }
+        if (!empty($row)) {
+            $keyboard[] = $row;
+        }
+        $keyboard[] = [['text' => '❌ Закрыть']];
 
         $this->telegramApi->sendMessage([
             'chat_id' => $chatId,
             'text' => $text,
             'parse_mode' => 'HTML',
+            'reply_markup' => json_encode([
+                'keyboard' => $keyboard,
+                'resize_keyboard' => true,
+                'one_time_keyboard' => false,
+            ]),
         ]);
-
-        $user->setState('');
-        $user->setTempData([]);
-        $this->userRepository->save($user, true);
 
         return true;
     }
