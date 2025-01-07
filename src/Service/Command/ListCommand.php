@@ -47,10 +47,38 @@ class ListCommand implements CommandInterface
         $year = (int) $now->format('Y');
 
         if (count($parts) >= 2) {
-            $month = $this->parseMonth($parts[1]);
+            $parsedMonth = $this->parseMonth($parts[1]);
+            if (null === $parsedMonth) {
+                $this->telegramApi->sendMessage([
+                    'chat_id' => $chatId,
+                    'text' => 'Неверный формат месяца. Пожалуйста, укажите месяц числом (1-12) или словом (Январь-Декабрь).',
+                    'parse_mode' => 'HTML',
+                ]);
+
+                return;
+            }
+            $month = $parsedMonth;
         }
         if (count($parts) >= 3) {
+            if (!is_numeric($parts[2])) {
+                $this->telegramApi->sendMessage([
+                    'chat_id' => $chatId,
+                    'text' => 'Неверный формат года. Пожалуйста, укажите год в числовом формате.',
+                    'parse_mode' => 'HTML',
+                ]);
+
+                return;
+            }
             $year = (int) $parts[2];
+            if ($year < 2020) {
+                $this->telegramApi->sendMessage([
+                    'chat_id' => $chatId,
+                    'text' => 'Год не может быть меньше 2020.',
+                    'parse_mode' => 'HTML',
+                ]);
+
+                return;
+            }
         }
 
         // Find spreadsheet for the specified month and year
@@ -101,11 +129,16 @@ class ListCommand implements CommandInterface
         ]);
     }
 
-    private function parseMonth(string $month): int
+    private function parseMonth(string $month): ?int
     {
         // Try to parse as number first
         if (is_numeric($month)) {
-            return (int) $month;
+            $monthNum = (int) $month;
+            if ($monthNum < 1 || $monthNum > 12) {
+                return null;
+            }
+
+            return $monthNum;
         }
 
         // Try to parse Russian month name
@@ -126,7 +159,7 @@ class ListCommand implements CommandInterface
 
         $monthLower = mb_strtolower($month);
 
-        return $months[$monthLower] ?? (int) (new \DateTime())->format('m');
+        return $months[$monthLower] ?? null;
     }
 
     private function getMonthName(int $month): string
