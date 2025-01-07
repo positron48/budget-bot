@@ -9,7 +9,12 @@ use App\Tests\Mock\TelegramApiMock;
 use App\Tests\Mock\TestGoogleApiClient;
 use Longman\TelegramBot\Entities\Update;
 
-abstract class AbstractBotIntegrationTest extends IntegrationTestCase
+/**
+ * Base class for bot integration tests.
+ *
+ * @internal
+ */
+abstract class AbstractBotIntegrationTestCase extends IntegrationTestCase
 {
     protected TelegramBotService $botService;
     protected TelegramApiServiceInterface&TelegramApiMock $telegramApi;

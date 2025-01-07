@@ -1235,6 +1235,22 @@ Could not find a Coverage file! Searched for lcov.info, cov.xml, coverage.xml, c
 
 ---
 
+в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push [refactor: improve integration tests structure - Create AbstractBotIntegrationTest with common functionality - Split large test methods into smaller focused ones - Add missing assertions - Fix PHPSt…](https://github.com/positron48/budget-bot/commit/4f4045b5b414a7224f73270bb0fa262485fc94ef) 
+
+---
+
+сделай чтобы абстрактный класс в тестах не генерировал ошибку
+
+---
+
+может failOnWarning выставить в false?
+
+---
+
+абстрактные классы в phpunit должны оканчиваться на TestCase
+
+---
+
 в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push 
 
 ---

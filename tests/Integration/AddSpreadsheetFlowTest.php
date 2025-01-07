@@ -5,7 +5,7 @@ namespace App\Tests\Integration;
 use App\Repository\UserRepository;
 use App\Repository\UserSpreadsheetRepository;
 
-class AddSpreadsheetFlowTest extends AbstractBotIntegrationTest
+class AddSpreadsheetFlowTest extends AbstractBotIntegrationTestCase
 {
     private const TEST_CHAT_ID = 123456;
     private const TEST_SPREADSHEET_ID = '1234567890';

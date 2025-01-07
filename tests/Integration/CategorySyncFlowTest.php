@@ -4,7 +4,7 @@ namespace App\Tests\Integration;
 
 use App\Repository\UserRepository;
 
-class CategorySyncFlowTest extends AbstractBotIntegrationTest
+class CategorySyncFlowTest extends AbstractBotIntegrationTestCase
 {
     private const TEST_CHAT_ID = 123456;
     private const TEST_SPREADSHEET_ID = '1234567890';
