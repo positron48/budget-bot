@@ -69,11 +69,17 @@ jobs:
       - name: Generate coverage badge
         uses: timkrase/phpunit-coverage-badge@v1.2.1
         with:
-          coverage_badge_path: 'badge-coverage.svg'
+          coverage_badge_path: '.github/badges/coverage.svg'
           push_badge: true
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           report: build/logs/clover.xml
           report_type: clover
+
+      - name: Git Auto Commit
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "docs: Update coverage badge"
+          file_pattern: '.github/badges/*.svg'
 
   phpstan:
     name: PHPStan

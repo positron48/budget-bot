@@ -1311,7 +1311,11 @@ Could not find a Coverage file! Searched for lcov.info, cov.xml, coverage.xml, c
 
 ---
 
-в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push
+в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push [tests for transactions](https://github.com/positron48/budget-bot/commit/e0a4181598a542a99a25fda3e1b73abf5a22e265)
+
+---
+
+CI перестал обновлять процент покрытия кода тестами в readme после добавления build в игнор, почини
 
 ---
 

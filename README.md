@@ -1,7 +1,7 @@
 # Budget Bot
 
 [![CI](https://github.com/positron48/budget-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/positron48/budget-bot/actions/workflows/ci.yml)
-![Coverage](https://raw.githubusercontent.com/positron48/budget-bot/master/badge-coverage.svg)
+![Coverage](https://raw.githubusercontent.com/positron48/budget-bot/master/.github/badges/coverage.svg)
 [![PHPStan](https://img.shields.io/badge/PHPStan-level%208-brightgreen.svg?style=flat)](https://phpstan.org/)
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://www.php.net/)
 

@@ -40,7 +40,7 @@
     <coverage>
         <report>
             <clover outputFile="build/logs/clover.xml"/>
-            <cobertura outputFile="build/logs/coverage.cobertura.xml"/>
+            <cobertura outputFile="build/logs/cobertura.xml"/>
         </report>
     </coverage>
 </phpunit>

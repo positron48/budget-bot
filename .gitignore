@@ -9,6 +9,9 @@
 /config/credentials/
 /build/
 build/logs/clover.xml
+/build/*
+!/build/.gitkeep
+!/.github/badges/
 ###< symfony/framework-bundle ###
 
 ###> IDE files ###
