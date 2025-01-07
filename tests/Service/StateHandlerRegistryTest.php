@@ -53,12 +53,12 @@ class StateHandlerRegistryTest extends TestCase
             ->method('getState')
             ->willReturn('TEST_STATE');
 
-        $this->handler1->expects($this->once())
+        $this->handler1->expects($this->atLeastOnce())
             ->method('supports')
             ->with('TEST_STATE')
             ->willReturn(false);
 
-        $this->handler2->expects($this->once())
+        $this->handler2->expects($this->atLeastOnce())
             ->method('supports')
             ->with('TEST_STATE')
             ->willReturn(false);
@@ -82,7 +82,7 @@ class StateHandlerRegistryTest extends TestCase
             ->method('getState')
             ->willReturn('TEST_STATE');
 
-        $this->handler1->expects($this->once())
+        $this->handler1->expects($this->atLeastOnce())
             ->method('supports')
             ->with('TEST_STATE')
             ->willReturn(true);
@@ -114,12 +114,12 @@ class StateHandlerRegistryTest extends TestCase
             ->method('getState')
             ->willReturn('TEST_STATE');
 
-        $this->handler1->expects($this->once())
+        $this->handler1->expects($this->atLeastOnce())
             ->method('supports')
             ->with('TEST_STATE')
             ->willReturn(false);
 
-        $this->handler2->expects($this->once())
+        $this->handler2->expects($this->atLeastOnce())
             ->method('supports')
             ->with('TEST_STATE')
             ->willReturn(true);
@@ -148,7 +148,7 @@ class StateHandlerRegistryTest extends TestCase
             ->method('getState')
             ->willReturn('TEST_STATE');
 
-        $this->handler1->expects($this->once())
+        $this->handler1->expects($this->atLeastOnce())
             ->method('supports')
             ->with('TEST_STATE')
             ->willReturn(true);

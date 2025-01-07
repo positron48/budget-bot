@@ -37,11 +37,30 @@ class ListStateHandler implements StateHandlerInterface
         $state = $user->getState();
         $tempData = $user->getTempData();
 
+        $this->logger->debug('ListStateHandler handling message', [
+            'chat_id' => $chatId,
+            'state' => $state,
+            'message' => $message,
+            'temp_data' => $tempData,
+        ]);
+
         if ('WAITING_LIST_PAGE' === $state) {
             return $this->handlePageNavigation($chatId, $user, $message);
         }
 
+        if ('WAITING_LIST_ACTION' !== $state) {
+            $this->logger->debug('ListStateHandler: state is not WAITING_LIST_ACTION', [
+                'state' => $state,
+            ]);
+
+            return false;
+        }
+
         if (!in_array($message, ['Расходы', 'Доходы'])) {
+            $this->logger->debug('ListStateHandler: message is not Расходы or Доходы', [
+                'message' => $message,
+            ]);
+
             return false;
         }
 

@@ -48,6 +48,8 @@ services:
         resource: '../src/Service/StateHandler'
         exclude:
             - '../src/Service/StateHandler/StateHandlerInterface.php'
+            - '../src/Service/StateHandler/StateHandlerRegistry.php'
+            - '../src/Service/StateHandler/ListStateHandler.php'
         tags: ['app.state_handler']
 
     App\Service\StateHandler\StateHandlerRegistry:
@@ -59,4 +61,5 @@ services:
 
     App\Service\StateHandler\ListStateHandler:
         arguments:
-            $transactionsPerPage: '%app.transactions_per_page%' 
+            $transactionsPerPage: '%app.transactions_per_page%'
+        tags: ['app.state_handler']

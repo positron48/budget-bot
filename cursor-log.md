@@ -1537,3 +1537,22 @@ list-tables нужно поменять на list_tables, телеграм не 
 
 ---
 
+не обрабатывается выбор категории транзакций при выборе
+
+---
+
+новый лог
+
+---
+
+ListStateHandler почему-то не видится в handlers StateHandlerRegistry
+
+---
+
+для проверки всегда запускай make cs-fix && make ci
+
+---
+
+запусти в одну команду, добавь только описание коммита: git pull && git add . && git commit && git push
+
+---
