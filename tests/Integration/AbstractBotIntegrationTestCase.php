@@ -73,15 +73,29 @@ abstract class AbstractBotIntegrationTestCase extends IntegrationTestCase
         $this->assertCount($expectedCount, $messages);
     }
 
-    protected function setupTestSpreadsheet(string $spreadsheetId, string $title = 'Бюджет'): void
+    protected function setupTestSpreadsheet(string $spreadsheetId, bool $emptyCategories = false): void
     {
-        $this->googleApiClient->addAccessibleSpreadsheet($spreadsheetId);
-        $this->googleApiClient->setSpreadsheetTitle($spreadsheetId, $title);
+        /** @var TestGoogleApiClient $client */
+        $client = self::getContainer()->get(GoogleApiClientInterface::class);
+        $client->setSpreadsheetAccessible($spreadsheetId, true);
+        $client->setSpreadsheetTitle($spreadsheetId, 'Test Budget');
+
+        if (!$emptyCategories) {
+            $this->setupTestCategories($spreadsheetId);
+        } else {
+            // Set empty categories
+            $client->setValues($spreadsheetId, 'Сводка!B28:B', []);
+            $client->setValues($spreadsheetId, 'Сводка!H28:H', []);
+        }
     }
 
     protected function setupTestCategories(string $spreadsheetId): void
     {
-        $this->googleApiClient->setValues($spreadsheetId, 'Сводка!B28:B', [
+        /** @var TestGoogleApiClient $client */
+        $client = self::getContainer()->get(GoogleApiClientInterface::class);
+
+        // Set expense categories
+        $client->setValues($spreadsheetId, 'Сводка!B28:B', [
             ['Питание'],
             ['Подарки'],
             ['Здоровье/медицина'],
@@ -100,7 +114,8 @@ abstract class AbstractBotIntegrationTestCase extends IntegrationTestCase
             ['Авто'],
         ]);
 
-        $this->googleApiClient->setValues($spreadsheetId, 'Сводка!H28:H', [
+        // Set income categories
+        $client->setValues($spreadsheetId, 'Сводка!H28:H', [
             ['Зарплата'],
             ['Премия'],
             ['Кешбек, др. бонусы'],

@@ -15,6 +15,9 @@ class TestGoogleApiClient implements GoogleApiClientInterface
     /** @var array<string> */
     private array $accessibleSpreadsheets = [];
 
+    /** @var array<string, \Exception> */
+    private array $getValuesExceptions = [];
+
     private string $serviceAccountEmail = 'test@example.com';
 
     /**
@@ -22,7 +25,16 @@ class TestGoogleApiClient implements GoogleApiClientInterface
      */
     public function getValues(string $spreadsheetId, string $range): ?array
     {
+        if (isset($this->getValuesExceptions[$spreadsheetId])) {
+            throw $this->getValuesExceptions[$spreadsheetId];
+        }
+
         return $this->values[$spreadsheetId][$range] ?? null;
+    }
+
+    public function throwOnGetValues(string $spreadsheetId, \Exception $exception): void
+    {
+        $this->getValuesExceptions[$spreadsheetId] = $exception;
     }
 
     /**

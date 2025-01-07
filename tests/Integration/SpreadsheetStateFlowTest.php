@@ -35,7 +35,6 @@ class SpreadsheetStateFlowTest extends AbstractBotIntegrationTestCase
 
         // Setup test spreadsheet
         $this->setupTestSpreadsheet(self::TEST_SPREADSHEET_ID);
-        $this->setupTestCategories(self::TEST_SPREADSHEET_ID);
 
         // Setup test spreadsheet in Google API client
         /** @var TestGoogleApiClient $client */
@@ -44,12 +43,15 @@ class SpreadsheetStateFlowTest extends AbstractBotIntegrationTestCase
         $client->setSpreadsheetTitle(self::TEST_SPREADSHEET_ID, 'Test Budget');
     }
 
-    protected function setupTestSpreadsheet(string $spreadsheetId, ?string $title = null): void
+    protected function setupTestSpreadsheet(string $spreadsheetId, bool $emptyCategories = false): void
     {
         /** @var TestGoogleApiClient $client */
         $client = self::getContainer()->get(GoogleApiClientInterface::class);
         $client->setSpreadsheetAccessible($spreadsheetId, true);
-        $client->setSpreadsheetTitle($spreadsheetId, $title ?? 'Test Budget');
+        $client->setSpreadsheetTitle($spreadsheetId, 'Test Budget');
+        if (!$emptyCategories) {
+            $this->setupTestCategories($spreadsheetId);
+        }
     }
 
     public function testSpreadsheetActionFlow(): void
