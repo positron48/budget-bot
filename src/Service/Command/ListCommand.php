@@ -7,9 +7,8 @@ use App\Repository\UserRepository;
 use App\Repository\UserSpreadsheetRepository;
 use App\Service\StateHandler\StateHandlerRegistry;
 use App\Service\TelegramApiServiceInterface;
-use Psr\Log\LoggerInterface;
 use App\Utility\DateTimeUtility;
-use Telegram\Bot\Objects\Update;
+use Psr\Log\LoggerInterface;
 
 class ListCommand implements CommandInterface
 {
@@ -19,7 +18,7 @@ class ListCommand implements CommandInterface
         protected UserSpreadsheetRepository $spreadsheetRepository,
         protected DateTimeUtility $dateTimeUtility,
         protected TelegramApiServiceInterface $telegramApi,
-        protected LoggerInterface $logger
+        protected LoggerInterface $logger,
     ) {
     }
 
@@ -41,16 +40,18 @@ class ListCommand implements CommandInterface
                 'text' => 'Пожалуйста, начните с команды /start',
                 'parse_mode' => 'HTML',
             ]);
+
             return;
         }
 
         $text = trim($message);
         if (str_starts_with($text, '/list ')) {
             $this->handleMonthSpecified($text, $user);
+
             return;
         }
 
-        $now = $this->dateTimeUtility->getCurrentDate();
+        $now = clone $this->dateTimeUtility->getCurrentDate();
         $month = (int) $now->format('n');
         $year = (int) $now->format('Y');
 
@@ -157,9 +158,14 @@ class ListCommand implements CommandInterface
 
     private function handleMonthSpecified(string $text, User $user): void
     {
+        $chatId = $user->getTelegramId();
+        if (null === $chatId) {
+            throw new \RuntimeException('User telegram ID is null');
+        }
+
         // Parse month and year from command
         $parts = explode(' ', trim($text));
-        $now = $this->dateTimeUtility->getCurrentDate();
+        $now = clone $this->dateTimeUtility->getCurrentDate();
         $month = (int) $now->format('n');
         $year = (int) $now->format('Y');
 
@@ -167,7 +173,7 @@ class ListCommand implements CommandInterface
             $parsedMonth = $this->parseMonth($parts[1]);
             if (null === $parsedMonth) {
                 $this->telegramApi->sendMessage([
-                    'chat_id' => $user->getTelegramId(),
+                    'chat_id' => $chatId,
                     'text' => 'Неверный формат месяца. Пожалуйста, укажите месяц числом (1-12) или словом (Январь-Декабрь).',
                     'parse_mode' => 'HTML',
                 ]);
@@ -179,7 +185,7 @@ class ListCommand implements CommandInterface
         if (count($parts) >= 3) {
             if (!is_numeric($parts[2])) {
                 $this->telegramApi->sendMessage([
-                    'chat_id' => $user->getTelegramId(),
+                    'chat_id' => $chatId,
                     'text' => 'Неверный формат года. Пожалуйста, укажите год в числовом формате.',
                     'parse_mode' => 'HTML',
                 ]);
@@ -189,7 +195,7 @@ class ListCommand implements CommandInterface
             $year = (int) $parts[2];
             if ($year < 2020) {
                 $this->telegramApi->sendMessage([
-                    'chat_id' => $user->getTelegramId(),
+                    'chat_id' => $chatId,
                     'text' => 'Год не может быть меньше 2020.',
                     'parse_mode' => 'HTML',
                 ]);
@@ -203,7 +209,7 @@ class ListCommand implements CommandInterface
 
         if (!$spreadsheet) {
             $this->telegramApi->sendMessage([
-                'chat_id' => $user->getTelegramId(),
+                'chat_id' => $chatId,
                 'text' => sprintf('У вас нет таблицы за %s %d', $this->getMonthName($month), $year),
                 'parse_mode' => 'HTML',
             ]);
@@ -214,7 +220,7 @@ class ListCommand implements CommandInterface
         $spreadsheetId = $spreadsheet->getSpreadsheetId();
         if (!$spreadsheetId) {
             $this->logger->error('Spreadsheet ID is null', [
-                'chat_id' => $user->getTelegramId(),
+                'chat_id' => $chatId,
                 'spreadsheet' => $spreadsheet,
             ]);
             throw new \RuntimeException('Spreadsheet ID is null');
@@ -235,7 +241,7 @@ class ListCommand implements CommandInterface
         $this->userRepository->save($user, true);
 
         $this->telegramApi->sendMessage([
-            'chat_id' => $user->getTelegramId(),
+            'chat_id' => $chatId,
             'text' => sprintf('Выберите тип транзакций за %s %d:', $this->getMonthName($month), $year),
             'parse_mode' => 'HTML',
             'reply_markup' => json_encode([

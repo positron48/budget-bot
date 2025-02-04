@@ -35,4 +35,4 @@ services:
     # Override DateTimeUtility for tests
     App\Utility\DateTimeUtility:
         public: true
-        shared: true 
+        shared: true

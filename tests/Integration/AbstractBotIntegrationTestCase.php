@@ -7,7 +7,6 @@ use App\Service\TelegramApiServiceInterface;
 use App\Service\TelegramBotService;
 use App\Tests\Mock\TelegramApiMock;
 use App\Tests\Mock\TestGoogleApiClient;
-use App\Service\DateTimeUtility;
 use Longman\TelegramBot\Entities\Update;
 
 /**
@@ -41,12 +40,22 @@ abstract class AbstractBotIntegrationTestCase extends IntegrationTestCase
         $this->setFixedTestDate();
     }
 
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+
+        // Reset the fixed date after each test
+        /** @var \App\Utility\DateTimeUtility $dateTimeUtility */
+        $dateTimeUtility = self::getContainer()->get(\App\Utility\DateTimeUtility::class);
+        $dateTimeUtility->resetCurrentDate();
+    }
+
     protected function setFixedTestDate(): void
     {
         // Set fixed date to January 2025 for all tests
         $fixedDate = new \DateTime('2025-01-15');
+        /** @var \App\Utility\DateTimeUtility $dateTimeUtility */
         $dateTimeUtility = self::getContainer()->get(\App\Utility\DateTimeUtility::class);
-        $dateTimeUtility->resetCurrentDate();
         $dateTimeUtility->setCurrentDate($fixedDate);
     }
 

@@ -14,7 +14,7 @@ class MessageParserService
     ];
 
     public function __construct(
-        protected DateTimeUtility $dateTimeUtility
+        protected DateTimeUtility $dateTimeUtility,
     ) {
     }
 

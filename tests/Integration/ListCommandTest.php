@@ -17,11 +17,6 @@ class ListCommandTest extends AbstractBotIntegrationTestCase
     {
         parent::setUp();
 
-        // Set fixed test date first
-        $dateTimeUtility = self::getContainer()->get(\App\Utility\DateTimeUtility::class);
-        $dateTimeUtility->resetCurrentDate();
-        $dateTimeUtility->setCurrentDate(new \DateTime('2025-01-15'));
-
         $this->userRepository = self::getContainer()->get(UserRepository::class);
         $this->spreadsheetRepository = self::getContainer()->get(UserSpreadsheetRepository::class);
     }
@@ -29,10 +24,6 @@ class ListCommandTest extends AbstractBotIntegrationTestCase
     protected function tearDown(): void
     {
         parent::tearDown();
-
-        // Reset the date after each test
-        $dateTimeUtility = self::getContainer()->get(\App\Utility\DateTimeUtility::class);
-        $dateTimeUtility->resetCurrentDate();
     }
 
     private function setupInitialState(): void
@@ -106,11 +97,6 @@ class ListCommandTest extends AbstractBotIntegrationTestCase
 
         $this->executeCommand('15.01.2025 2000 такси', self::TEST_CHAT_ID);
         $this->executeCommand('Транспорт', self::TEST_CHAT_ID);
-
-        // Ensure the date is set correctly before executing the list command
-        $dateTimeUtility = self::getContainer()->get(\App\Utility\DateTimeUtility::class);
-        $dateTimeUtility->resetCurrentDate();
-        $dateTimeUtility->setCurrentDate(new \DateTime('2025-01-15'));
 
         // Execute list command
         $this->executeCommand('/list', self::TEST_CHAT_ID);
@@ -242,25 +228,5 @@ class ListCommandTest extends AbstractBotIntegrationTestCase
         $this->expectExceptionMessage('Spreadsheet ID is null');
 
         $this->executeCommand('/list Январь 2025', self::TEST_CHAT_ID);
-    }
-
-    private function getMonthName(int $month): string
-    {
-        $months = [
-            1 => 'Январь',
-            2 => 'Февраль',
-            3 => 'Март',
-            4 => 'Апрель',
-            5 => 'Май',
-            6 => 'Июнь',
-            7 => 'Июль',
-            8 => 'Август',
-            9 => 'Сентябрь',
-            10 => 'Октябрь',
-            11 => 'Ноябрь',
-            12 => 'Декабрь',
-        ];
-
-        return $months[$month] ?? '';
     }
 }

@@ -25,7 +25,6 @@ class SpreadsheetStateHandlerTest extends TestCase
     private LoggerInterface $logger;
     /** @var TelegramApiServiceInterface&MockObject */
     private TelegramApiServiceInterface $telegramApi;
-    /** @var DateTimeUtility */
     private DateTimeUtility $dateTimeUtility;
 
     protected function setUp(): void

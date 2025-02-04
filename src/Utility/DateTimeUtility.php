@@ -5,19 +5,32 @@ namespace App\Utility;
 class DateTimeUtility
 {
     protected ?\DateTime $mockedDate = null;
+    protected ?\DateTime $currentDate = null;
+
+    public static function createWithFixedDate(\DateTime $date): self
+    {
+        $instance = new self();
+        $instance->setCurrentDate(clone $date);
+
+        return $instance;
+    }
 
     public function getCurrentDate(): \DateTime
     {
-        return $this->mockedDate ?? new \DateTime();
+        if (null !== $this->currentDate) {
+            return clone $this->currentDate;
+        }
+
+        return new \DateTime();
     }
 
     public function setCurrentDate(\DateTime $date): void
     {
-        $this->mockedDate = clone $date;
+        $this->currentDate = clone $date;
     }
 
     public function resetCurrentDate(): void
     {
-        $this->mockedDate = null;
+        $this->currentDate = null;
     }
-} 
+}

@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * @covers \App\Service\MessageParserService
+ * @covers \App\Utility\DateTimeUtility
  */
 class MessageParserServiceTest extends TestCase
 {
@@ -16,16 +17,20 @@ class MessageParserServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->dateTimeUtility = new DateTimeUtility();
-        $this->parser = new MessageParserService($this->dateTimeUtility);
-        $this->dateTimeUtility->resetCurrentDate();
-        $this->dateTimeUtility->setCurrentDate(new \DateTime('2025-01-15'));
+        parent::setUp();
+
+        $this->dateTimeUtility = $this->createMock(DateTimeUtility::class);
+        $this->dateTimeUtility->method('getCurrentDate')
+            ->willReturn(new \DateTime('2025-01-15'));
+
+        $this->parser = new MessageParserService(
+            $this->dateTimeUtility
+        );
     }
 
     protected function tearDown(): void
     {
         parent::tearDown();
-        $this->dateTimeUtility->resetCurrentDate();
     }
 
     /**
@@ -226,9 +231,9 @@ class MessageParserServiceTest extends TestCase
             'today keyword' => ['сегодня', new \DateTime('2025-01-15')],
             'yesterday keyword' => ['вчера', new \DateTime('2025-01-14')],
             'd.m.Y format' => ['01.01.2024', new \DateTime('2024-01-01')],
-            'd.m format' => ['01.01', (new \DateTime('2025-01-01'))],
+            'd.m format' => ['01.01', new \DateTime('2025-01-01')],
             'd/m/Y format' => ['01/01/2024', new \DateTime('2024-01-01')],
-            'd/m format' => ['01/01', (new \DateTime('2025-01-01'))],
+            'd/m format' => ['01/01', new \DateTime('2025-01-01')],
         ];
     }
 

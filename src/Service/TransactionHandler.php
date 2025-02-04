@@ -4,32 +4,17 @@ namespace App\Service;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
-use App\Utility\DateTimeUtility;
 use Psr\Log\LoggerInterface;
 
 class TransactionHandler
 {
-    private GoogleSheetsService $sheetsService;
-    private CategoryService $categoryService;
-    private LoggerInterface $logger;
-    private UserRepository $userRepository;
-    private TelegramApiServiceInterface $telegramApi;
-    private DateTimeUtility $dateTimeUtility;
-
     public function __construct(
-        GoogleSheetsService $sheetsService,
-        CategoryService $categoryService,
-        LoggerInterface $logger,
-        UserRepository $userRepository,
-        TelegramApiServiceInterface $telegramApi,
-        DateTimeUtility $dateTimeUtility,
+        private GoogleSheetsService $sheetsService,
+        private CategoryService $categoryService,
+        private LoggerInterface $logger,
+        private UserRepository $userRepository,
+        private TelegramApiServiceInterface $telegramApi,
     ) {
-        $this->sheetsService = $sheetsService;
-        $this->categoryService = $categoryService;
-        $this->logger = $logger;
-        $this->userRepository = $userRepository;
-        $this->telegramApi = $telegramApi;
-        $this->dateTimeUtility = $dateTimeUtility;
     }
 
     /**

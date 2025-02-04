@@ -2,14 +2,13 @@
 
 namespace App\Service\StateHandler;
 
+use App\Entity\Message;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\GoogleSheetsService;
 use App\Service\TelegramApiServiceInterface;
 use App\Utility\DateTimeUtility;
 use Psr\Log\LoggerInterface;
-use App\Entity\Message;
-use App\Entity\Update;
 
 class SpreadsheetStateHandler implements StateHandlerInterface
 {

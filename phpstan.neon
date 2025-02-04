@@ -5,7 +5,7 @@ parameters:
         - tests
     treatPhpDocTypesAsCertain: false
     symfony:
-        container_xml_path: var/cache/dev/App_KernelDevDebugContainer.xml
+        container_xml_path: var/cache/test/App_KernelTestDebugContainer.xml
 
 includes:
     - vendor/phpstan/phpstan-symfony/extension.neon

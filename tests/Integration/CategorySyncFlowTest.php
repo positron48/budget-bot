@@ -17,9 +17,6 @@ class CategorySyncFlowTest extends AbstractBotIntegrationTestCase
 
         $this->userRepository = self::getContainer()->get(UserRepository::class);
 
-        // Set fixed test date
-        $this->setFixedTestDate();
-
         // Set up test data
         $this->setupTestSpreadsheet(self::TEST_SPREADSHEET_ID);
         $this->setupTestCategories(self::TEST_SPREADSHEET_ID);

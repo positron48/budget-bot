@@ -18,6 +18,12 @@ class TestTransactionHandler extends TransactionHandler
         UserRepository $userRepository,
         TelegramApiServiceInterface $telegramApi,
     ) {
-        parent::__construct($sheetsService, $categoryService, $logger, $userRepository, $telegramApi);
+        parent::__construct(
+            $sheetsService,
+            $categoryService,
+            $logger,
+            $userRepository,
+            $telegramApi,
+        );
     }
 }
