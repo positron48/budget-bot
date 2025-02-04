@@ -3,6 +3,7 @@
 namespace App\Tests\Service;
 
 use App\Service\MessageParserService;
+use App\Utility\DateTimeUtility;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -11,10 +12,20 @@ use PHPUnit\Framework\TestCase;
 class MessageParserServiceTest extends TestCase
 {
     private MessageParserService $parser;
+    private DateTimeUtility $dateTimeUtility;
 
     protected function setUp(): void
     {
-        $this->parser = new MessageParserService();
+        $this->dateTimeUtility = new DateTimeUtility();
+        $this->parser = new MessageParserService($this->dateTimeUtility);
+        $this->dateTimeUtility->resetCurrentDate();
+        $this->dateTimeUtility->setCurrentDate(new \DateTime('2025-01-15'));
+    }
+
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+        $this->dateTimeUtility->resetCurrentDate();
     }
 
     /**
@@ -37,14 +48,14 @@ class MessageParserServiceTest extends TestCase
      */
     public function validMessageProvider(): array
     {
-        $today = new \DateTime();
-        $yesterday = new \DateTime('-1 day');
+        $today = new \DateTime('2025-01-15');
+        $yesterday = new \DateTime('2025-01-14');
 
         return [
             'expense without date' => [
                 '200 такси',
                 [
-                    'date' => $today,
+                    'date' => clone $today,
                     'amount' => 200.0,
                     'description' => 'такси',
                     'isIncome' => false,
@@ -53,7 +64,7 @@ class MessageParserServiceTest extends TestCase
             'income without date' => [
                 '+10000 премия',
                 [
-                    'date' => $today,
+                    'date' => clone $today,
                     'amount' => 10000.0,
                     'description' => 'премия',
                     'isIncome' => true,
@@ -80,7 +91,7 @@ class MessageParserServiceTest extends TestCase
             'expense with comma' => [
                 '99,90 кофе',
                 [
-                    'date' => $today,
+                    'date' => clone $today,
                     'amount' => 99.90,
                     'description' => 'кофе',
                     'isIncome' => false,
@@ -89,7 +100,7 @@ class MessageParserServiceTest extends TestCase
             'expense with dot' => [
                 '99.90 кофе',
                 [
-                    'date' => $today,
+                    'date' => clone $today,
                     'amount' => 99.90,
                     'description' => 'кофе',
                     'isIncome' => false,
@@ -98,7 +109,7 @@ class MessageParserServiceTest extends TestCase
             'expense with today keyword' => [
                 'сегодня 150 обед',
                 [
-                    'date' => $today,
+                    'date' => clone $today,
                     'amount' => 150.0,
                     'description' => 'обед',
                     'isIncome' => false,
@@ -107,7 +118,7 @@ class MessageParserServiceTest extends TestCase
             'expense with yesterday keyword' => [
                 'вчера 300 ужин',
                 [
-                    'date' => $yesterday,
+                    'date' => clone $yesterday,
                     'amount' => 300.0,
                     'description' => 'ужин',
                     'isIncome' => false,
@@ -125,7 +136,7 @@ class MessageParserServiceTest extends TestCase
             'expense with d/m format' => [
                 '01/01 200 такси',
                 [
-                    'date' => (new \DateTime())->setDate((int) $today->format('Y'), 1, 1),
+                    'date' => new \DateTime('2025-01-01'),
                     'amount' => 200.0,
                     'description' => 'такси',
                     'isIncome' => false,
@@ -134,7 +145,7 @@ class MessageParserServiceTest extends TestCase
             'expense with d.m format' => [
                 '01.01 200 такси',
                 [
-                    'date' => (new \DateTime())->setDate((int) $today->format('Y'), 1, 1),
+                    'date' => new \DateTime('2025-01-01'),
                     'amount' => 200.0,
                     'description' => 'такси',
                     'isIncome' => false,
@@ -211,16 +222,13 @@ class MessageParserServiceTest extends TestCase
      */
     public function validDateProvider(): array
     {
-        $today = new \DateTime();
-        $yesterday = new \DateTime('-1 day');
-
         return [
-            'today keyword' => ['сегодня', $today],
-            'yesterday keyword' => ['вчера', $yesterday],
+            'today keyword' => ['сегодня', new \DateTime('2025-01-15')],
+            'yesterday keyword' => ['вчера', new \DateTime('2025-01-14')],
             'd.m.Y format' => ['01.01.2024', new \DateTime('2024-01-01')],
-            'd.m format' => ['01.01', (new \DateTime())->setDate((int) $today->format('Y'), 1, 1)],
+            'd.m format' => ['01.01', (new \DateTime('2025-01-01'))],
             'd/m/Y format' => ['01/01/2024', new \DateTime('2024-01-01')],
-            'd/m format' => ['01/01', (new \DateTime())->setDate((int) $today->format('Y'), 1, 1)],
+            'd/m format' => ['01/01', (new \DateTime('2025-01-01'))],
         ];
     }
 

@@ -5,16 +5,21 @@ namespace App\Service\Command;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Repository\UserSpreadsheetRepository;
+use App\Service\StateHandler\StateHandlerRegistry;
 use App\Service\TelegramApiServiceInterface;
 use Psr\Log\LoggerInterface;
+use App\Utility\DateTimeUtility;
+use Telegram\Bot\Objects\Update;
 
 class ListCommand implements CommandInterface
 {
     public function __construct(
-        private readonly UserRepository $userRepository,
-        private readonly TelegramApiServiceInterface $telegramApi,
-        private readonly UserSpreadsheetRepository $spreadsheetRepository,
-        private readonly LoggerInterface $logger,
+        protected StateHandlerRegistry $stateHandlerRegistry,
+        protected UserRepository $userRepository,
+        protected UserSpreadsheetRepository $spreadsheetRepository,
+        protected DateTimeUtility $dateTimeUtility,
+        protected TelegramApiServiceInterface $telegramApi,
+        protected LoggerInterface $logger
     ) {
     }
 
@@ -36,50 +41,18 @@ class ListCommand implements CommandInterface
                 'text' => 'Пожалуйста, начните с команды /start',
                 'parse_mode' => 'HTML',
             ]);
-
             return;
         }
 
-        // Parse month and year from command
-        $parts = explode(' ', trim($message));
-        $now = new \DateTime();
-        $month = (int) $now->format('m');
+        $text = trim($message);
+        if (str_starts_with($text, '/list ')) {
+            $this->handleMonthSpecified($text, $user);
+            return;
+        }
+
+        $now = $this->dateTimeUtility->getCurrentDate();
+        $month = (int) $now->format('n');
         $year = (int) $now->format('Y');
-
-        if (count($parts) >= 2) {
-            $parsedMonth = $this->parseMonth($parts[1]);
-            if (null === $parsedMonth) {
-                $this->telegramApi->sendMessage([
-                    'chat_id' => $chatId,
-                    'text' => 'Неверный формат месяца. Пожалуйста, укажите месяц числом (1-12) или словом (Январь-Декабрь).',
-                    'parse_mode' => 'HTML',
-                ]);
-
-                return;
-            }
-            $month = $parsedMonth;
-        }
-        if (count($parts) >= 3) {
-            if (!is_numeric($parts[2])) {
-                $this->telegramApi->sendMessage([
-                    'chat_id' => $chatId,
-                    'text' => 'Неверный формат года. Пожалуйста, укажите год в числовом формате.',
-                    'parse_mode' => 'HTML',
-                ]);
-
-                return;
-            }
-            $year = (int) $parts[2];
-            if ($year < 2020) {
-                $this->telegramApi->sendMessage([
-                    'chat_id' => $chatId,
-                    'text' => 'Год не может быть меньше 2020.',
-                    'parse_mode' => 'HTML',
-                ]);
-
-                return;
-            }
-        }
 
         // Find spreadsheet for the specified month and year
         $spreadsheet = $this->spreadsheetRepository->findByMonthAndYear($user, $month, $year);
@@ -180,5 +153,96 @@ class ListCommand implements CommandInterface
         ];
 
         return $months[$month] ?? '';
+    }
+
+    private function handleMonthSpecified(string $text, User $user): void
+    {
+        // Parse month and year from command
+        $parts = explode(' ', trim($text));
+        $now = $this->dateTimeUtility->getCurrentDate();
+        $month = (int) $now->format('n');
+        $year = (int) $now->format('Y');
+
+        if (count($parts) >= 2) {
+            $parsedMonth = $this->parseMonth($parts[1]);
+            if (null === $parsedMonth) {
+                $this->telegramApi->sendMessage([
+                    'chat_id' => $user->getTelegramId(),
+                    'text' => 'Неверный формат месяца. Пожалуйста, укажите месяц числом (1-12) или словом (Январь-Декабрь).',
+                    'parse_mode' => 'HTML',
+                ]);
+
+                return;
+            }
+            $month = $parsedMonth;
+        }
+        if (count($parts) >= 3) {
+            if (!is_numeric($parts[2])) {
+                $this->telegramApi->sendMessage([
+                    'chat_id' => $user->getTelegramId(),
+                    'text' => 'Неверный формат года. Пожалуйста, укажите год в числовом формате.',
+                    'parse_mode' => 'HTML',
+                ]);
+
+                return;
+            }
+            $year = (int) $parts[2];
+            if ($year < 2020) {
+                $this->telegramApi->sendMessage([
+                    'chat_id' => $user->getTelegramId(),
+                    'text' => 'Год не может быть меньше 2020.',
+                    'parse_mode' => 'HTML',
+                ]);
+
+                return;
+            }
+        }
+
+        // Find spreadsheet for the specified month and year
+        $spreadsheet = $this->spreadsheetRepository->findByMonthAndYear($user, $month, $year);
+
+        if (!$spreadsheet) {
+            $this->telegramApi->sendMessage([
+                'chat_id' => $user->getTelegramId(),
+                'text' => sprintf('У вас нет таблицы за %s %d', $this->getMonthName($month), $year),
+                'parse_mode' => 'HTML',
+            ]);
+
+            return;
+        }
+
+        $spreadsheetId = $spreadsheet->getSpreadsheetId();
+        if (!$spreadsheetId) {
+            $this->logger->error('Spreadsheet ID is null', [
+                'chat_id' => $user->getTelegramId(),
+                'spreadsheet' => $spreadsheet,
+            ]);
+            throw new \RuntimeException('Spreadsheet ID is null');
+        }
+
+        // Ask user to choose transaction type
+        $keyboard = [
+            ['text' => 'Расходы'],
+            ['text' => 'Доходы'],
+        ];
+
+        $user->setState('WAITING_LIST_ACTION');
+        $user->setTempData([
+            'list_month' => $month,
+            'list_year' => $year,
+            'spreadsheet_id' => $spreadsheetId,
+        ]);
+        $this->userRepository->save($user, true);
+
+        $this->telegramApi->sendMessage([
+            'chat_id' => $user->getTelegramId(),
+            'text' => sprintf('Выберите тип транзакций за %s %d:', $this->getMonthName($month), $year),
+            'parse_mode' => 'HTML',
+            'reply_markup' => json_encode([
+                'keyboard' => array_map(fn ($button) => [$button], $keyboard),
+                'resize_keyboard' => true,
+                'one_time_keyboard' => true,
+            ]),
+        ]);
     }
 }

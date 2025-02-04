@@ -17,6 +17,9 @@ class CategorySyncFlowTest extends AbstractBotIntegrationTestCase
 
         $this->userRepository = self::getContainer()->get(UserRepository::class);
 
+        // Set fixed test date
+        $this->setFixedTestDate();
+
         // Set up test data
         $this->setupTestSpreadsheet(self::TEST_SPREADSHEET_ID);
         $this->setupTestCategories(self::TEST_SPREADSHEET_ID);
@@ -115,19 +118,23 @@ class CategorySyncFlowTest extends AbstractBotIntegrationTestCase
 
     public function testExpenseAdditionWithMapping(): void
     {
-        // Setup mapping
-        $this->testCategoryMapping();
+        // Set up spreadsheet first
+        $this->testSpreadsheetSetup();
 
-        // Add expense with mapped category
-        $this->executeCommand('1500 продукты пятерочка', self::TEST_CHAT_ID);
+        // Set up categories and mapping
+        $this->executeCommand('/sync_categories', self::TEST_CHAT_ID);
+        $this->executeCommand('/map продукты = Питание', self::TEST_CHAT_ID);
+
+        // Add expense with mapped category using fixed test date
+        $this->executeCommand('15.01.2025 1500 продукты пятерочка', self::TEST_CHAT_ID);
         $this->assertLastMessageContains('Расход успешно добавлен');
         $this->assertLastMessageContains('Сумма: 1500');
         $this->assertLastMessageContains('Тип: расход');
         $this->assertLastMessageContains('Описание: продукты пятерочка');
         $this->assertLastMessageContains('Категория: Питание');
 
-        // Add expense with unmapped category
-        $this->executeCommand('1000 такси', self::TEST_CHAT_ID);
+        // Add expense with unmapped category using fixed test date
+        $this->executeCommand('15.01.2025 1000 такси', self::TEST_CHAT_ID);
         $this->assertLastMessageContains('Не удалось определить категорию для "такси"');
         $this->assertLastMessageContains('Выберите категорию из списка');
 

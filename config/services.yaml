@@ -9,6 +9,7 @@ services:
     _defaults:
         autowire: true
         autoconfigure: true
+        public: false
 
     App\:
         resource: '../src/'
@@ -21,6 +22,7 @@ services:
         arguments:
             $token: '%telegram_bot_token%'
             $username: '%telegram_bot_username%'
+            $commandRegistry: '@App\Service\CommandRegistry'
 
     App\Command\SetWebhookCommand:
         arguments:
@@ -42,7 +44,7 @@ services:
 
     App\Service\CommandRegistry:
         arguments:
-            $commands: !tagged_iterator app.command
+            $commands: !tagged_iterator { tag: app.command, default_priority_method: getPriority }
 
     App\Service\StateHandler\:
         resource: '../src/Service/StateHandler'
@@ -54,7 +56,7 @@ services:
 
     App\Service\StateHandler\StateHandlerRegistry:
         arguments:
-            $handlers: !tagged_iterator app.state_handler
+            $handlers: !tagged_iterator { tag: app.state_handler, default_priority_method: getPriority }
 
     App\Service\TelegramApiServiceInterface:
         class: App\Service\TelegramApiService 
@@ -63,3 +65,7 @@ services:
         arguments:
             $transactionsPerPage: '%app.transactions_per_page%'
         tags: ['app.state_handler']
+
+    App\Utility\DateTimeUtility:
+        public: true
+        shared: true

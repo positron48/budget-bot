@@ -6,7 +6,10 @@ use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\GoogleSheetsService;
 use App\Service\TelegramApiServiceInterface;
+use App\Utility\DateTimeUtility;
 use Psr\Log\LoggerInterface;
+use App\Entity\Message;
+use App\Entity\Update;
 
 class SpreadsheetStateHandler implements StateHandlerInterface
 {
@@ -19,10 +22,11 @@ class SpreadsheetStateHandler implements StateHandlerInterface
     ];
 
     public function __construct(
-        private readonly UserRepository $userRepository,
-        private readonly GoogleSheetsService $sheetsService,
-        private readonly LoggerInterface $logger,
-        private readonly TelegramApiServiceInterface $telegramApi,
+        protected UserRepository $userRepository,
+        protected GoogleSheetsService $sheetsService,
+        protected LoggerInterface $logger,
+        protected TelegramApiServiceInterface $telegramApi,
+        protected DateTimeUtility $dateTimeUtility,
     ) {
     }
 
@@ -125,7 +129,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
         $this->userRepository->save($user, true);
 
         $keyboard = [];
-        $now = new \DateTime();
+        $now = $this->dateTimeUtility->getCurrentDate();
         // Get next month
         $nextMonth = (int) $now->modify('first day of next month')->format('n');
         $nextMonthYear = (int) $now->format('Y');
@@ -134,7 +138,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
         $keyboard[] = sprintf('%s %d', $this->getMonthName($nextMonth), $nextMonthYear);
 
         // Reset to current month
-        $now = new \DateTime();
+        $now = $this->dateTimeUtility->getCurrentDate();
 
         // Add 5 previous months
         for ($i = 0; $i < 5; ++$i) {

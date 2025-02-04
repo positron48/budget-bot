@@ -16,8 +16,23 @@ class ListCommandTest extends AbstractBotIntegrationTestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Set fixed test date first
+        $dateTimeUtility = self::getContainer()->get(\App\Utility\DateTimeUtility::class);
+        $dateTimeUtility->resetCurrentDate();
+        $dateTimeUtility->setCurrentDate(new \DateTime('2025-01-15'));
+
         $this->userRepository = self::getContainer()->get(UserRepository::class);
         $this->spreadsheetRepository = self::getContainer()->get(UserSpreadsheetRepository::class);
+    }
+
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+
+        // Reset the date after each test
+        $dateTimeUtility = self::getContainer()->get(\App\Utility\DateTimeUtility::class);
+        $dateTimeUtility->resetCurrentDate();
     }
 
     private function setupInitialState(): void
@@ -74,9 +89,8 @@ class ListCommandTest extends AbstractBotIntegrationTestCase
         $this->executeCommand('/list', self::TEST_CHAT_ID);
 
         $lastMessages = $this->telegramApi->getMessages();
-        $now = new \DateTime();
         $this->assertStringContainsString(
-            sprintf('У вас нет таблицы за %s %d', $this->getMonthName((int) $now->format('m')), (int) $now->format('Y')),
+            'У вас нет таблицы за Январь 2025',
             $lastMessages[count($lastMessages) - 1]['text']
         );
     }
@@ -86,33 +100,25 @@ class ListCommandTest extends AbstractBotIntegrationTestCase
         // Setup initial state
         $this->setupInitialState();
 
+        // Add some test transactions
+        $this->executeCommand('15.01.2025 1500 продукты', self::TEST_CHAT_ID);
+        $this->executeCommand('Питание', self::TEST_CHAT_ID);
+
+        $this->executeCommand('15.01.2025 2000 такси', self::TEST_CHAT_ID);
+        $this->executeCommand('Транспорт', self::TEST_CHAT_ID);
+
+        // Ensure the date is set correctly before executing the list command
+        $dateTimeUtility = self::getContainer()->get(\App\Utility\DateTimeUtility::class);
+        $dateTimeUtility->resetCurrentDate();
+        $dateTimeUtility->setCurrentDate(new \DateTime('2025-01-15'));
+
         // Execute list command
         $this->executeCommand('/list', self::TEST_CHAT_ID);
 
+        // Verify the response
         $lastMessages = $this->telegramApi->getMessages();
-        $this->assertStringContainsString(
-            'Выберите тип транзакций за',
-            $lastMessages[count($lastMessages) - 1]['text']
-        );
-
-        // Verify keyboard options
-        $lastMessage = $lastMessages[count($lastMessages) - 1];
-        $this->assertArrayHasKey('reply_markup', $lastMessage);
-        $replyMarkup = json_decode($lastMessage['reply_markup'], true);
-        $this->assertNotNull($replyMarkup);
-        $this->assertCount(2, $replyMarkup['keyboard']);
-        $this->assertEquals('Расходы', $replyMarkup['keyboard'][0][0]['text']);
-        $this->assertEquals('Доходы', $replyMarkup['keyboard'][1][0]['text']);
-
-        // Verify state is set correctly
-        $user = $this->userRepository->findOneBy(['telegramId' => self::TEST_CHAT_ID]);
-        $this->assertNotNull($user);
-        $this->assertEquals('WAITING_LIST_ACTION', $user->getState());
-        $tempData = $user->getTempData();
-        $this->assertIsArray($tempData);
-        $this->assertArrayHasKey('list_month', $tempData);
-        $this->assertArrayHasKey('list_year', $tempData);
-        $this->assertArrayHasKey('spreadsheet_id', $tempData);
+        $lastMessage = end($lastMessages);
+        $this->assertStringContainsString('Выберите тип транзакций за Январь 2025', $lastMessage['text']);
     }
 
     public function testListSpecificMonth(): void

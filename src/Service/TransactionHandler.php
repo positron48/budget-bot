@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Utility\DateTimeUtility;
 use Psr\Log\LoggerInterface;
 
 class TransactionHandler
@@ -13,6 +14,7 @@ class TransactionHandler
     private LoggerInterface $logger;
     private UserRepository $userRepository;
     private TelegramApiServiceInterface $telegramApi;
+    private DateTimeUtility $dateTimeUtility;
 
     public function __construct(
         GoogleSheetsService $sheetsService,
@@ -20,12 +22,14 @@ class TransactionHandler
         LoggerInterface $logger,
         UserRepository $userRepository,
         TelegramApiServiceInterface $telegramApi,
+        DateTimeUtility $dateTimeUtility,
     ) {
         $this->sheetsService = $sheetsService;
         $this->categoryService = $categoryService;
         $this->logger = $logger;
         $this->userRepository = $userRepository;
         $this->telegramApi = $telegramApi;
+        $this->dateTimeUtility = $dateTimeUtility;
     }
 
     /**

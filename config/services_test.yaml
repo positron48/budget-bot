@@ -30,4 +30,9 @@ services:
 
     App\Service\StateHandler\ListStateHandler:
         arguments:
-            $transactionsPerPage: '%app.transactions_per_page%' 
+            $transactionsPerPage: '%app.transactions_per_page%'
+
+    # Override DateTimeUtility for tests
+    App\Utility\DateTimeUtility:
+        public: true
+        shared: true 

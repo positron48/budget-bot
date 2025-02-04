@@ -2,6 +2,8 @@
 
 namespace App\Service;
 
+use App\Utility\DateTimeUtility;
+
 class MessageParserService
 {
     private const DATE_FORMATS = [
@@ -10,6 +12,11 @@ class MessageParserService
         'd/m/Y',
         'd/m',
     ];
+
+    public function __construct(
+        protected DateTimeUtility $dateTimeUtility
+    ) {
+    }
 
     /**
      * @return array{date: \DateTime, amount: float, description: string, isIncome: bool}|null
@@ -28,7 +35,7 @@ class MessageParserService
         $date = $this->parseDate($firstPart);
         if (null === $date) {
             // If first part is not a date, assume it's today and it's part of the amount
-            $date = new \DateTime();
+            $date = $this->dateTimeUtility->getCurrentDate();
             $remainingPart = $text;
         }
 
@@ -73,10 +80,10 @@ class MessageParserService
 
         // Handle special cases
         if ('сегодня' === $dateStr) {
-            return new \DateTime();
+            return $this->dateTimeUtility->getCurrentDate();
         }
         if ('вчера' === $dateStr) {
-            return new \DateTime('-1 day');
+            return $this->dateTimeUtility->getCurrentDate()->modify('-1 day');
         }
 
         // Try different date formats

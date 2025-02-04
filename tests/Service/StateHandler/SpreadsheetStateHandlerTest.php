@@ -7,6 +7,7 @@ use App\Repository\UserRepository;
 use App\Service\GoogleSheetsService;
 use App\Service\StateHandler\SpreadsheetStateHandler;
 use App\Service\TelegramApiServiceInterface;
+use App\Utility\DateTimeUtility;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -24,6 +25,8 @@ class SpreadsheetStateHandlerTest extends TestCase
     private LoggerInterface $logger;
     /** @var TelegramApiServiceInterface&MockObject */
     private TelegramApiServiceInterface $telegramApi;
+    /** @var DateTimeUtility */
+    private DateTimeUtility $dateTimeUtility;
 
     protected function setUp(): void
     {
@@ -31,12 +34,15 @@ class SpreadsheetStateHandlerTest extends TestCase
         $this->sheetsService = $this->createMock(GoogleSheetsService::class);
         $this->logger = $this->createMock(LoggerInterface::class);
         $this->telegramApi = $this->createMock(TelegramApiServiceInterface::class);
+        $this->dateTimeUtility = new DateTimeUtility();
+        $this->dateTimeUtility->setCurrentDate(new \DateTime('2025-01-15'));
 
         $this->handler = new SpreadsheetStateHandler(
             $this->userRepository,
             $this->sheetsService,
             $this->logger,
-            $this->telegramApi
+            $this->telegramApi,
+            $this->dateTimeUtility
         );
     }
 
