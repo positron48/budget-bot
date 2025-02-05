@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Utility\MonthUtility;
 use Psr\Log\LoggerInterface;
 
 class TransactionHandler
@@ -18,28 +19,28 @@ class TransactionHandler
     }
 
     /**
-     * @param array<string>|null $keyboard
+     * @param array<int, string>|null $keyboard
      */
     private function sendMessage(int $chatId, string $text, ?array $keyboard = null): void
     {
-        try {
-            if (null !== $keyboard) {
-                $this->telegramApi->sendMessageWithKeyboard($chatId, $text, $keyboard);
-            } else {
-                $this->telegramApi->sendMessage([
-                    'chat_id' => $chatId,
-                    'text' => $text,
-                    'parse_mode' => 'HTML',
-                ]);
-            }
-        } catch (\Exception $e) {
-            $this->logger->error('Failed to send message: {error}', [
-                'error' => $e->getMessage(),
-                'exception' => $e,
-                'chat_id' => $chatId,
-                'text' => $text,
+        $replyMarkup = false;
+        if (null !== $keyboard) {
+            $replyMarkup = json_encode([
+                'keyboard' => array_map(fn ($button) => [$button], $keyboard),
+                'resize_keyboard' => true,
+                'one_time_keyboard' => true,
             ]);
+            if (!$replyMarkup) {
+                $replyMarkup = false;
+            }
         }
+
+        $this->telegramApi->sendMessage([
+            'chat_id' => $chatId,
+            'text' => $text,
+            'parse_mode' => 'HTML',
+            'reply_markup' => $replyMarkup,
+        ]);
     }
 
     /**
@@ -63,7 +64,7 @@ class TransactionHandler
                 $chatId,
                 sprintf(
                     'У вас нет таблицы за %s %d. Пожалуйста, добавьте её с помощью команды /add',
-                    $this->getMonthName((int) $data['date']->format('m')),
+                    MonthUtility::getMonthName((int) $data['date']->format('m')),
                     (int) $data['date']->format('Y')
                 )
             );
@@ -191,25 +192,5 @@ class TransactionHandler
                 )
             );
         }
-    }
-
-    private function getMonthName(int $month): string
-    {
-        $months = [
-            1 => 'Январь',
-            2 => 'Февраль',
-            3 => 'Март',
-            4 => 'Апрель',
-            5 => 'Май',
-            6 => 'Июнь',
-            7 => 'Июль',
-            8 => 'Август',
-            9 => 'Сентябрь',
-            10 => 'Октябрь',
-            11 => 'Ноябрь',
-            12 => 'Декабрь',
-        ];
-
-        return $months[$month] ?? '';
     }
 }

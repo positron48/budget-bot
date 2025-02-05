@@ -5,6 +5,7 @@ namespace App\Service\Google;
 use App\Entity\User;
 use App\Entity\UserSpreadsheet;
 use App\Repository\UserSpreadsheetRepository;
+use App\Utility\MonthUtility;
 use Psr\Log\LoggerInterface;
 
 class SpreadsheetManager
@@ -63,7 +64,7 @@ class SpreadsheetManager
     {
         $spreadsheet = $this->spreadsheetRepository->findByMonthAndYear($user, $month, $year);
         if (!$spreadsheet) {
-            throw new \RuntimeException(sprintf('Таблица за %s %d не найдена', $this->getMonthName($month), $year));
+            throw new \RuntimeException(sprintf('Таблица за %s %d не найдена', MonthUtility::getMonthName($month), $year));
         }
 
         $spreadsheetId = $spreadsheet->getSpreadsheetId();
@@ -113,7 +114,7 @@ class SpreadsheetManager
             }
 
             $result[] = [
-                'month' => $this->getMonthName($month),
+                'month' => MonthUtility::getMonthName($month),
                 'year' => $year,
                 'url' => $this->getSpreadsheetUrl($id),
             ];
@@ -231,26 +232,6 @@ class SpreadsheetManager
         // Add the category to the row and copy the formula
         $range = sprintf(self::INCOME_CATEGORIES_ROW_TEMPLATE, $rowIndex, $rowIndex);
         $this->client->updateValues($spreadsheetId, $range, [[$category, '', '', '', '']]);
-    }
-
-    private function getMonthName(int $month): string
-    {
-        $months = [
-            1 => 'Январь',
-            2 => 'Февраль',
-            3 => 'Март',
-            4 => 'Апрель',
-            5 => 'Май',
-            6 => 'Июнь',
-            7 => 'Июль',
-            8 => 'Август',
-            9 => 'Сентябрь',
-            10 => 'Октябрь',
-            11 => 'Ноябрь',
-            12 => 'Декабрь',
-        ];
-
-        return $months[$month] ?? '';
     }
 
     private function getSpreadsheetUrl(string $spreadsheetId): string

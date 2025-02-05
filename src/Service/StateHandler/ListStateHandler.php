@@ -6,6 +6,7 @@ use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\Google\GoogleApiClientInterface;
 use App\Service\TelegramApiServiceInterface;
+use App\Utility\MonthUtility;
 use Psr\Log\LoggerInterface;
 
 class ListStateHandler implements StateHandlerInterface
@@ -83,7 +84,7 @@ class ListStateHandler implements StateHandlerInterface
         if (!$values) {
             $this->telegramApi->sendMessage([
                 'chat_id' => $chatId,
-                'text' => sprintf('Нет %s за %s %d', 'Расходы' === $message ? 'расходов' : 'доходов', $this->getMonthName($month), $year),
+                'text' => sprintf('Нет %s за %s %d', 'Расходы' === $message ? 'расходов' : 'доходов', MonthUtility::getMonthName($month), $year),
                 'parse_mode' => 'HTML',
             ]);
 
@@ -134,7 +135,7 @@ class ListStateHandler implements StateHandlerInterface
         if (empty($transactions)) {
             $this->telegramApi->sendMessage([
                 'chat_id' => $chatId,
-                'text' => sprintf('Нет %s за %s %d', 'Расходы' === $message ? 'расходов' : 'доходов', $this->getMonthName($month), $year),
+                'text' => sprintf('Нет %s за %s %d', 'Расходы' === $message ? 'расходов' : 'доходов', MonthUtility::getMonthName($month), $year),
                 'parse_mode' => 'HTML',
             ]);
 
@@ -224,7 +225,7 @@ class ListStateHandler implements StateHandlerInterface
         $text = sprintf(
             "%s за %s %d (страница %d из %d):\n\n",
             $tempData['type'],
-            $this->getMonthName($tempData['list_month']),
+            MonthUtility::getMonthName($tempData['list_month']),
             $tempData['list_year'],
             $currentPage,
             $totalPages
@@ -274,25 +275,5 @@ class ListStateHandler implements StateHandlerInterface
         ]);
 
         return true;
-    }
-
-    private function getMonthName(int $month): string
-    {
-        $months = [
-            1 => 'Январь',
-            2 => 'Февраль',
-            3 => 'Март',
-            4 => 'Апрель',
-            5 => 'Май',
-            6 => 'Июнь',
-            7 => 'Июль',
-            8 => 'Август',
-            9 => 'Сентябрь',
-            10 => 'Октябрь',
-            11 => 'Ноябрь',
-            12 => 'Декабрь',
-        ];
-
-        return $months[$month] ?? '';
     }
 }

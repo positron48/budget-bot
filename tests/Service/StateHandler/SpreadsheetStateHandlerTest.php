@@ -87,6 +87,7 @@ class SpreadsheetStateHandlerTest extends TestCase
                 'chat_id' => self::TEST_CHAT_ID,
                 'text' => 'Введите ID таблицы:',
                 'parse_mode' => 'HTML',
+                'reply_markup' => false,
             ]);
 
         $result = $this->handler->handle(self::TEST_CHAT_ID, $user, 'Добавить таблицу');
@@ -119,6 +120,7 @@ class SpreadsheetStateHandlerTest extends TestCase
                 'chat_id' => self::TEST_CHAT_ID,
                 'text' => 'У вас нет добавленных таблиц',
                 'parse_mode' => 'HTML',
+                'reply_markup' => false,
             ]);
 
         $result = $this->handler->handle(self::TEST_CHAT_ID, $user, 'Удалить таблицу');
@@ -149,12 +151,20 @@ class SpreadsheetStateHandlerTest extends TestCase
             ]);
 
         $this->telegramApi->expects($this->once())
-            ->method('sendMessageWithKeyboard')
-            ->with(
-                self::TEST_CHAT_ID,
-                'Выберите таблицу для удаления:',
-                ['Январь 2024', 'Февраль 2024']
-            );
+            ->method('sendMessage')
+            ->with([
+                'chat_id' => self::TEST_CHAT_ID,
+                'text' => 'Выберите таблицу для удаления:',
+                'parse_mode' => 'HTML',
+                'reply_markup' => json_encode([
+                    'keyboard' => [
+                        ['Январь 2024'],
+                        ['Февраль 2024'],
+                    ],
+                    'resize_keyboard' => true,
+                    'one_time_keyboard' => true,
+                ]),
+            ]);
 
         $result = $this->handler->handle(self::TEST_CHAT_ID, $user, 'Удалить таблицу');
         $this->assertTrue($result);
@@ -173,6 +183,7 @@ class SpreadsheetStateHandlerTest extends TestCase
                 'chat_id' => self::TEST_CHAT_ID,
                 'text' => 'Неизвестное действие',
                 'parse_mode' => 'HTML',
+                'reply_markup' => false,
             ]);
 
         $result = $this->handler->handle(self::TEST_CHAT_ID, $user, 'Unknown Action');
@@ -204,7 +215,24 @@ class SpreadsheetStateHandlerTest extends TestCase
             ->with($user, true);
 
         $this->telegramApi->expects($this->once())
-            ->method('sendMessageWithKeyboard');
+            ->method('sendMessage')
+            ->with([
+                'chat_id' => self::TEST_CHAT_ID,
+                'text' => 'Выберите месяц и год или введите их в формате "Месяц Год" (например "Январь 2024"):',
+                'parse_mode' => 'HTML',
+                'reply_markup' => json_encode([
+                    'keyboard' => [
+                        ['Февраль 2025'],
+                        ['Январь 2025'],
+                        ['Декабрь 2024'],
+                        ['Ноябрь 2024'],
+                        ['Октябрь 2024'],
+                        ['Сентябрь 2024'],
+                    ],
+                    'resize_keyboard' => true,
+                    'one_time_keyboard' => true,
+                ]),
+            ]);
 
         $result = $this->handler->handle(self::TEST_CHAT_ID, $user, 'test-id');
         $this->assertTrue($result);
@@ -235,6 +263,7 @@ class SpreadsheetStateHandlerTest extends TestCase
                 'chat_id' => self::TEST_CHAT_ID,
                 'text' => 'Неверный ID таблицы. Попробуйте еще раз:',
                 'parse_mode' => 'HTML',
+                'reply_markup' => false,
             ]);
 
         $result = $this->handler->handle(self::TEST_CHAT_ID, $user, 'invalid-id');
@@ -274,6 +303,7 @@ class SpreadsheetStateHandlerTest extends TestCase
                 'chat_id' => self::TEST_CHAT_ID,
                 'text' => 'Таблица за Январь 2024 успешно добавлена',
                 'parse_mode' => 'HTML',
+                'reply_markup' => false,
             ]);
 
         $result = $this->handler->handle(self::TEST_CHAT_ID, $user, 'Январь 2024');
@@ -304,6 +334,7 @@ class SpreadsheetStateHandlerTest extends TestCase
                 'chat_id' => self::TEST_CHAT_ID,
                 'text' => 'Неверный формат. Используйте формат "Месяц Год" (например "Январь 2024")',
                 'parse_mode' => 'HTML',
+                'reply_markup' => false,
             ]);
 
         $result = $this->handler->handle(self::TEST_CHAT_ID, $user, 'Invalid Format');
@@ -321,12 +352,20 @@ class SpreadsheetStateHandlerTest extends TestCase
             ->method('getTempData')
             ->willReturn(['spreadsheet_id' => 'test-id']);
 
+        $this->logger->expects($this->once())
+            ->method('warning')
+            ->with('Invalid month or year', [
+                'month' => null,
+                'year' => 2024,
+            ]);
+
         $this->telegramApi->expects($this->once())
             ->method('sendMessage')
             ->with([
                 'chat_id' => self::TEST_CHAT_ID,
                 'text' => 'Неверный формат. Используйте формат "Месяц Год" (например "Январь 2024")',
                 'parse_mode' => 'HTML',
+                'reply_markup' => false,
             ]);
 
         $result = $this->handler->handle(self::TEST_CHAT_ID, $user, 'НеверныйМесяц 2024');
@@ -347,11 +386,11 @@ class SpreadsheetStateHandlerTest extends TestCase
         $this->sheetsService->expects($this->once())
             ->method('addSpreadsheet')
             ->with($user, 'test-id', 1, 2024)
-            ->willThrowException(new \Exception('Add Error'));
+            ->willThrowException(new \Exception('Failed to add spreadsheet'));
 
         $this->logger->expects($this->once())
             ->method('error')
-            ->with('Failed to add spreadsheet: Add Error', [
+            ->with('Failed to add spreadsheet: Failed to add spreadsheet', [
                 'chat_id' => self::TEST_CHAT_ID,
                 'spreadsheet_id' => 'test-id',
                 'month' => 1,
@@ -364,6 +403,7 @@ class SpreadsheetStateHandlerTest extends TestCase
                 'chat_id' => self::TEST_CHAT_ID,
                 'text' => 'Не удалось добавить таблицу. Попробуйте еще раз.',
                 'parse_mode' => 'HTML',
+                'reply_markup' => false,
             ]);
 
         $result = $this->handler->handle(self::TEST_CHAT_ID, $user, 'Январь 2024');
@@ -402,6 +442,7 @@ class SpreadsheetStateHandlerTest extends TestCase
                 'chat_id' => self::TEST_CHAT_ID,
                 'text' => 'Таблица за Январь 2024 успешно удалена',
                 'parse_mode' => 'HTML',
+                'reply_markup' => false,
             ]);
 
         $result = $this->handler->handle(self::TEST_CHAT_ID, $user, 'Январь 2024');
@@ -426,9 +467,10 @@ class SpreadsheetStateHandlerTest extends TestCase
                 'chat_id' => self::TEST_CHAT_ID,
                 'text' => 'Таблица не найдена',
                 'parse_mode' => 'HTML',
+                'reply_markup' => false,
             ]);
 
-        $result = $this->handler->handle(self::TEST_CHAT_ID, $user, 'Invalid Spreadsheet');
+        $result = $this->handler->handle(self::TEST_CHAT_ID, $user, 'Январь 2024');
         $this->assertTrue($result);
     }
 }

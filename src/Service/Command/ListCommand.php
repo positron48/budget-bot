@@ -8,6 +8,7 @@ use App\Repository\UserSpreadsheetRepository;
 use App\Service\StateHandler\StateHandlerRegistry;
 use App\Service\TelegramApiServiceInterface;
 use App\Utility\DateTimeUtility;
+use App\Utility\MonthUtility;
 use Psr\Log\LoggerInterface;
 
 class ListCommand implements CommandInterface
@@ -61,7 +62,7 @@ class ListCommand implements CommandInterface
         if (!$spreadsheet) {
             $this->telegramApi->sendMessage([
                 'chat_id' => $chatId,
-                'text' => sprintf('У вас нет таблицы за %s %d', $this->getMonthName($month), $year),
+                'text' => sprintf('У вас нет таблицы за %s %d', MonthUtility::getMonthName($month), $year),
                 'parse_mode' => 'HTML',
             ]);
 
@@ -93,7 +94,7 @@ class ListCommand implements CommandInterface
 
         $this->telegramApi->sendMessage([
             'chat_id' => $chatId,
-            'text' => sprintf('Выберите тип транзакций за %s %d:', $this->getMonthName($month), $year),
+            'text' => sprintf('Выберите тип транзакций за %s %d:', MonthUtility::getMonthName($month), $year),
             'parse_mode' => 'HTML',
             'reply_markup' => json_encode([
                 'keyboard' => array_map(fn ($button) => [$button], $keyboard),
@@ -115,45 +116,7 @@ class ListCommand implements CommandInterface
             return $monthNum;
         }
 
-        // Try to parse Russian month name
-        $months = [
-            'январь' => 1,
-            'февраль' => 2,
-            'март' => 3,
-            'апрель' => 4,
-            'май' => 5,
-            'июнь' => 6,
-            'июль' => 7,
-            'август' => 8,
-            'сентябрь' => 9,
-            'октябрь' => 10,
-            'ноябрь' => 11,
-            'декабрь' => 12,
-        ];
-
-        $monthLower = mb_strtolower($month);
-
-        return $months[$monthLower] ?? null;
-    }
-
-    private function getMonthName(int $month): string
-    {
-        $months = [
-            1 => 'Январь',
-            2 => 'Февраль',
-            3 => 'Март',
-            4 => 'Апрель',
-            5 => 'Май',
-            6 => 'Июнь',
-            7 => 'Июль',
-            8 => 'Август',
-            9 => 'Сентябрь',
-            10 => 'Октябрь',
-            11 => 'Ноябрь',
-            12 => 'Декабрь',
-        ];
-
-        return $months[$month] ?? '';
+        return MonthUtility::getMonthNumber($month);
     }
 
     private function handleMonthSpecified(string $text, User $user): void
@@ -210,7 +173,7 @@ class ListCommand implements CommandInterface
         if (!$spreadsheet) {
             $this->telegramApi->sendMessage([
                 'chat_id' => $chatId,
-                'text' => sprintf('У вас нет таблицы за %s %d', $this->getMonthName($month), $year),
+                'text' => sprintf('У вас нет таблицы за %s %d', MonthUtility::getMonthName($month), $year),
                 'parse_mode' => 'HTML',
             ]);
 
@@ -242,7 +205,7 @@ class ListCommand implements CommandInterface
 
         $this->telegramApi->sendMessage([
             'chat_id' => $chatId,
-            'text' => sprintf('Выберите тип транзакций за %s %d:', $this->getMonthName($month), $year),
+            'text' => sprintf('Выберите тип транзакций за %s %d:', MonthUtility::getMonthName($month), $year),
             'parse_mode' => 'HTML',
             'reply_markup' => json_encode([
                 'keyboard' => array_map(fn ($button) => [$button], $keyboard),

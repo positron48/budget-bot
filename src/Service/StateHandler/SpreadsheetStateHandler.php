@@ -8,6 +8,7 @@ use App\Repository\UserRepository;
 use App\Service\GoogleSheetsService;
 use App\Service\TelegramApiServiceInterface;
 use App\Utility\DateTimeUtility;
+use App\Utility\MonthUtility;
 use Psr\Log\LoggerInterface;
 
 class SpreadsheetStateHandler implements StateHandlerInterface
@@ -134,7 +135,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
         $nextMonthYear = (int) $now->format('Y');
 
         // Add next month first
-        $keyboard[] = sprintf('%s %d', $this->getMonthName($nextMonth), $nextMonthYear);
+        $keyboard[] = sprintf('%s %d', MonthUtility::getMonthName($nextMonth), $nextMonthYear);
 
         // Reset to current month
         $now = $this->dateTimeUtility->getCurrentDate();
@@ -143,7 +144,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
         for ($i = 0; $i < 5; ++$i) {
             $month = (int) $now->format('n');
             $year = (int) $now->format('Y');
-            $keyboard[] = sprintf('%s %d', $this->getMonthName($month), $year);
+            $keyboard[] = sprintf('%s %d', MonthUtility::getMonthName($month), $year);
             $now->modify('-1 month');
         }
 
@@ -170,7 +171,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
             $monthName = $matches[1];
             $year = (int) $matches[2];
 
-            $month = $this->getMonthNumber($monthName);
+            $month = MonthUtility::getMonthNumber($monthName);
             $this->logger->info('Month number conversion', [
                 'monthName' => $monthName,
                 'month' => $month,
@@ -208,7 +209,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
             $user->setTempData([]);
             $this->userRepository->save($user, true);
 
-            $this->sendMessage($chatId, sprintf('Таблица за %s %d успешно добавлена', $this->getMonthName($month), $year));
+            $this->sendMessage($chatId, sprintf('Таблица за %s %d успешно добавлена', MonthUtility::getMonthName($month), $year));
 
             return;
         }
@@ -244,7 +245,7 @@ class SpreadsheetStateHandler implements StateHandlerInterface
             return;
         }
 
-        $month = $this->getMonthNumber($spreadsheetToDelete['month']);
+        $month = MonthUtility::getMonthNumber($spreadsheetToDelete['month']);
         if (!$month) {
             $this->sendMessage($chatId, 'Неверный месяц');
 
@@ -260,67 +261,27 @@ class SpreadsheetStateHandler implements StateHandlerInterface
     }
 
     /**
-     * @param array<string>|null $keyboard
+     * @param array<int, string>|null $keyboard
      */
     private function sendMessage(int $chatId, string $text, ?array $keyboard = null): void
     {
-        try {
-            if (null !== $keyboard) {
-                $this->telegramApi->sendMessageWithKeyboard($chatId, $text, $keyboard);
-            } else {
-                $this->telegramApi->sendMessage([
-                    'chat_id' => $chatId,
-                    'text' => $text,
-                    'parse_mode' => 'HTML',
-                ]);
-            }
-        } catch (\Exception $e) {
-            $this->logger->error('Failed to send message: {error}', [
-                'error' => $e->getMessage(),
-                'exception' => $e,
-                'chat_id' => $chatId,
-                'text' => $text,
+        $replyMarkup = false;
+        if (null !== $keyboard) {
+            $replyMarkup = json_encode([
+                'keyboard' => array_map(fn ($button) => [$button], $keyboard),
+                'resize_keyboard' => true,
+                'one_time_keyboard' => true,
             ]);
+            if (!$replyMarkup) {
+                $replyMarkup = false;
+            }
         }
-    }
 
-    private function getMonthName(int $month): string
-    {
-        $months = [
-            1 => 'Январь',
-            2 => 'Февраль',
-            3 => 'Март',
-            4 => 'Апрель',
-            5 => 'Май',
-            6 => 'Июнь',
-            7 => 'Июль',
-            8 => 'Август',
-            9 => 'Сентябрь',
-            10 => 'Октябрь',
-            11 => 'Ноябрь',
-            12 => 'Декабрь',
-        ];
-
-        return $months[$month] ?? '';
-    }
-
-    private function getMonthNumber(string $name): ?int
-    {
-        $months = [
-            'Январь' => 1,
-            'Февраль' => 2,
-            'Март' => 3,
-            'Апрель' => 4,
-            'Май' => 5,
-            'Июнь' => 6,
-            'Июль' => 7,
-            'Август' => 8,
-            'Сентябрь' => 9,
-            'Октябрь' => 10,
-            'Ноябрь' => 11,
-            'Декабрь' => 12,
-        ];
-
-        return $months[$name] ?? null;
+        $this->telegramApi->sendMessage([
+            'chat_id' => $chatId,
+            'text' => $text,
+            'parse_mode' => 'HTML',
+            'reply_markup' => $replyMarkup,
+        ]);
     }
 }

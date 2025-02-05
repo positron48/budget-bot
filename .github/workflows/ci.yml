@@ -102,8 +102,27 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-php-
 
+      - name: Copy .env
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
+
+      - name: Generate key
+        run: php bin/console secrets:generate-keys
+
+      - name: Directory Permissions
+        run: chmod -R 777 var
+
+      - name: Create Database
+        run: |
+          mkdir -p var
+          touch var/app.db
+
+      - name: Warm up test cache
+        run: |
+          APP_ENV=test php bin/console cache:clear
+          APP_ENV=test php bin/console cache:warmup
 
       - name: Run PHPStan
         run: composer run-script phpstan
