@@ -1609,6 +1609,23 @@ Error: Process completed with exit code 1.
 
 ---
 
+
+
+теперь падает phpstan в github ci
+
+In XmlServiceMapFactory.php line 31:
+                                                                               
+  Container /home/runner/work/budget-bot/budget-bot/var/cache/test/App_Kernel  
+  TestDebugContainer.xml does not exist                                        
+                                                                               
+
+analyse [-c|--configuration CONFIGURATION] [-l|--level LEVEL] [--no-progress] [--debug] [-a|--autoload-file AUTOLOAD-FILE] [--error-format ERROR-FORMAT] [-b|--generate-baseline [GENERATE-BASELINE]] [--allow-empty-baseline] [--memory-limit MEMORY-LIMIT] [--xdebug] [--fix] [--watch] [--pro] [--fail-without-result-cache] [--] [<paths>...]
+
+Script phpstan analyse -c phpstan.neon handling the phpstan event returned with error code 1
+Error: Process completed with exit code 1.
+
+---
+
 В коде в разных местах есть функции, преобразующие название месяца на русском в порядковый номер и наоборот.
 Убери дублирование, запускай make phpstan && make test для проверки ошибок.
 
