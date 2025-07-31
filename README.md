@@ -5,6 +5,8 @@
 [![PHPStan](https://img.shields.io/badge/PHPStan-level%208-brightgreen.svg?style=flat)](https://phpstan.org/)
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://www.php.net/)
 
+**Проект разработан в рамках челленжа по написанию кода исключительно средствами Cursor.**
+
 Telegram бот для учета расходов и доходов в Google таблицах.
 
 ## Установка
