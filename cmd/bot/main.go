@@ -6,15 +6,19 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
+	botpkg "budget-bot/internal/bot"
 	"budget-bot/internal/pkg/config"
 	"budget-bot/internal/pkg/db"
 	botlogger "budget-bot/internal/pkg/logger"
 
+	"budget-bot/internal/repository"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
+	"net/url"
 )
 
 func main() {
@@ -36,7 +40,8 @@ func main() {
 	// Telegram bot init with optional BaseURL for emulator
 	var bot *tgbotapi.BotAPI
 	if cfg.Telegram.APIBaseURL != "" {
-		bot, err = tgbotapi.NewBotAPIWithAPIEndpoint(cfg.Telegram.Token, cfg.Telegram.APIBaseURL)
+		endpoint := normalizeAPIEndpoint(cfg.Telegram.APIBaseURL)
+		bot, err = tgbotapi.NewBotAPIWithAPIEndpoint(cfg.Telegram.Token, endpoint)
 	} else {
 		bot, err = tgbotapi.NewBotAPI(cfg.Telegram.Token)
 	}
@@ -51,7 +56,8 @@ func main() {
 	if err := os.MkdirAll("./data", 0o755); err != nil {
 		log.Fatal("failed to create data dir", zap.Error(err))
 	}
-	if _, err := db.OpenAndMigrate(cfg.Database.DSN, "./migrations", log); err != nil {
+	dbConn, err := db.OpenAndMigrate(cfg.Database.DSN, "./migrations", log)
+	if err != nil {
 		log.Fatal("database init failed", zap.Error(err))
 	}
 
@@ -71,35 +77,62 @@ func main() {
 	u.Timeout = cfg.Telegram.UpdatesTimeout
 	updates := bot.GetUpdatesChan(u)
 
+	// Handler wiring
+	stateRepo := repository.NewSQLiteDialogStateRepository(dbConn)
+	sessionRepo := repository.NewSQLiteSessionRepository(dbConn)
+	fakeAuth := &fakeAuthClient{}
+	authManager := botpkg.NewAuthManager(fakeAuth, sessionRepo, log)
+	h := botpkg.NewHandler(bot, stateRepo, authManager, log)
+
 	for {
 		select {
 		case <-ctx.Done():
 			log.Info("shutting down")
 			return
 		case update := <-updates:
-			if update.Message == nil { // ignore non-message updates for now
-				continue
-			}
-
-			if update.Message.IsCommand() {
-				response := tgbotapi.NewMessage(update.Message.Chat.ID, "Command handling will be implemented soon.")
-				if _, err := bot.Send(response); err != nil {
-					log.Warn("failed to send cmd reply", zap.Error(err))
-				}
-				continue
-			}
-
-			// Echo placeholder to verify loop works
-			text := fmt.Sprintf("echo: %s", update.Message.Text)
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
-			if _, err := bot.Send(msg); err != nil {
-				log.Warn("failed to send reply", zap.Error(err))
-			}
+			h.HandleUpdate(ctx, update)
 		}
 	}
 
 	// add tiny sleep to appease lints about empty select default (not used here)
 	_ = time.Second
+
+}
+
+// normalizeAPIEndpoint ensures endpoint string is a valid format expected by tgbotapi: it must contain exactly two %s placeholders for token and method.
+func normalizeAPIEndpoint(base string) string {
+	s := strings.TrimSpace(base)
+	// Fix encoded placeholders
+	s = strings.ReplaceAll(s, "%25s", "%s")
+	// If it already has exactly two placeholders, keep as-is
+	if strings.Count(s, "%s") == 2 {
+		return s
+	}
+	// If the placeholder count is wrong or missing, rebuild using parsed URL
+	if u, err := url.Parse(s); err == nil && u.Scheme != "" && u.Host != "" {
+		path := strings.TrimSuffix(u.Path, "/")
+		return u.Scheme + "://" + u.Host + path + "/bot%s/%s"
+	}
+	// Fallback: just append the correct suffix
+	if strings.HasSuffix(s, "/") {
+		return s + "bot%s/%s"
+	}
+	return s + "/bot%s/%s"
+}
+
+// fakeAuthClient implements bot.AuthClient for local testing before real gRPC client is wired.
+type fakeAuthClient struct{}
+
+func (f *fakeAuthClient) Register(ctx context.Context, email, password, name string) (string, string, string, string, time.Time, time.Time, error) {
+	return "user-123", "tenant-123", "access-token", "refresh-token", time.Now().Add(1*time.Hour), time.Now().Add(24*time.Hour), nil
+}
+
+func (f *fakeAuthClient) Login(ctx context.Context, email, password string) (string, string, string, string, time.Time, time.Time, error) {
+	return "user-123", "tenant-123", "access-token", "refresh-token", time.Now().Add(1*time.Hour), time.Now().Add(24*time.Hour), nil
+}
+
+func (f *fakeAuthClient) RefreshToken(ctx context.Context, refreshToken string) (string, string, time.Time, time.Time, error) {
+	return "access-token2", "refresh-token2", time.Now().Add(1*time.Hour), time.Now().Add(24*time.Hour), nil
 }
 
 
