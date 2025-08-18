@@ -27,6 +27,7 @@ type Handler struct {
 	txClient   grpcclient.TransactionClient
 	prefs      repository.PreferencesRepository
 	report     grpcclient.ReportClient
+	drafts     repository.DraftRepository
 }
 
 func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, auth *AuthManager, mappings repository.CategoryMappingRepository, categories grpcclient.CategoryClient, logger *zap.Logger) *Handler {
@@ -39,6 +40,12 @@ func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, a
 // WithPreferences allows injecting a preferences repository after construction.
 func (h *Handler) WithPreferences(p repository.PreferencesRepository) *Handler {
 	h.prefs = p
+	return h
+}
+
+// WithDrafts allows injecting a draft repository.
+func (h *Handler) WithDrafts(d repository.DraftRepository) *Handler {
+	h.drafts = d
 	return h
 }
 
@@ -125,7 +132,7 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 					catID = m.CategoryID
 				}
 			}
-			// If no mapping -> ask for category
+			// If no mapping -> ask for category (persist as draft)
 			if catID == "" {
 				list, err := h.categories.ListCategories(ctx, sess.TenantID)
 				if err != nil || len(list) == 0 {
@@ -133,6 +140,10 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 					return
 				}
 				kb := ui.CreateCategoryKeyboard(list)
+				if h.drafts != nil {
+					draftID := uuid.NewString()
+					_ = h.drafts.Create(ctx, &repository.TransactionDraft{ID: draftID, TelegramID: update.Message.From.ID, Type: string(parsed.Type), AmountMinor: parsed.Amount.AmountMinor, Currency: cur, Description: parsed.Description, OccurredAt: parsed.OccurredAt})
+				}
 				_ = h.states.SetState(ctx, update.Message.From.ID, repository.StateWaitingForCategory, map[string]any{
 					"type":         string(parsed.Type),
 					"amount_minor": parsed.Amount.AmountMinor,
