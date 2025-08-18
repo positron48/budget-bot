@@ -30,6 +30,7 @@ type SessionRepository interface {
 	GetSession(ctx context.Context, telegramID int64) (*UserSession, error)
 	DeleteSession(ctx context.Context, telegramID int64) error
 	UpdateTokens(ctx context.Context, telegramID int64, tokens *TokenPair) error
+	UpdateTenantID(ctx context.Context, telegramID int64, tenantID string) error
 }
 
 type SQLiteSessionRepository struct {
@@ -84,6 +85,16 @@ func (r *SQLiteSessionRepository) UpdateTokens(ctx context.Context, telegramID i
 			updated_at = CURRENT_TIMESTAMP
 		WHERE telegram_id = ?
 	`, t.AccessToken, t.RefreshToken, t.AccessTokenExpiresAt, t.RefreshTokenExpiresAt, telegramID)
+	return err
+}
+
+func (r *SQLiteSessionRepository) UpdateTenantID(ctx context.Context, telegramID int64, tenantID string) error {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE user_sessions SET
+			tenant_id = ?,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE telegram_id = ?
+	`, tenantID, telegramID)
 	return err
 }
 
