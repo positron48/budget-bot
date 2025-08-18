@@ -15,6 +15,8 @@ const (
 	StateWaitingForRegisterEmail    DialogState = "waiting_for_register_email"
 	StateWaitingForRegisterPassword DialogState = "waiting_for_register_password"
 	StateWaitingForRegisterName     DialogState = "waiting_for_register_name"
+	StateConfirmingTransaction  DialogState = "confirming_transaction"
+	StateWaitingForCategory     DialogState = "waiting_for_category"
 )
 
 type DialogStateRecord struct {

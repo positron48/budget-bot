@@ -22,16 +22,21 @@ type Handler struct {
 	categories grpcclient.CategoryClient
 	mappings   repository.CategoryMappingRepository
 	matcher    *CategoryMatcher
+	txClient   grpcclient.TransactionClient
 }
 
 func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, auth *AuthManager, mappings repository.CategoryMappingRepository, categories grpcclient.CategoryClient, logger *zap.Logger) *Handler {
 	if categories == nil {
 		categories = &grpcclient.StaticCategoryClient{}
 	}
-	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser(), categories: categories, mappings: mappings, matcher: NewCategoryMatcher(mappings)}
+	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser(), categories: categories, mappings: mappings, matcher: NewCategoryMatcher(mappings), txClient: &grpcclient.FakeTransactionClient{}}
 }
 
 func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
+	if update.CallbackQuery != nil {
+		h.handleCallback(ctx, update)
+		return
+	}
 	if update.Message == nil {
 		return
 	}
@@ -72,11 +77,67 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 			if m, err := h.matcher.FindCategory(ctx, sess.TenantID, parsed.Description); err == nil && m != nil {
 				suffix = fmt.Sprintf(" (категория: %s)", m.CategoryID)
 			}
+			// Ask for confirmation
+			kb := ui.CreateConfirmationKeyboard()
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID,
+				fmt.Sprintf("Сохранить: %s %.2f %s — %s%s?", string(parsed.Type), amt, parsed.Amount.CurrencyCode, parsed.Description, suffix))
+			msg.ReplyMarkup = kb
+			_ = h.states.SetState(ctx, update.Message.From.ID, repository.StateConfirmingTransaction, map[string]any{
+				"type":         string(parsed.Type),
+				"amount_minor": parsed.Amount.AmountMinor,
+				"currency":     parsed.Currency,
+				"desc":         parsed.Description,
+			}, nil)
+			_, _ = h.bot.Send(msg)
+			return
 		}
+		// No session; just echo parse
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID,
-			fmt.Sprintf("Распознано: %s %.2f %s — %s%s", string(parsed.Type), amt, parsed.Amount.CurrencyCode, parsed.Description, suffix))
+			fmt.Sprintf("Распознано: %s %.2f %s — %s", string(parsed.Type), amt, parsed.Amount.CurrencyCode, parsed.Description))
 		_, _ = h.bot.Send(msg)
 		return
+	}
+}
+
+func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
+	cb := update.CallbackQuery
+	if cb == nil {
+		return
+	}
+	data := cb.Data
+	if strings.HasPrefix(data, "confirm:") {
+		choice := strings.TrimPrefix(data, "confirm:")
+		if choice == "yes" {
+			// create transaction via txClient using stored state
+			rec, _ := h.states.GetState(ctx, cb.From.ID)
+			if rec != nil && rec.Context != nil {
+				typeStr, _ := rec.Context["type"].(string)
+				amountMinorF, _ := rec.Context["amount_minor"].(float64)
+				amountMinor := int64(amountMinorF)
+				currency, _ := rec.Context["currency"].(string)
+				desc, _ := rec.Context["desc"].(string)
+				sess, err := h.auth.GetSession(ctx, cb.From.ID)
+				if err == nil {
+					_, _ = h.txClient.CreateTransaction(ctx, &grpcclient.CreateTransactionRequest{
+						TenantID:    sess.TenantID,
+						Type:        typeStr,
+						AmountMinor: amountMinor,
+						Currency:    currency,
+						Description: desc,
+					}, sess.AccessToken)
+				}
+			}
+			_ = h.states.ClearState(ctx, cb.From.ID)
+			_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Сохранено"))
+			_, _ = h.bot.Send(tgbotapi.NewMessage(cb.Message.Chat.ID, "Транзакция сохранена"))
+			return
+		}
+		if choice == "no" {
+			_ = h.states.ClearState(ctx, cb.From.ID)
+			_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Отменено"))
+			_, _ = h.bot.Send(tgbotapi.NewMessage(cb.Message.Chat.ID, "Отменено"))
+			return
+		}
 	}
 }
 
