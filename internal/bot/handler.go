@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
+	pb "budget-bot/internal/pb/budget/v1"
 )
 
 type Handler struct {
@@ -662,19 +663,25 @@ func (h *Handler) handleRecent(ctx context.Context, update tgbotapi.Update) {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
 		return
 	}
-	items, err := h.report.Recent(ctx, sess.TenantID, 10, sess.AccessToken)
+	txs, err := h.txClient.ListRecent(ctx, sess.TenantID, 10, sess.AccessToken)
 	if err != nil {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить последние транзакции"))
 		return
 	}
-	if len(items) == 0 {
+	if len(txs) == 0 {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Нет данных"))
 		return
 	}
 	var b strings.Builder
 	b.WriteString("Последние транзакции:\n")
-	for _, it := range items {
-		b.WriteString("- " + it + "\n")
+	for _, t := range txs {
+		sign := "-"
+		if t.GetType() == pb.TransactionType_TRANSACTION_TYPE_INCOME {
+			sign = "+"
+		}
+		amt := float64(t.GetAmount().GetMinorUnits()) / 100.0
+		curr := t.GetAmount().GetCurrencyCode()
+		b.WriteString(fmt.Sprintf("- %s%.2f %s %s\n", sign, amt, curr, t.GetComment()))
 	}
 	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
 }
