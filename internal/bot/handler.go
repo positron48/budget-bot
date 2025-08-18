@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"budget-bot/internal/bot/ui"
+	"budget-bot/internal/metrics"
 	grpcclient "budget-bot/internal/grpc"
 	"budget-bot/internal/repository"
 	"github.com/google/uuid"
@@ -73,6 +74,8 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 	if update.Message == nil {
 		return
 	}
+
+	metrics.IncUpdate()
 
 	if update.Message.IsCommand() {
 		h.handleCommand(ctx, update)
@@ -215,6 +218,7 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 						CategoryID:  catID,
 						OccurredAt:  occurred,
 					}, sess.AccessToken)
+					metrics.IncTransactionsSaved("ok")
 				}
 			}
 			_ = h.states.ClearState(ctx, cb.From.ID)

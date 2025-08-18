@@ -16,6 +16,7 @@ import (
 	botlogger "budget-bot/internal/pkg/logger"
 
 	"budget-bot/internal/repository"
+	"budget-bot/internal/metrics"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
 	"net/url"
@@ -61,11 +62,13 @@ func main() {
 		log.Fatal("database init failed", zap.Error(err))
 	}
 
-	// Health endpoint (optional)
+	// Health endpoint and metrics (optional)
 	go func() {
-		_ = http.ListenAndServe(":8088", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			_, _ = w.Write([]byte("OK"))
-		}))
+		http.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("OK")) })
+		if cfg.Metrics.Enabled {
+			http.Handle("/metrics", metrics.Handler())
+		}
+		_ = http.ListenAndServe(":8088", nil)
 	}()
 
 	// Graceful shutdown
