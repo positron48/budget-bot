@@ -287,6 +287,10 @@ func (h *Handler) handleCommand(ctx context.Context, update tgbotapi.Update) {
 		h.handleCurrency(ctx, update)
 	case "stats":
 		h.handleStats(ctx, update)
+	case "top_categories":
+		h.handleTopCategories(ctx, update)
+	case "recent":
+		h.handleRecent(ctx, update)
 	default:
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Unknown command")
 		_, _ = h.bot.Send(msg)
@@ -523,6 +527,55 @@ func (h *Handler) handleStats(ctx context.Context, update tgbotapi.Update) {
 	}
 	msg := fmt.Sprintf("Статистика %s\nДоход: %.2f %s\nРасход: %.2f %s", st.Period, float64(st.TotalIncome)/100.0, st.Currency, float64(st.TotalExpense)/100.0, st.Currency)
 	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, msg))
+}
+
+func (h *Handler) handleTopCategories(ctx context.Context, update tgbotapi.Update) {
+	sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
+	if err != nil {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
+		return
+	}
+	now := time.Now()
+	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	to := from.AddDate(0, 1, -1)
+	items, err := h.report.TopCategories(ctx, sess.TenantID, from, to, 5)
+	if err != nil {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить топ категорий"))
+		return
+	}
+	if len(items) == 0 {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Нет данных"))
+		return
+	}
+	var b strings.Builder
+	b.WriteString("Топ категорий:\n")
+	for i, it := range items {
+		b.WriteString(fmt.Sprintf("%d) %s — %.2f %s\n", i+1, it.Name, float64(it.SumMinor)/100.0, it.Currency))
+	}
+	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
+}
+
+func (h *Handler) handleRecent(ctx context.Context, update tgbotapi.Update) {
+	sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
+	if err != nil {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
+		return
+	}
+	items, err := h.report.Recent(ctx, sess.TenantID, 10)
+	if err != nil {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить последние транзакции"))
+		return
+	}
+	if len(items) == 0 {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Нет данных"))
+		return
+	}
+	var b strings.Builder
+	b.WriteString("Последние транзакции:\n")
+	for _, it := range items {
+		b.WriteString("- " + it + "\n")
+	}
+	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
 }
 
 
