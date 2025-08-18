@@ -16,6 +16,7 @@ import (
 	botlogger "budget-bot/internal/pkg/logger"
 
 	"budget-bot/internal/repository"
+	grpcwire "budget-bot/internal/grpc"
 	"budget-bot/internal/metrics"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
@@ -74,7 +75,13 @@ func main() {
 	draftRepo := repository.NewSQLiteDraftRepository(dbConn)
 	fakeAuth := &fakeAuthClient{}
 	authManager := botpkg.NewAuthManager(fakeAuth, sessionRepo, log)
-	h := botpkg.NewHandler(bot, stateRepo, authManager, mappingRepo, nil, log).WithPreferences(prefsRepo).WithDrafts(draftRepo)
+	catClient, reportClient, _, txClient := grpcwire.WireClients(log)
+	h := botpkg.NewHandler(bot, stateRepo, authManager, mappingRepo, catClient, log).
+		WithPreferences(prefsRepo).
+		WithDrafts(draftRepo).
+		WithCategoryClient(catClient).
+		WithReportClient(reportClient).
+		WithTransactionClient(txClient)
 
 	// Webhook mode vs long polling
 	if cfg.Telegram.WebhookEnable && cfg.Telegram.WebhookURL != "" {

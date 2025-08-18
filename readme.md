@@ -497,10 +497,19 @@ security:
    - [x] Репозитории: sessions, dialog_state, preferences, category_mappings
 
 3. **gRPC клиенты**:
+   - [x] Подготовлен каркас клиентов и точка внедрения (`internal/grpc/wire*.go`)
    - [ ] Сборка pb из proto (`make proto`)
-   - [ ] Auth Client (временный fake, заменить на реальный)
-   - [ ] Transaction Client
-   - [ ] Category Client
+   - [ ] Auth/Transaction/Category/Report/Tenant — заменить заглушки на реальные
+### gRPC интеграция
+
+Сейчас клиенты заглушены (fake). Для включения реальных клиентов:
+
+1. Скопируйте proto в каталог `proto/` и выполните генерацию:
+   - `make proto`
+2. Соберите с билд-тегом `withgrpc`, чтобы активировать `internal/grpc/wire_withgrpc.go`:
+   - `go build -tags withgrpc -o bin/budget-bot ./cmd/bot`
+3. При необходимости отредактируйте `WireClients` для указания адреса/кредов gRPC.
+
 
 ### Этап 2: Аутентификация и пользователи (1 неделя)
 

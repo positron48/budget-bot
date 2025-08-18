@@ -29,13 +29,14 @@ type Handler struct {
 	report     grpcclient.ReportClient
 	drafts     repository.DraftRepository
 	tenants    grpcclient.TenantClient
+	fmt        *ui.MessageFormatter
 }
 
 func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, auth *AuthManager, mappings repository.CategoryMappingRepository, categories grpcclient.CategoryClient, logger *zap.Logger) *Handler {
 	if categories == nil {
 		categories = &grpcclient.StaticCategoryClient{}
 	}
-	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser(), categories: categories, mappings: mappings, matcher: NewCategoryMatcher(mappings), txClient: &grpcclient.FakeTransactionClient{}, report: &grpcclient.FakeReportClient{}, tenants: &grpcclient.FakeTenantClient{}}
+	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser(), categories: categories, mappings: mappings, matcher: NewCategoryMatcher(mappings), txClient: &grpcclient.FakeTransactionClient{}, report: &grpcclient.FakeReportClient{}, tenants: &grpcclient.FakeTenantClient{}, fmt: ui.NewMessageFormatter()}
 }
 
 // WithPreferences allows injecting a preferences repository after construction.
@@ -221,6 +222,12 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 				}
 				sess, err := h.auth.GetSession(ctx, cb.From.ID)
 				if err == nil {
+					// Refresh tokens if expiring soon
+					if time.Until(sess.AccessTokenExpiresAt) < 30*time.Second {
+						_ = h.auth.RefreshTokens(ctx, cb.From.ID)
+						// reload session
+						sess, _ = h.auth.GetSession(ctx, cb.From.ID)
+					}
 					_, _ = h.txClient.CreateTransaction(ctx, &grpcclient.CreateTransactionRequest{
 						TenantID:    sess.TenantID,
 						Type:        typeStr,
@@ -231,6 +238,12 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 						OccurredAt:  occurred,
 					}, sess.AccessToken)
 					metrics.IncTransactionsSaved("ok")
+				}
+				// Cleanup draft if present
+				if h.drafts != nil {
+					if dID, ok := rec.Context["draft_id"].(string); ok && dID != "" {
+						_ = h.drafts.Delete(ctx, dID)
+					}
 				}
 			}
 			_ = h.states.ClearState(ctx, cb.From.ID)
@@ -343,6 +356,8 @@ func (h *Handler) handleCommand(ctx context.Context, update tgbotapi.Update) {
 		h.handleRecent(ctx, update)
 	case "switch_tenant":
 		h.handleSwitchTenant(ctx, update)
+	case "profile":
+		h.handleProfile(ctx, update)
 	case "cancel":
 		h.handleCancel(ctx, update)
 	default:
@@ -601,8 +616,8 @@ func (h *Handler) handleStats(ctx context.Context, update tgbotapi.Update) {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить статистику"))
 		return
 	}
-	msg := fmt.Sprintf("Статистика %s\nДоход: %.2f %s\nРасход: %.2f %s", st.Period, float64(st.TotalIncome)/100.0, st.Currency, float64(st.TotalExpense)/100.0, st.Currency)
-	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, msg))
+	text := h.fmt.FormatStats(st)
+	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, text))
 }
 
 func (h *Handler) handleTopCategories(ctx context.Context, update tgbotapi.Update) {
@@ -650,6 +665,22 @@ func (h *Handler) handleRecent(ctx context.Context, update tgbotapi.Update) {
 	b.WriteString("Последние транзакции:\n")
 	for _, it := range items {
 		b.WriteString("- " + it + "\n")
+	}
+	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
+}
+
+func (h *Handler) handleProfile(ctx context.Context, update tgbotapi.Update) {
+	sess, _ := h.auth.GetSession(ctx, update.Message.From.ID)
+	pref, _ := h.prefs.GetPreferences(ctx, update.Message.From.ID)
+	var b strings.Builder
+	b.WriteString("Профиль:\n")
+	if sess != nil {
+		b.WriteString(fmt.Sprintf("UserID: %s\nTenantID: %s\n", sess.UserID, sess.TenantID))
+	} else {
+		b.WriteString("Не авторизован\n")
+	}
+	if pref != nil {
+		b.WriteString(fmt.Sprintf("Язык: %s\nВалюта по умолчанию: %s\n", pref.Language, pref.DefaultCurrency))
 	}
 	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
 }
