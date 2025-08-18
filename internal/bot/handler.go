@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"budget-bot/internal/bot/ui"
 	grpcclient "budget-bot/internal/grpc"
@@ -71,32 +72,64 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 	parsed, _ := h.parser.ParseMessage(update.Message.Text)
 	if parsed != nil && parsed.IsValid {
 		amt := float64(parsed.Amount.AmountMinor) / 100.0
+		cur := parsed.Currency
 		// Try suggest category if session present
-		suffix := ""
-		if sess, err := h.auth.GetSession(ctx, update.Message.From.ID); err == nil && sess != nil && h.matcher != nil {
-			if m, err := h.matcher.FindCategory(ctx, sess.TenantID, parsed.Description); err == nil && m != nil {
-				suffix = fmt.Sprintf(" (категория: %s)", m.CategoryID)
+		if sess, err := h.auth.GetSession(ctx, update.Message.From.ID); err == nil && sess != nil {
+			var catID string
+			if h.matcher != nil {
+				if m, err := h.matcher.FindCategory(ctx, sess.TenantID, parsed.Description); err == nil && m != nil {
+					catID = m.CategoryID
+				}
 			}
-			// Ask for confirmation
+			// If no mapping -> ask for category
+			if catID == "" {
+				list, err := h.categories.ListCategories(ctx, sess.TenantID)
+				if err != nil || len(list) == 0 {
+					_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить категории"))
+					return
+				}
+				kb := ui.CreateCategoryKeyboard(list)
+				_ = h.states.SetState(ctx, update.Message.From.ID, repository.StateWaitingForCategory, map[string]any{
+					"type":         string(parsed.Type),
+					"amount_minor": parsed.Amount.AmountMinor,
+					"currency":     cur,
+					"desc":         parsed.Description,
+					"occurred_at":  occurredUnix(parsed.OccurredAt),
+				}, nil)
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Выберите категорию")
+				msg.ReplyMarkup = kb
+				_, _ = h.bot.Send(msg)
+				return
+			}
+			// Have category -> ask to confirm
 			kb := ui.CreateConfirmationKeyboard()
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID,
-				fmt.Sprintf("Сохранить: %s %.2f %s — %s%s?", string(parsed.Type), amt, parsed.Amount.CurrencyCode, parsed.Description, suffix))
+				fmt.Sprintf("Сохранить: %s %.2f %s — %s (категория: %s)?", string(parsed.Type), amt, cur, parsed.Description, catID))
 			msg.ReplyMarkup = kb
 			_ = h.states.SetState(ctx, update.Message.From.ID, repository.StateConfirmingTransaction, map[string]any{
 				"type":         string(parsed.Type),
 				"amount_minor": parsed.Amount.AmountMinor,
-				"currency":     parsed.Currency,
+				"currency":     cur,
 				"desc":         parsed.Description,
+				"category_id":  catID,
+				"occurred_at":  occurredUnix(parsed.OccurredAt),
 			}, nil)
 			_, _ = h.bot.Send(msg)
 			return
 		}
 		// No session; just echo parse
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID,
-			fmt.Sprintf("Распознано: %s %.2f %s — %s", string(parsed.Type), amt, parsed.Amount.CurrencyCode, parsed.Description))
+			fmt.Sprintf("Распознано: %s %.2f %s — %s", string(parsed.Type), amt, cur, parsed.Description))
 		_, _ = h.bot.Send(msg)
 		return
 	}
+}
+
+func occurredUnix(t *time.Time) int64 {
+	if t == nil {
+		return 0
+	}
+	return t.Unix()
 }
 
 func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
@@ -112,10 +145,24 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 			rec, _ := h.states.GetState(ctx, cb.From.ID)
 			if rec != nil && rec.Context != nil {
 				typeStr, _ := rec.Context["type"].(string)
-				amountMinorF, _ := rec.Context["amount_minor"].(float64)
-				amountMinor := int64(amountMinorF)
+				var amountMinor int64
+				switch v := rec.Context["amount_minor"].(type) {
+				case float64:
+					amountMinor = int64(v)
+				case int64:
+					amountMinor = v
+				case int:
+					amountMinor = int64(v)
+				}
 				currency, _ := rec.Context["currency"].(string)
 				desc, _ := rec.Context["desc"].(string)
+				catID, _ := rec.Context["category_id"].(string)
+				var occurred time.Time
+				if ts, ok := rec.Context["occurred_at"].(float64); ok && ts > 0 {
+					occurred = time.Unix(int64(ts), 0)
+				} else {
+					occurred = time.Now()
+				}
 				sess, err := h.auth.GetSession(ctx, cb.From.ID)
 				if err == nil {
 					_, _ = h.txClient.CreateTransaction(ctx, &grpcclient.CreateTransactionRequest{
@@ -124,6 +171,8 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 						AmountMinor: amountMinor,
 						Currency:    currency,
 						Description: desc,
+						CategoryID:  catID,
+						OccurredAt:  occurred,
 					}, sess.AccessToken)
 				}
 			}
@@ -138,6 +187,37 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 			_, _ = h.bot.Send(tgbotapi.NewMessage(cb.Message.Chat.ID, "Отменено"))
 			return
 		}
+	}
+	if strings.HasPrefix(data, "cat:") {
+		categoryID := strings.TrimPrefix(data, "cat:")
+		rec, _ := h.states.GetState(ctx, cb.From.ID)
+		if rec == nil || rec.Context == nil {
+			_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Нет контекста"))
+			return
+		}
+		rec.Context["category_id"] = categoryID
+		// Ask confirmation now
+		var amountMinor int64
+		switch v := rec.Context["amount_minor"].(type) {
+		case float64:
+			amountMinor = int64(v)
+		case int64:
+			amountMinor = v
+		case int:
+			amountMinor = int64(v)
+		}
+		amt := float64(amountMinor) / 100.0
+		typeStr, _ := rec.Context["type"].(string)
+		currency, _ := rec.Context["currency"].(string)
+		desc, _ := rec.Context["desc"].(string)
+		kb := ui.CreateConfirmationKeyboard()
+		msg := tgbotapi.NewMessage(cb.Message.Chat.ID,
+			fmt.Sprintf("Сохранить: %s %.2f %s — %s (категория: %s)?", typeStr, amt, currency, desc, categoryID))
+		msg.ReplyMarkup = kb
+		_ = h.states.SetState(ctx, cb.From.ID, repository.StateConfirmingTransaction, rec.Context, nil)
+		_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Категория выбрана"))
+		_, _ = h.bot.Send(msg)
+		return
 	}
 }
 
