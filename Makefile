@@ -28,4 +28,19 @@ setup:
 
 up: run
 
+# --- Proto generation ---
+PROTO_DIR ?= ./proto
+PB_OUT := internal/pb
+PROTO_FILES := $(shell find $(PROTO_DIR) -name '*.proto')
+
+.PHONY: proto-tools proto
+
+proto-tools:
+	$(GO) install google.golang.org/protobuf/cmd/protoc-gen-go@v1.34.1
+	$(GO) install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.3.0
+
+proto: proto-tools
+	mkdir -p $(PB_OUT)
+	protoc -I $(PROTO_DIR) --go_out=$(PB_OUT) --go-grpc_out=$(PB_OUT) $(PROTO_FILES)
+
 

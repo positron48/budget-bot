@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"budget-bot/internal/repository"
@@ -14,10 +15,11 @@ type Handler struct {
 	states     repository.DialogStateRepository
 	auth       *AuthManager
 	logger     *zap.Logger
+	parser     *MessageParser
 }
 
 func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, auth *AuthManager, logger *zap.Logger) *Handler {
-	return &Handler{bot: bot, states: states, auth: auth, logger: logger}
+	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser()}
 }
 
 func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
@@ -49,6 +51,16 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 			h.handleRegisterName(ctx, update)
 			return
 		}
+	}
+
+	// Try parse transaction
+	parsed, _ := h.parser.ParseMessage(update.Message.Text)
+	if parsed != nil && parsed.IsValid {
+		amt := float64(parsed.Amount.AmountMinor) / 100.0
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID,
+			fmt.Sprintf("Распознано: %s %.2f %s — %s", string(parsed.Type), amt, parsed.Amount.CurrencyCode, parsed.Description))
+		_, _ = h.bot.Send(msg)
+		return
 	}
 }
 

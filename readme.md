@@ -70,10 +70,10 @@ flowchart TB
 - **Язык**: Go 1.23+
 - **Telegram Bot API**: `github.com/go-telegram-bot-api/telegram-bot-api/v5`
 - **gRPC Client**: `google.golang.org/grpc`
-- **База данных**: SQLite (для состояния бота) + PostgreSQL (основная БД через gRPC)
-- **Конфигурация**: Viper для управления конфигурацией
-- **Логирование**: Zap/Zerolog
-- **Метрики**: Prometheus + OpenTelemetry
+- **База данных**: SQLite (для состояния бота)
+- **Конфигурация**: Viper + .env (godotenv)
+- **Логирование**: Zap
+- **Миграции**: golang-migrate
 
 ### Структура проекта
 ```
@@ -418,27 +418,29 @@ CREATE TABLE user_preferences (
 
 ```bash
 # Telegram
-TELEGRAM_BOT_TOKEN=your_bot_token
-TELEGRAM_WEBHOOK_URL=https://your-domain.com/webhook
+TELEGRAM_BOT_TOKEN=your_token_here
+TELEGRAM_API_BASE_URL=http://127.0.0.1:3001/
+TELEGRAM_DEBUG=true
+TELEGRAM_UPDATES_TIMEOUT=30
 
 # gRPC
-GRPC_SERVER_ADDRESS=localhost:8080
-GRPC_TLS_ENABLED=false
-GRPC_TLS_CERT_PATH=
+GRPC_SERVER_ADDRESS=127.0.0.1:8080
+GRPC_INSECURE=true
 
 # Database
-DATABASE_URL=sqlite:///bot.db
+DATABASE_DRIVER=sqlite3
+DATABASE_DSN=file:./data/bot.sqlite3?_foreign_keys=on
 
 # Logging
-LOG_LEVEL=info
-LOG_FORMAT=json
+LOG_LEVEL=debug
 
 # Metrics
-METRICS_ENABLED=true
-METRICS_PORT=9090
+METRICS_ENABLED=false
+METRICS_ADDRESS=:9090
 
-# Security
-JWT_SECRET=your_jwt_secret
+```
+
+Пример `.env`: см. `env.example`.
 ```
 
 ### Конфигурационные файлы
@@ -485,23 +487,22 @@ security:
    - Настройка CI/CD
 
 2. **База данных**:
-   - Создание схемы БД
-   - Миграции
-   - Репозитории для работы с данными
+   - [x] Миграции SQLite (`migrations/0001_init.*.sql`)
+   - [x] Инит и автопрогон миграций при старте (`internal/pkg/db`)
+   - [x] Репозитории: sessions, dialog_state, preferences, category_mappings
 
 3. **gRPC клиенты**:
-   - Клиент для Auth Service
-   - Клиент для Transaction Service
-   - Клиент для Category Service
-   - Обработка ошибок и retry логика
+   - [ ] Сборка pb из proto (`make proto`)
+   - [ ] Auth Client (временный fake, заменить на реальный)
+   - [ ] Transaction Client
+   - [ ] Category Client
 
 ### Этап 2: Аутентификация и пользователи (1 неделя)
 
 1. **Система аутентификации**:
-   - Регистрация через бота
-   - Вход в систему
-   - Управление сессиями
-   - Обновление токенов
+   - [x] Команды `/login`, `/register`, `/logout` (диалоги)
+   - [x] Сохранение сессии (SQLite)
+   - [ ] gRPC интеграция с Auth (заменить fake)
 
 2. **Привязка Telegram к пользователям**:
    - Связывание Telegram ID с пользователями
@@ -511,10 +512,10 @@ security:
 ### Этап 3: Парсинг сообщений (1 неделя)
 
 1. **Парсер сообщений**:
-   - Разбор дат (сегодня, вчера, DD.MM.YYYY)
-   - Разбор сумм с поддержкой копеек
-   - Определение типа транзакции
-   - Извлечение описания
+   - [x] Базовый парсинг дат (сегодня, вчера, позавчера, DD.MM(.YYYY))
+   - [x] Разбор сумм и типа транзакции (+ доход, иначе расход)
+   - [ ] Валюта (символы/коды)
+   - [ ] Валидация и сообщения об ошибках
 
 2. **Валидация данных**:
    - Проверка корректности дат
