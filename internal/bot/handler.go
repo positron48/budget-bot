@@ -303,6 +303,16 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(cb.Message.Chat.ID, "Валюта по умолчанию обновлена"))
 		return
 	}
+	if strings.HasPrefix(data, "tenant:") {
+		tenantID := strings.TrimPrefix(data, "tenant:")
+		_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Организация выбрана"))
+		if err := h.auth.sessionRepo.UpdateTenantID(ctx, cb.From.ID, tenantID); err == nil {
+			_, _ = h.bot.Send(tgbotapi.NewMessage(cb.Message.Chat.ID, "Организация переключена"))
+			return
+		}
+		_, _ = h.bot.Send(tgbotapi.NewMessage(cb.Message.Chat.ID, "Не удалось переключить организацию"))
+		return
+	}
 }
 
 func (h *Handler) handleCommand(ctx context.Context, update tgbotapi.Update) {
@@ -352,13 +362,10 @@ func (h *Handler) handleSwitchTenant(ctx context.Context, update tgbotapi.Update
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить организации"))
 		return
 	}
-	var b strings.Builder
-	b.WriteString("Доступные организации:\n")
-	for _, t := range list {
-		b.WriteString(fmt.Sprintf("- %s (%s)\n", t.Name, t.ID))
-	}
-	b.WriteString("В следующей версии добавим выбор через inline-клавиатуру.")
-	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
+	kb := ui.CreateTenantKeyboard(list)
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Выберите организацию")
+	msg.ReplyMarkup = kb
+	_, _ = h.bot.Send(msg)
 }
 
 func (h *Handler) handleCancel(ctx context.Context, update tgbotapi.Update) {

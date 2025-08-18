@@ -3,6 +3,7 @@ package ui
 import (
     tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
     "budget-bot/internal/domain"
+    grpcclient "budget-bot/internal/grpc"
 )
 
 func CreateCategoryKeyboard(categories []*domain.Category) tgbotapi.InlineKeyboardMarkup {
@@ -38,6 +39,15 @@ func CreateCurrencyKeyboard() tgbotapi.InlineKeyboardMarkup {
         tgbotapi.NewInlineKeyboardRow(rub, usd, eur),
         tgbotapi.NewInlineKeyboardRow(gbp, jpy),
     )
+}
+
+func CreateTenantKeyboard(items []*grpcclient.Tenant) tgbotapi.InlineKeyboardMarkup {
+    var rows [][]tgbotapi.InlineKeyboardButton
+    for _, t := range items {
+        btn := tgbotapi.NewInlineKeyboardButtonData(t.Name, "tenant:"+t.ID)
+        rows = append(rows, tgbotapi.NewInlineKeyboardRow(btn))
+    }
+    return tgbotapi.NewInlineKeyboardMarkup(rows...)
 }
 
 
