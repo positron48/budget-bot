@@ -28,13 +28,14 @@ type Handler struct {
 	prefs      repository.PreferencesRepository
 	report     grpcclient.ReportClient
 	drafts     repository.DraftRepository
+	tenants    grpcclient.TenantClient
 }
 
 func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, auth *AuthManager, mappings repository.CategoryMappingRepository, categories grpcclient.CategoryClient, logger *zap.Logger) *Handler {
 	if categories == nil {
 		categories = &grpcclient.StaticCategoryClient{}
 	}
-	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser(), categories: categories, mappings: mappings, matcher: NewCategoryMatcher(mappings), txClient: &grpcclient.FakeTransactionClient{}, report: &grpcclient.FakeReportClient{}}
+	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser(), categories: categories, mappings: mappings, matcher: NewCategoryMatcher(mappings), txClient: &grpcclient.FakeTransactionClient{}, report: &grpcclient.FakeReportClient{}, tenants: &grpcclient.FakeTenantClient{}}
 }
 
 // WithPreferences allows injecting a preferences repository after construction.
@@ -330,12 +331,34 @@ func (h *Handler) handleCommand(ctx context.Context, update tgbotapi.Update) {
 		h.handleTopCategories(ctx, update)
 	case "recent":
 		h.handleRecent(ctx, update)
+	case "switch_tenant":
+		h.handleSwitchTenant(ctx, update)
 	case "cancel":
 		h.handleCancel(ctx, update)
 	default:
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Unknown command")
 		_, _ = h.bot.Send(msg)
 	}
+}
+
+func (h *Handler) handleSwitchTenant(ctx context.Context, update tgbotapi.Update) {
+	sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
+	if err != nil {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
+		return
+	}
+	list, err := h.tenants.ListTenants(ctx, sess.AccessToken)
+	if err != nil || len(list) == 0 {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить организации"))
+		return
+	}
+	var b strings.Builder
+	b.WriteString("Доступные организации:\n")
+	for _, t := range list {
+		b.WriteString(fmt.Sprintf("- %s (%s)\n", t.Name, t.ID))
+	}
+	b.WriteString("В следующей версии добавим выбор через inline-клавиатуру.")
+	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
 }
 
 func (h *Handler) handleCancel(ctx context.Context, update tgbotapi.Update) {
