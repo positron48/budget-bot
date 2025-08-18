@@ -25,13 +25,14 @@ type Handler struct {
 	matcher    *CategoryMatcher
 	txClient   grpcclient.TransactionClient
 	prefs      repository.PreferencesRepository
+	report     grpcclient.ReportClient
 }
 
 func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, auth *AuthManager, mappings repository.CategoryMappingRepository, categories grpcclient.CategoryClient, logger *zap.Logger) *Handler {
 	if categories == nil {
 		categories = &grpcclient.StaticCategoryClient{}
 	}
-	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser(), categories: categories, mappings: mappings, matcher: NewCategoryMatcher(mappings), txClient: &grpcclient.FakeTransactionClient{}}
+	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser(), categories: categories, mappings: mappings, matcher: NewCategoryMatcher(mappings), txClient: &grpcclient.FakeTransactionClient{}, report: &grpcclient.FakeReportClient{}}
 }
 
 // WithPreferences allows injecting a preferences repository after construction.
@@ -284,6 +285,8 @@ func (h *Handler) handleCommand(ctx context.Context, update tgbotapi.Update) {
 		h.handleLanguage(ctx, update)
 	case "currency":
 		h.handleCurrency(ctx, update)
+	case "stats":
+		h.handleStats(ctx, update)
 	default:
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Unknown command")
 		_, _ = h.bot.Send(msg)
@@ -501,6 +504,25 @@ func (h *Handler) handleCurrency(ctx context.Context, update tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Выберите валюту по умолчанию")
 	msg.ReplyMarkup = kb
 	_, _ = h.bot.Send(msg)
+}
+
+func (h *Handler) handleStats(ctx context.Context, update tgbotapi.Update) {
+	sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
+	if err != nil {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
+		return
+	}
+	// Current month
+	now := time.Now()
+	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	to := from.AddDate(0, 1, -1)
+	st, err := h.report.GetStats(ctx, sess.TenantID, from, to)
+	if err != nil {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить статистику"))
+		return
+	}
+	msg := fmt.Sprintf("Статистика %s\nДоход: %.2f %s\nРасход: %.2f %s", st.Period, float64(st.TotalIncome)/100.0, st.Currency, float64(st.TotalExpense)/100.0, st.Currency)
+	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, msg))
 }
 
 
