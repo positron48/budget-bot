@@ -41,6 +41,30 @@ func (h *Handler) WithPreferences(p repository.PreferencesRepository) *Handler {
 	return h
 }
 
+// WithReportClient allows injecting a report client.
+func (h *Handler) WithReportClient(rc grpcclient.ReportClient) *Handler {
+	if rc != nil {
+		h.report = rc
+	}
+	return h
+}
+
+// WithCategoryClient allows injecting a category client.
+func (h *Handler) WithCategoryClient(cc grpcclient.CategoryClient) *Handler {
+	if cc != nil {
+		h.categories = cc
+	}
+	return h
+}
+
+// WithTransactionClient allows injecting a transaction client.
+func (h *Handler) WithTransactionClient(tc grpcclient.TransactionClient) *Handler {
+	if tc != nil {
+		h.txClient = tc
+	}
+	return h
+}
+
 func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 	if update.CallbackQuery != nil {
 		h.handleCallback(ctx, update)
@@ -291,10 +315,17 @@ func (h *Handler) handleCommand(ctx context.Context, update tgbotapi.Update) {
 		h.handleTopCategories(ctx, update)
 	case "recent":
 		h.handleRecent(ctx, update)
+	case "cancel":
+		h.handleCancel(ctx, update)
 	default:
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Unknown command")
 		_, _ = h.bot.Send(msg)
 	}
+}
+
+func (h *Handler) handleCancel(ctx context.Context, update tgbotapi.Update) {
+	_ = h.states.ClearState(ctx, update.Message.From.ID)
+	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Текущая операция отменена"))
 }
 
 func (h *Handler) handleStart(ctx context.Context, update tgbotapi.Update) {
