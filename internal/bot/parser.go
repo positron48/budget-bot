@@ -9,7 +9,7 @@ import (
 	"budget-bot/internal/domain"
 )
 
-type MessageParser struct{}
+type MessageParser struct{ currency *CurrencyParser }
 
 type ParsedTransaction struct {
 	Type        domain.TransactionType
@@ -21,7 +21,7 @@ type ParsedTransaction struct {
 	Errors      []string
 }
 
-func NewMessageParser() *MessageParser { return &MessageParser{} }
+func NewMessageParser() *MessageParser { return &MessageParser{currency: NewCurrencyParser()} }
 
 var (
 	amountRe   = regexp.MustCompile(`(?i)([+\-]?\d+[\.,]?\d*)`)
@@ -72,6 +72,12 @@ func (p *MessageParser) ParseMessage(text string) (*ParsedTransaction, error) {
 			result.OccurredAt = &d
 			lower = strings.Replace(lower, m[0], "", 1)
 		}
+	}
+
+	// Currency (optional)
+	if code, _, cleaned := p.currency.ParseCurrency(lower); code != "" {
+		result.Currency = code
+		lower = cleaned
 	}
 
 	// Amount (+/-)

@@ -74,6 +74,10 @@ func (h *Handler) handleCommand(ctx context.Context, update tgbotapi.Update) {
 		h.startRegister(ctx, update)
 	case "logout":
 		h.handleLogout(ctx, update)
+	case "map":
+		h.handleMap(ctx, update)
+	case "unmap":
+		h.handleUnmap(ctx, update)
 	default:
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Unknown command")
 		_, _ = h.bot.Send(msg)
@@ -174,6 +178,24 @@ func (h *Handler) handleRegisterName(ctx context.Context, update tgbotapi.Update
 	_ = h.states.ClearState(ctx, update.Message.From.ID)
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Регистрация успешна. Вы вошли в систему.")
 	_, _ = h.bot.Send(msg)
+}
+
+func (h *Handler) handleMap(ctx context.Context, update tgbotapi.Update) {
+	parts := strings.SplitN(strings.TrimSpace(update.Message.CommandArguments()), "=", 2)
+	if len(parts) != 2 {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /map слово = category_id"))
+		return
+	}
+	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сопоставление будет реализовано после подключения репозитория в handler"))
+}
+
+func (h *Handler) handleUnmap(ctx context.Context, update tgbotapi.Update) {
+	keyword := strings.TrimSpace(update.Message.CommandArguments())
+	if keyword == "" {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /unmap слово"))
+		return
+	}
+	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Удаление сопоставления будет реализовано после подключения репозитория в handler"))
 }
 
 
