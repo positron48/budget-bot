@@ -101,10 +101,10 @@ func (p *MessageParser) ParseMessage(text string) (*ParsedTransaction, error) {
 			}
 			minor, _ := strconv.ParseInt(frac, 10, 64)
 			amountMinor := sign*(whole*100) + sign*minor
-			result.Amount = domain.NewMoney(amountMinor, "")
+			result.Amount = domain.NewMoney(amountMinor, result.Currency)
 		} else {
 			whole, _ := strconv.ParseInt(strings.ReplaceAll(numeric, "+", ""), 10, 64)
-			result.Amount = domain.NewMoney(sign*whole*100, "")
+			result.Amount = domain.NewMoney(sign*whole*100, result.Currency)
 		}
 		lower = strings.Replace(lower, m[0], "", 1)
 	}
