@@ -1,3 +1,6 @@
+//go:build !withgrpc
+// +build !withgrpc
+
 package grpc
 
 import "go.uber.org/zap"

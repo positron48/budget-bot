@@ -13,11 +13,7 @@ import (
     "google.golang.org/grpc/credentials/insecure"
 )
 
-// placeholder types for real pb clients
-type realCategoryClient struct{}
-type realReportClient struct{}
-type realTenantClient struct{}
-type realTransactionClient struct{}
+// We will wire actual pb clients to our adapters
 
 func WireClients(log *zap.Logger) (CategoryClient, ReportClient, TenantClient, TransactionClient) {
     ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -25,15 +21,13 @@ func WireClients(log *zap.Logger) (CategoryClient, ReportClient, TenantClient, T
     conn, err := grpc.DialContext(ctx, "127.0.0.1:8080", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
     if err != nil {
         log.Warn("grpc dial failed, falling back to fakes", zap.Error(err))
-        return &realCategoryClient{}, &realReportClient{}, &realTenantClient{}, &realTransactionClient{}
+        return nil, nil, nil, nil
     }
-    _ = conn // TODO: wrap pb clients to our interfaces
-    // Examples:
-    _ = pb.NewCategoryServiceClient(conn)
-    _ = pb.NewReportServiceClient(conn)
-    _ = pb.NewTenantServiceClient(conn)
-    _ = pb.NewTransactionServiceClient(conn)
-    return &realCategoryClient{}, &realReportClient{}, &realTenantClient{}, &realTransactionClient{}
+    cat := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn))
+    rep := NewGRPCReportClient(pb.NewReportServiceClient(conn))
+    ten := NewGRPCTenantClient(pb.NewTenantServiceClient(conn))
+    tx := NewGRPCTransactionClient(pb.NewTransactionServiceClient(conn))
+    return cat, rep, ten, tx
 }
 
 

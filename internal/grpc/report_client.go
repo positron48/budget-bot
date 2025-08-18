@@ -4,7 +4,9 @@ import (
     "context"
     "time"
 
+    pb "budget-bot/internal/pb/budget/v1"
     "budget-bot/internal/domain"
+    "google.golang.org/grpc/metadata"
 )
 
 type ReportClient interface {
@@ -26,5 +28,29 @@ func (f *FakeReportClient) TopCategories(ctx context.Context, tenantID string, f
 func (f *FakeReportClient) Recent(ctx context.Context, tenantID string, limit int) ([]string, error) {
     return []string{"-1000 продукты", "-300 такси", "+50000 зарплата"}, nil
 }
+
+type GRPCReportClient struct{ client pb.ReportServiceClient }
+
+func NewGRPCReportClient(c pb.ReportServiceClient) *GRPCReportClient { return &GRPCReportClient{client: c} }
+
+func (g *GRPCReportClient) GetStats(ctx context.Context, tenantID string, from, to time.Time) (*domain.Stats, error) {
+    // access token should be added by caller using metadata in context
+    res, err := g.client.GetMonthlySummary(ctx, &pb.GetMonthlySummaryRequest{Year: int32(from.Year()), Month: int32(from.Month())})
+    if err != nil { return nil, err }
+    return &domain.Stats{Period: from.Format("2006-01") , TotalIncome: res.TotalIncome.MinorUnits, TotalExpense: res.TotalExpense.MinorUnits, Currency: res.TotalIncome.CurrencyCode}, nil
+}
+
+func (g *GRPCReportClient) TopCategories(ctx context.Context, tenantID string, from, to time.Time, limit int) ([]*domain.CategoryTotal, error) {
+    // Not defined in proto; return empty for now
+    return []*domain.CategoryTotal{}, nil
+}
+
+func (g *GRPCReportClient) Recent(ctx context.Context, tenantID string, limit int) ([]string, error) {
+    // Not defined in proto; return empty for now
+    return []string{}, nil
+}
+
+// Optional helpers to attach token if needed
+func withBearer(ctx context.Context, token string) context.Context { if token==""{return ctx}; return metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token) }
 
 
