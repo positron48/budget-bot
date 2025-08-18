@@ -1,0 +1,28 @@
+version: "3.9"
+services:
+  bot:
+    build: .
+    container_name: budget-bot
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_API_BASE_URL=${TELEGRAM_API_BASE_URL}
+      - TELEGRAM_DEBUG=${TELEGRAM_DEBUG}
+      - TELEGRAM_UPDATES_TIMEOUT=${TELEGRAM_UPDATES_TIMEOUT}
+      - TELEGRAM_WEBHOOK_ENABLE=${TELEGRAM_WEBHOOK_ENABLE}
+      - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL}
+      - TELEGRAM_WEBHOOK_PATH=${TELEGRAM_WEBHOOK_PATH}
+      - GRPC_SERVER_ADDRESS=${GRPC_SERVER_ADDRESS}
+      - GRPC_INSECURE=${GRPC_INSECURE}
+      - DATABASE_DSN=${DATABASE_DSN}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - METRICS_ENABLED=${METRICS_ENABLED}
+      - SERVER_ADDRESS=${SERVER_ADDRESS}
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./configs:/srv/configs:ro
+      - ./migrations:/srv/migrations:ro
+      - ./data:/srv/data
+    restart: unless-stopped
+
+
