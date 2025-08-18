@@ -1,6 +1,9 @@
 APP_NAME := budget-bot
 GO := go
 
+-include .env
+.EXPORT_ALL_VARIABLES:
+
 .PHONY: all tidy build run test lint setup up
 
 all: build
@@ -12,7 +15,7 @@ build:
 	$(GO) build -o bin/$(APP_NAME) ./cmd/bot
 
 run: tidy build
-	TELEGRAM_BOT_TOKEN=$${TELEGRAM_BOT_TOKEN} ./bin/$(APP_NAME)
+	./bin/$(APP_NAME)
 
 test:
 	$(GO) test ./...

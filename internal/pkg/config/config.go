@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
@@ -46,6 +47,9 @@ type MetricsConfig struct {
 func Load() (*Config, error) {
 	v := viper.New()
 
+	// Load environment variables from .env if present
+	_ = godotenv.Load()
+
 	// Defaults
 	v.SetDefault("telegram.debug", true)
 	v.SetDefault("telegram.updates_timeout", 30)
@@ -70,9 +74,19 @@ func Load() (*Config, error) {
 	// Map some convenient env names
 	v.BindEnv("telegram.token", "TELEGRAM_BOT_TOKEN")
 	v.BindEnv("telegram.api_base_url", "TELEGRAM_API_BASE_URL")
+	v.BindEnv("telegram.debug", "TELEGRAM_DEBUG")
+	v.BindEnv("telegram.updates_timeout", "TELEGRAM_UPDATES_TIMEOUT")
+
 	v.BindEnv("grpc.address", "GRPC_SERVER_ADDRESS")
+	v.BindEnv("grpc.insecure", "GRPC_INSECURE")
+
+	v.BindEnv("database.driver", "DATABASE_DRIVER")
 	v.BindEnv("database.dsn", "DATABASE_DSN")
+
 	v.BindEnv("logging.level", "LOG_LEVEL")
+
+	v.BindEnv("metrics.enabled", "METRICS_ENABLED")
+	v.BindEnv("metrics.address", "METRICS_ADDRESS")
 
 	// Read file if present
 	if err := v.ReadInConfig(); err != nil {
