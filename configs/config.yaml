@@ -3,6 +3,9 @@ telegram:
   api_base_url: "http://127.0.0.1:3001/bot%s/%s"
   debug: true
   updates_timeout: 30
+  webhook_enable: false
+  webhook_url: ""
+  webhook_path: "/tg"
 
 grpc:
   address: "127.0.0.1:8080"
@@ -18,5 +21,8 @@ logging:
 metrics:
   enabled: false
   address: ":9090"
+
+server:
+  address: ":8088"
 
 

@@ -15,13 +15,17 @@ type Config struct {
 	Database DatabaseConfig `mapstructure:"database"`
 	Logging  LoggingConfig  `mapstructure:"logging"`
 	Metrics  MetricsConfig  `mapstructure:"metrics"`
+	Server   ServerConfig   `mapstructure:"server"`
 }
 
 type TelegramConfig struct {
-	Token        string `mapstructure:"token"`
-	APIBaseURL   string `mapstructure:"api_base_url"`
-	Debug        bool   `mapstructure:"debug"`
-	UpdatesTimeout int  `mapstructure:"updates_timeout"`
+	Token          string `mapstructure:"token"`
+	APIBaseURL     string `mapstructure:"api_base_url"`
+	Debug          bool   `mapstructure:"debug"`
+	UpdatesTimeout int    `mapstructure:"updates_timeout"`
+	WebhookEnable  bool   `mapstructure:"webhook_enable"`
+	WebhookURL     string `mapstructure:"webhook_url"`
+	WebhookPath    string `mapstructure:"webhook_path"`
 }
 
 type GRPCConfig struct {
@@ -43,6 +47,10 @@ type MetricsConfig struct {
 	Address string `mapstructure:"address"`
 }
 
+type ServerConfig struct {
+	Address string `mapstructure:"address"`
+}
+
 // Load loads configuration from configs/config.yaml and environment variables.
 func Load() (*Config, error) {
 	v := viper.New()
@@ -53,6 +61,8 @@ func Load() (*Config, error) {
 	// Defaults
 	v.SetDefault("telegram.debug", true)
 	v.SetDefault("telegram.updates_timeout", 30)
+	v.SetDefault("telegram.webhook_enable", false)
+	v.SetDefault("telegram.webhook_path", "/tg")
 	v.SetDefault("grpc.address", "127.0.0.1:8080")
 	v.SetDefault("grpc.insecure", true)
 	v.SetDefault("database.driver", "sqlite3")
@@ -60,6 +70,7 @@ func Load() (*Config, error) {
 	v.SetDefault("logging.level", "debug")
 	v.SetDefault("metrics.enabled", false)
 	v.SetDefault("metrics.address", ":9090")
+	v.SetDefault("server.address", ":8088")
 
 	// Files
 	v.SetConfigName("config")
@@ -76,6 +87,9 @@ func Load() (*Config, error) {
 	v.BindEnv("telegram.api_base_url", "TELEGRAM_API_BASE_URL")
 	v.BindEnv("telegram.debug", "TELEGRAM_DEBUG")
 	v.BindEnv("telegram.updates_timeout", "TELEGRAM_UPDATES_TIMEOUT")
+	v.BindEnv("telegram.webhook_enable", "TELEGRAM_WEBHOOK_ENABLE")
+	v.BindEnv("telegram.webhook_url", "TELEGRAM_WEBHOOK_URL")
+	v.BindEnv("telegram.webhook_path", "TELEGRAM_WEBHOOK_PATH")
 
 	v.BindEnv("grpc.address", "GRPC_SERVER_ADDRESS")
 	v.BindEnv("grpc.insecure", "GRPC_INSECURE")
@@ -87,6 +101,7 @@ func Load() (*Config, error) {
 
 	v.BindEnv("metrics.enabled", "METRICS_ENABLED")
 	v.BindEnv("metrics.address", "METRICS_ADDRESS")
+	v.BindEnv("server.address", "SERVER_ADDRESS")
 
 	// Read file if present
 	if err := v.ReadInConfig(); err != nil {

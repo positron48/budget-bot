@@ -62,23 +62,9 @@ func main() {
 		log.Fatal("database init failed", zap.Error(err))
 	}
 
-	// Health endpoint and metrics (optional)
-	go func() {
-		http.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("OK")) })
-		if cfg.Metrics.Enabled {
-			http.Handle("/metrics", metrics.Handler())
-		}
-		_ = http.ListenAndServe(":8088", nil)
-	}()
-
 	// Graceful shutdown
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-
-	// Updates config
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = cfg.Telegram.UpdatesTimeout
-	updates := bot.GetUpdatesChan(u)
 
 	// Handler wiring
 	stateRepo := repository.NewSQLiteDialogStateRepository(dbConn)
@@ -90,6 +76,49 @@ func main() {
 	authManager := botpkg.NewAuthManager(fakeAuth, sessionRepo, log)
 	h := botpkg.NewHandler(bot, stateRepo, authManager, mappingRepo, nil, log).WithPreferences(prefsRepo).WithDrafts(draftRepo)
 
+	// Webhook mode vs long polling
+	if cfg.Telegram.WebhookEnable && cfg.Telegram.WebhookURL != "" {
+		whCfg, _ := tgbotapi.NewWebhook(cfg.Telegram.WebhookURL)
+		if _, err := bot.Request(whCfg); err != nil {
+			log.Fatal("failed to set webhook", zap.Error(err))
+		}
+		// Serve webhook on configured path
+		http.HandleFunc(cfg.Telegram.WebhookPath, func(w http.ResponseWriter, r *http.Request) {
+			update, err := bot.HandleUpdate(r)
+			if err != nil {
+				log.Warn("webhook handle error", zap.Error(err))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			if update != nil {
+				go h.HandleUpdate(context.Background(), *update)
+			}
+			w.WriteHeader(http.StatusOK)
+		})
+		// Health and metrics on same server
+		http.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("OK")) })
+		if cfg.Metrics.Enabled {
+			http.Handle("/metrics", metrics.Handler())
+		}
+		go func() { _ = http.ListenAndServe(cfg.Server.Address, nil) }()
+		<-ctx.Done()
+		log.Info("shutting down")
+		return
+	}
+
+	// Health endpoint and metrics (optional) for long polling
+	go func() {
+		http.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("OK")) })
+		if cfg.Metrics.Enabled {
+			http.Handle("/metrics", metrics.Handler())
+		}
+		_ = http.ListenAndServe(cfg.Server.Address, nil)
+	}()
+
+	// Long polling loop
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = cfg.Telegram.UpdatesTimeout
+	updates := bot.GetUpdatesChan(u)
 	for {
 		select {
 		case <-ctx.Done():
@@ -102,7 +131,6 @@ func main() {
 
 	// add tiny sleep to appease lints about empty select default (not used here)
 	_ = time.Second
-
 }
 
 // normalizeAPIEndpoint ensures endpoint string is a valid format expected by tgbotapi: it must contain exactly two %s placeholders for token and method.
