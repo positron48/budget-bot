@@ -80,9 +80,10 @@ func main() {
 	// Handler wiring
 	stateRepo := repository.NewSQLiteDialogStateRepository(dbConn)
 	sessionRepo := repository.NewSQLiteSessionRepository(dbConn)
+	mappingRepo := repository.NewSQLiteCategoryMappingRepository(dbConn)
 	fakeAuth := &fakeAuthClient{}
 	authManager := botpkg.NewAuthManager(fakeAuth, sessionRepo, log)
-	h := botpkg.NewHandler(bot, stateRepo, authManager, log)
+	h := botpkg.NewHandler(bot, stateRepo, authManager, mappingRepo, nil, log)
 
 	for {
 		select {

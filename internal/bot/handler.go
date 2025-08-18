@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"budget-bot/internal/repository"
 	"budget-bot/internal/bot/ui"
 	grpcclient "budget-bot/internal/grpc"
+	"budget-bot/internal/repository"
+	"github.com/google/uuid"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
 )
@@ -20,10 +21,14 @@ type Handler struct {
 	parser     *MessageParser
 	categories grpcclient.CategoryClient
 	mappings   repository.CategoryMappingRepository
+	matcher    *CategoryMatcher
 }
 
-func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, auth *AuthManager, logger *zap.Logger) *Handler {
-	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser(), categories: &grpcclient.StaticCategoryClient{}}
+func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, auth *AuthManager, mappings repository.CategoryMappingRepository, categories grpcclient.CategoryClient, logger *zap.Logger) *Handler {
+	if categories == nil {
+		categories = &grpcclient.StaticCategoryClient{}
+	}
+	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser(), categories: categories, mappings: mappings, matcher: NewCategoryMatcher(mappings)}
 }
 
 func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
@@ -61,8 +66,15 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 	parsed, _ := h.parser.ParseMessage(update.Message.Text)
 	if parsed != nil && parsed.IsValid {
 		amt := float64(parsed.Amount.AmountMinor) / 100.0
+		// Try suggest category if session present
+		suffix := ""
+		if sess, err := h.auth.GetSession(ctx, update.Message.From.ID); err == nil && sess != nil && h.matcher != nil {
+			if m, err := h.matcher.FindCategory(ctx, sess.TenantID, parsed.Description); err == nil && m != nil {
+				suffix = fmt.Sprintf(" (категория: %s)", m.CategoryID)
+			}
+		}
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID,
-			fmt.Sprintf("Распознано: %s %.2f %s — %s", string(parsed.Type), amt, parsed.Amount.CurrencyCode, parsed.Description))
+			fmt.Sprintf("Распознано: %s %.2f %s — %s%s", string(parsed.Type), amt, parsed.Amount.CurrencyCode, parsed.Description, suffix))
 		_, _ = h.bot.Send(msg)
 		return
 	}
@@ -188,11 +200,70 @@ func (h *Handler) handleRegisterName(ctx context.Context, update tgbotapi.Update
 
 func (h *Handler) handleMap(ctx context.Context, update tgbotapi.Update) {
 	parts := strings.SplitN(strings.TrimSpace(update.Message.CommandArguments()), "=", 2)
-	if len(parts) != 2 {
-		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /map слово = category_id"))
+	args := strings.TrimSpace(update.Message.CommandArguments())
+	if args == "--all" {
+		sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
+		if err != nil {
+			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
+			return
+		}
+		items, err := h.mappings.ListMappings(ctx, sess.TenantID)
+		if err != nil {
+			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить сопоставления"))
+			return
+		}
+		if len(items) == 0 {
+			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сопоставлений нет"))
+			return
+		}
+		var b strings.Builder
+		for _, m := range items {
+			b.WriteString(fmt.Sprintf("%s = %s\n", m.Keyword, m.CategoryID))
+		}
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
 		return
 	}
-	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сопоставление будет реализовано после подключения репозитория в handler"))
+	if len(parts) == 1 {
+		// show mapping for keyword
+		keyword := strings.TrimSpace(parts[0])
+		if keyword == "" {
+			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /map слово = category_id"))
+			return
+		}
+		sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
+		if err != nil {
+			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
+			return
+		}
+		m, err := h.mappings.FindMapping(ctx, sess.TenantID, keyword)
+		if err != nil || m == nil {
+			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сопоставление не найдено"))
+			return
+		}
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("%s = %s", m.Keyword, m.CategoryID)))
+		return
+	}
+	if len(parts) == 2 {
+		keyword := strings.TrimSpace(parts[0])
+		categoryID := strings.TrimSpace(parts[1])
+		if keyword == "" || categoryID == "" {
+			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /map слово = category_id"))
+			return
+		}
+		sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
+		if err != nil {
+			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
+			return
+		}
+		id := uuid.NewString()
+		if err := h.mappings.AddMapping(ctx, &repository.CategoryMapping{ID: id, TenantID: sess.TenantID, Keyword: keyword, CategoryID: categoryID, Priority: 0}); err != nil {
+			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось сохранить сопоставление"))
+			return
+		}
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сопоставление сохранено"))
+		return
+	}
+	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /map слово = category_id"))
 }
 
 func (h *Handler) handleUnmap(ctx context.Context, update tgbotapi.Update) {
@@ -201,7 +272,16 @@ func (h *Handler) handleUnmap(ctx context.Context, update tgbotapi.Update) {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /unmap слово"))
 		return
 	}
-	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Удаление сопоставления будет реализовано после подключения репозитория в handler"))
+	sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
+	if err != nil {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
+		return
+	}
+	if err := h.mappings.RemoveMapping(ctx, sess.TenantID, keyword); err != nil {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось удалить сопоставление"))
+		return
+	}
+	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сопоставление удалено"))
 }
 
 func (h *Handler) handleCategories(ctx context.Context, update tgbotapi.Update) {
