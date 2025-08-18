@@ -75,6 +75,14 @@ func (h *Handler) WithTransactionClient(tc grpcclient.TransactionClient) *Handle
 	return h
 }
 
+// WithTenantClient allows injecting a tenant client.
+func (h *Handler) WithTenantClient(tc grpcclient.TenantClient) *Handler {
+	if tc != nil {
+		h.tenants = tc
+	}
+	return h
+}
+
 func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 	if update.CallbackQuery != nil {
 		h.handleCallback(ctx, update)
@@ -613,7 +621,7 @@ func (h *Handler) handleStats(ctx context.Context, update tgbotapi.Update) {
 	now := time.Now()
 	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	to := from.AddDate(0, 1, -1)
-	st, err := h.report.GetStats(ctx, sess.TenantID, from, to)
+	st, err := h.report.GetStats(ctx, sess.TenantID, from, to, sess.AccessToken)
 	if err != nil {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить статистику"))
 		return
@@ -631,7 +639,7 @@ func (h *Handler) handleTopCategories(ctx context.Context, update tgbotapi.Updat
 	now := time.Now()
 	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	to := from.AddDate(0, 1, -1)
-	items, err := h.report.TopCategories(ctx, sess.TenantID, from, to, 5)
+	items, err := h.report.TopCategories(ctx, sess.TenantID, from, to, 5, sess.AccessToken)
 	if err != nil {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить топ категорий"))
 		return
@@ -654,7 +662,7 @@ func (h *Handler) handleRecent(ctx context.Context, update tgbotapi.Update) {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
 		return
 	}
-	items, err := h.report.Recent(ctx, sess.TenantID, 10)
+	items, err := h.report.Recent(ctx, sess.TenantID, 10, sess.AccessToken)
 	if err != nil {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить последние транзакции"))
 		return

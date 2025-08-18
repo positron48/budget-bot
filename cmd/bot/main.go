@@ -73,15 +73,15 @@ func main() {
 	mappingRepo := repository.NewSQLiteCategoryMappingRepository(dbConn)
 	prefsRepo := repository.NewSQLitePreferencesRepository(dbConn)
 	draftRepo := repository.NewSQLiteDraftRepository(dbConn)
-	fakeAuth := &fakeAuthClient{}
-	authManager := botpkg.NewAuthManager(fakeAuth, sessionRepo, log)
-	catClient, reportClient, _, txClient := grpcwire.WireClients(log)
+	authManager := botpkg.NewAuthManager(makeAuthClient(log, cfg), sessionRepo, log)
+	catClient, reportClient, tenantClient, txClient := grpcwire.WireClients(log)
 	h := botpkg.NewHandler(bot, stateRepo, authManager, mappingRepo, catClient, log).
 		WithPreferences(prefsRepo).
 		WithDrafts(draftRepo).
 		WithCategoryClient(catClient).
 		WithReportClient(reportClient).
-		WithTransactionClient(txClient)
+		WithTransactionClient(txClient).
+		WithTenantClient(tenantClient)
 
 	// Webhook mode vs long polling
 	if cfg.Telegram.WebhookEnable && cfg.Telegram.WebhookURL != "" {
