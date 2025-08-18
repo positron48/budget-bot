@@ -219,6 +219,20 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 		_, _ = h.bot.Send(msg)
 		return
 	}
+
+	if strings.HasPrefix(data, "lang:") {
+		lang := strings.TrimPrefix(data, "lang:")
+		_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Язык: "+lang))
+		_, _ = h.bot.Send(tgbotapi.NewMessage(cb.Message.Chat.ID, "Язык обновлён"))
+		return
+	}
+
+	if strings.HasPrefix(data, "cur:") {
+		cur := strings.TrimPrefix(data, "cur:")
+		_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Валюта: "+cur))
+		_, _ = h.bot.Send(tgbotapi.NewMessage(cb.Message.Chat.ID, "Валюта по умолчанию обновлена"))
+		return
+	}
 }
 
 func (h *Handler) handleCommand(ctx context.Context, update tgbotapi.Update) {
@@ -237,6 +251,10 @@ func (h *Handler) handleCommand(ctx context.Context, update tgbotapi.Update) {
 		h.handleUnmap(ctx, update)
 	case "categories":
 		h.handleCategories(ctx, update)
+	case "language":
+		h.handleLanguage(ctx, update)
+	case "currency":
+		h.handleCurrency(ctx, update)
 	default:
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Unknown command")
 		_, _ = h.bot.Send(msg)
@@ -438,6 +456,20 @@ func (h *Handler) handleCategories(ctx context.Context, update tgbotapi.Update) 
 	}
 	kb := ui.CreateCategoryKeyboard(list)
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Выберите категорию")
+	msg.ReplyMarkup = kb
+	_, _ = h.bot.Send(msg)
+}
+
+func (h *Handler) handleLanguage(ctx context.Context, update tgbotapi.Update) {
+	kb := ui.CreateLanguageKeyboard()
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Выберите язык интерфейса")
+	msg.ReplyMarkup = kb
+	_, _ = h.bot.Send(msg)
+}
+
+func (h *Handler) handleCurrency(ctx context.Context, update tgbotapi.Update) {
+	kb := ui.CreateCurrencyKeyboard()
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Выберите валюту по умолчанию")
 	msg.ReplyMarkup = kb
 	_, _ = h.bot.Send(msg)
 }

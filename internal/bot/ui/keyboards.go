@@ -22,4 +22,22 @@ func CreateConfirmationKeyboard() tgbotapi.InlineKeyboardMarkup {
     )
 }
 
+func CreateLanguageKeyboard() tgbotapi.InlineKeyboardMarkup {
+    ru := tgbotapi.NewInlineKeyboardButtonData("🇷🇺 Русский", "lang:ru")
+    en := tgbotapi.NewInlineKeyboardButtonData("🇺🇸 English", "lang:en")
+    return tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(ru, en))
+}
+
+func CreateCurrencyKeyboard() tgbotapi.InlineKeyboardMarkup {
+    rub := tgbotapi.NewInlineKeyboardButtonData("₽ RUB", "cur:RUB")
+    usd := tgbotapi.NewInlineKeyboardButtonData("$ USD", "cur:USD")
+    eur := tgbotapi.NewInlineKeyboardButtonData("€ EUR", "cur:EUR")
+    gbp := tgbotapi.NewInlineKeyboardButtonData("£ GBP", "cur:GBP")
+    jpy := tgbotapi.NewInlineKeyboardButtonData("¥ JPY", "cur:JPY")
+    return tgbotapi.NewInlineKeyboardMarkup(
+        tgbotapi.NewInlineKeyboardRow(rub, usd, eur),
+        tgbotapi.NewInlineKeyboardRow(gbp, jpy),
+    )
+}
+
 
