@@ -18,3 +18,16 @@
 
 ---
 
+действуй
+
+---
+
+proto файлы можешь скачать сам тут - https://github.com/positron48/budget/tree/master/proto
+и остальное тоже сам
+
+---
+
+есть дубль генерации в internal/pb - 2 папки
+
+---
+

@@ -50,7 +50,11 @@ proto-tools:
 	$(GO) install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.3.0
 
 proto: proto-tools
+	rm -rf $(PB_OUT)
 	mkdir -p $(PB_OUT)
-	protoc -I $(PROTO_DIR) --go_out=$(PB_OUT) --go-grpc_out=$(PB_OUT) $(PROTO_FILES)
+	protoc -I $(PROTO_DIR) \
+		--go_out=paths=source_relative:$(PB_OUT) \
+		--go-grpc_out=paths=source_relative:$(PB_OUT) \
+		$(PROTO_FILES)
 
 
