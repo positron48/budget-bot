@@ -1,0 +1,21 @@
+# Go
+bin/
+dist/
+*.exe
+*.log
+*.out
+
+# IDE
+.idea/
+.vscode/
+
+# Env
+.env
+
+# Data
+data/
+
+# Dependencies
+vendor/
+
+

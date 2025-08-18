@@ -1,0 +1,22 @@
+telegram:
+  token: "${TELEGRAM_BOT_TOKEN}"
+  api_base_url: "http://127.0.0.1:3001/bot%s/%s"
+  debug: true
+  updates_timeout: 30
+
+grpc:
+  address: "127.0.0.1:8080"
+  insecure: true
+
+database:
+  driver: "sqlite3"
+  dsn: "file:./data/bot.sqlite3?_foreign_keys=on"
+
+logging:
+  level: "debug"
+
+metrics:
+  enabled: false
+  address: ":9090"
+
+
