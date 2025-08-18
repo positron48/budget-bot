@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package budget.v1;
+
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+
+// import "budget/v1/common.proto"; // currently unused
+
+// Minimal import API scaffold for CSV (future): streaming upload + mapping + preview + commit
+
+message StartCsvImportRequest {
+  string filename = 1;
+  string delimiter = 2;   // default ","
+  string quote = 3;       // default '"'
+  string encoding = 4;    // default "utf-8"
+}
+message StartCsvImportResponse { string import_id = 1; }
+
+message UploadCsvChunkRequest {
+  string import_id = 1;
+  bytes chunk = 2;
+  bool last = 3;
+}
+message UploadCsvChunkResponse { int64 received_bytes = 1; }
+
+message CsvColumnMapping {
+  string date_column = 1;
+  string amount_column = 2;
+  string currency_code_column = 3;  // optional
+  string type_column = 4;           // income/expense or signed amounts
+  string category_column = 5;       // to map names → category_ids
+  string comment_column = 6;
+}
+
+message ConfigureCsvMappingRequest {
+  string import_id = 1;
+  CsvColumnMapping mapping = 2;
+}
+message ConfigureCsvMappingResponse {}
+
+message PreviewCsvImportRequest { string import_id = 1; int32 limit = 2; }
+message PreviewCsvImportResponse {
+  int32 total_rows = 1;
+  int32 valid_rows = 2;
+  int32 invalid_rows = 3;
+}
+
+message CommitCsvImportRequest { string import_id = 1; bool dry_run = 2; }
+message CommitCsvImportResponse { int32 inserted = 1; int32 failed = 2; }
+
+service ImportService {
+  rpc StartCsvImport(StartCsvImportRequest) returns (StartCsvImportResponse);
+  rpc UploadCsvChunk(UploadCsvChunkRequest) returns (UploadCsvChunkResponse);
+  rpc ConfigureCsvMapping(ConfigureCsvMappingRequest) returns (ConfigureCsvMappingResponse);
+  rpc PreviewCsvImport(PreviewCsvImportRequest) returns (PreviewCsvImportResponse);
+  rpc CommitCsvImport(CommitCsvImportRequest) returns (CommitCsvImportResponse);
+}
+
+

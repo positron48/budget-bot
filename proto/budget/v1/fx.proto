@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package budget.v1;
+
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+
+import "google/protobuf/timestamp.proto";
+// import "budget/v1/common.proto"; // currently unused
+
+// Represents a single FX rate quote (from → to) as of specific date/time
+message FxRate {
+  string from_currency_code = 1; // e.g. "USD"
+  string to_currency_code = 2;   // e.g. "RUB"
+  string rate_decimal = 3;       // e.g. "92.3456"
+  google.protobuf.Timestamp as_of = 4;
+  string provider = 5;           // e.g. "ecb", "cbr", "manual"
+}
+
+message GetRateRequest {
+  string from_currency_code = 1;
+  string to_currency_code = 2;
+  google.protobuf.Timestamp as_of = 3; // date at which to get the rate (truncate to day server-side if needed)
+}
+message GetRateResponse { FxRate rate = 1; }
+
+message UpsertRateRequest { FxRate rate = 1; }
+message UpsertRateResponse { FxRate rate = 1; }
+
+message BatchGetRatesRequest {
+  repeated string from_currency_codes = 1;
+  string to_currency_code = 2;
+  google.protobuf.Timestamp as_of = 3;
+}
+message BatchGetRatesResponse { repeated FxRate rates = 1; }
+
+service FxService {
+  // Returns a rate from one currency to another as of date
+  rpc GetRate(GetRateRequest) returns (GetRateResponse);
+  // Administrative/manual override of a rate
+  rpc UpsertRate(UpsertRateRequest) returns (UpsertRateResponse);
+  // Batch query for multiple currencies to the same target
+  rpc BatchGetRates(BatchGetRatesRequest) returns (BatchGetRatesResponse);
+}
+
+

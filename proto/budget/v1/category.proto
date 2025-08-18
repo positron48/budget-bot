@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package budget.v1;
+
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+
+import "google/protobuf/timestamp.proto";
+import "budget/v1/common.proto";
+
+message CategoryTranslation {
+  string locale = 1;        // e.g. "en", "ru"
+  string name = 2;
+  string description = 3;
+}
+
+message Category {
+  string id = 1;                            // UUID
+  string tenant_id = 2;                     // UUID
+  CategoryKind kind = 3;                    // income / expense
+  string code = 4;                          // unique per tenant+kind
+  string parent_id = 5;                     // optional (for hierarchy)
+  bool is_active = 6;
+  google.protobuf.Timestamp created_at = 7;
+  repeated CategoryTranslation translations = 8;
+}
+
+message CreateCategoryRequest {
+  CategoryKind kind = 1;
+  string code = 2;
+  string parent_id = 3;
+  bool is_active = 4;
+  repeated CategoryTranslation translations = 5;
+}
+message CreateCategoryResponse { Category category = 1; }
+
+message UpdateCategoryRequest {
+  string id = 1;
+  string code = 2;
+  string parent_id = 3;
+  bool is_active = 4;
+  repeated CategoryTranslation translations = 5;
+}
+message UpdateCategoryResponse { Category category = 1; }
+
+message DeleteCategoryRequest { string id = 1; }
+message DeleteCategoryResponse {}
+
+message GetCategoryRequest { string id = 1; string locale = 2; }
+message GetCategoryResponse { Category category = 1; }
+
+message ListCategoriesRequest {
+  CategoryKind kind = 1;
+  bool include_inactive = 2;
+  string locale = 3;                 // preferred translation
+}
+message ListCategoriesResponse { repeated Category categories = 1; }
+
+service CategoryService {
+  rpc CreateCategory(CreateCategoryRequest) returns (CreateCategoryResponse);
+  rpc UpdateCategory(UpdateCategoryRequest) returns (UpdateCategoryResponse);
+  rpc DeleteCategory(DeleteCategoryRequest) returns (DeleteCategoryResponse);
+  rpc GetCategory(GetCategoryRequest) returns (GetCategoryResponse);
+  rpc ListCategories(ListCategoriesRequest) returns (ListCategoriesResponse);
+}
+
+

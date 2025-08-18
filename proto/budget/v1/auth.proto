@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package budget.v1;
+
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+
+import "google/protobuf/timestamp.proto";
+import "budget/v1/user.proto";
+import "budget/v1/tenant.proto";
+
+message TokenPair {
+  string access_token = 1;
+  string refresh_token = 2;
+  google.protobuf.Timestamp access_token_expires_at = 3;
+  google.protobuf.Timestamp refresh_token_expires_at = 4;
+  string token_type = 5; // "Bearer"
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string name = 3;
+  string locale = 4;             // preferred locale
+  string tenant_name = 5;        // optional initial tenant name
+}
+message RegisterResponse {
+  TokenPair tokens = 1;
+  User user = 2;
+  Tenant tenant = 3;             // initial tenant if created
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+message LoginResponse {
+  TokenPair tokens = 1;
+  repeated TenantMembership memberships = 2;
+}
+
+message RefreshTokenRequest { string refresh_token = 1; }
+message RefreshTokenResponse { TokenPair tokens = 1; }
+
+message RequestPasswordResetRequest { string email = 1; }
+message RequestPasswordResetResponse {}
+
+message ResetPasswordRequest {
+  string reset_token = 1;
+  string new_password = 2;
+}
+message ResetPasswordResponse {}
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+}
+
+

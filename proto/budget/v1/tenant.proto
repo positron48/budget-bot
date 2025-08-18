@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package budget.v1;
+
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+
+import "google/protobuf/timestamp.proto";
+import "budget/v1/user.proto";
+
+enum TenantRole {
+  TENANT_ROLE_UNSPECIFIED = 0;
+  TENANT_ROLE_OWNER = 1;
+  TENANT_ROLE_ADMIN = 2;
+  TENANT_ROLE_MEMBER = 3;
+}
+
+message Tenant {
+  string id = 1;                         // UUID
+  string name = 2;                       // Display name
+  string slug = 3;                       // URL-friendly identifier
+  string default_currency_code = 4;      // e.g. "USD", "RUB"
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message TenantMembership {
+  Tenant tenant = 1;
+  TenantRole role = 2;
+  bool is_default = 3;
+}
+
+message CreateTenantRequest {
+  string name = 1;
+  string slug = 2;                       // optional, server may generate
+  string default_currency_code = 3;
+}
+message CreateTenantResponse { Tenant tenant = 1; }
+
+message ListMyTenantsRequest {}
+message ListMyTenantsResponse { repeated TenantMembership memberships = 1; }
+
+// Update tenant settings (name, slug, default currency)
+message UpdateTenantRequest {
+  string id = 1;                         // tenant id
+  string name = 2;
+  string slug = 3;
+  string default_currency_code = 4;
+}
+message UpdateTenantResponse { Tenant tenant = 1; }
+
+// Members management
+message TenantMember {
+  User user = 1;
+  TenantRole role = 2;
+  bool is_default = 3;
+}
+
+message ListMembersRequest { string tenant_id = 1; }
+message ListMembersResponse { repeated TenantMember members = 1; }
+
+message AddMemberRequest {
+  string tenant_id = 1;
+  string email = 2; // existing user's email
+  TenantRole role = 3;
+}
+message AddMemberResponse { TenantMember member = 1; }
+
+message UpdateMemberRoleRequest {
+  string tenant_id = 1;
+  string user_id = 2;
+  TenantRole role = 3;
+}
+message UpdateMemberRoleResponse { TenantMember member = 1; }
+
+message RemoveMemberRequest {
+  string tenant_id = 1;
+  string user_id = 2;
+}
+message RemoveMemberResponse {}
+
+service TenantService {
+  rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
+  rpc ListMyTenants(ListMyTenantsRequest) returns (ListMyTenantsResponse);
+  rpc UpdateTenant(UpdateTenantRequest) returns (UpdateTenantResponse);
+  rpc ListMembers(ListMembersRequest) returns (ListMembersResponse);
+  rpc AddMember(AddMemberRequest) returns (AddMemberResponse);
+  rpc UpdateMemberRole(UpdateMemberRoleRequest) returns (UpdateMemberRoleResponse);
+  rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
+}
+
+

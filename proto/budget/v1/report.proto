@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package budget.v1;
+
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+
+import "budget/v1/common.proto";
+
+message MonthlyCategorySummaryItem {
+  string category_id = 1;
+  string category_name = 2;   // localized best-effort
+  TransactionType type = 3;   // income / expense
+  Money total = 4;            // in target currency
+}
+
+message GetMonthlySummaryRequest {
+  int32 year = 1;             // e.g., 2025
+  int32 month = 2;            // 1..12
+  string locale = 3;          // preferred translation
+  string target_currency_code = 4; // if empty, use tenant default currency
+  int32 timezone_offset_minutes = 5; // minutes to add to local time to get UTC (JS getTimezoneOffset)
+}
+
+message GetMonthlySummaryResponse {
+  repeated MonthlyCategorySummaryItem items = 1;
+  Money total_income = 2;     // in target currency
+  Money total_expense = 3;    // in target currency
+}
+
+service ReportService {
+  rpc GetMonthlySummary(GetMonthlySummaryRequest) returns (GetMonthlySummaryResponse);
+}
+
+

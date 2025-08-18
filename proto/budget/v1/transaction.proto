@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package budget.v1;
+
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/field_mask.proto";
+import "budget/v1/common.proto";
+
+message Transaction {
+  string id = 1;                           // UUID
+  string tenant_id = 2;                    // UUID
+  string user_id = 3;                      // UUID
+  string category_id = 4;                  // UUID
+  TransactionType type = 5;                // income / expense
+  Money amount = 6;                        // original amount in transaction currency
+  Money base_amount = 7;                   // amount converted to tenant's base currency (if currency differs)
+  FxInfo fx = 8;                           // FX used to compute base_amount (optional if same currency)
+  google.protobuf.Timestamp occurred_at = 9;
+  string comment = 10;
+  google.protobuf.Timestamp created_at = 11;
+}
+
+message CreateTransactionRequest {
+  TransactionType type = 1;
+  string category_id = 2;
+  Money amount = 3;                        // original amount
+  google.protobuf.Timestamp occurred_at = 4;
+  string comment = 5;
+}
+message CreateTransactionResponse { Transaction transaction = 1; }
+
+message UpdateTransactionRequest {
+  string id = 1;
+  Transaction transaction = 2;            // new values
+  google.protobuf.FieldMask update_mask = 3; // paths relative to Transaction (e.g. "category_id,amount,comment,occurred_at")
+}
+message UpdateTransactionResponse { Transaction transaction = 1; }
+
+message DeleteTransactionRequest { string id = 1; }
+message DeleteTransactionResponse {}
+
+message GetTransactionRequest { string id = 1; }
+message GetTransactionResponse { Transaction transaction = 1; }
+
+message ListTransactionsRequest {
+  PageRequest page = 1;
+  DateRange date_range = 2;
+  repeated string category_ids = 3;
+  TransactionType type = 4;        // optional filter
+  int64 min_minor_units = 5;        // optional amount filters
+  int64 max_minor_units = 6;
+  string currency_code = 7;         // optional filter by transaction currency
+  string search = 8;                 // comment search
+}
+message ListTransactionsResponse {
+  repeated Transaction transactions = 1;
+  PageResponse page = 2;
+}
+
+service TransactionService {
+  rpc CreateTransaction(CreateTransactionRequest) returns (CreateTransactionResponse);
+  rpc UpdateTransaction(UpdateTransactionRequest) returns (UpdateTransactionResponse);
+  rpc DeleteTransaction(DeleteTransactionRequest) returns (DeleteTransactionResponse);
+  rpc GetTransaction(GetTransactionRequest) returns (GetTransactionResponse);
+  rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
+  // Returns totals (income/expense) for the provided filters, ignoring pagination
+  rpc GetTransactionsTotals(GetTransactionsTotalsRequest) returns (GetTransactionsTotalsResponse);
+}
+
+// Filtered totals for transactions (ignores pagination). Totals are returned in tenant base currency.
+message GetTransactionsTotalsRequest {
+  DateRange date_range = 1;
+  repeated string category_ids = 2;
+  TransactionType type = 3;        // optional filter
+  int64 min_minor_units = 4;        // optional amount filters (by original amount)
+  int64 max_minor_units = 5;
+  string currency_code = 6;         // optional filter by transaction currency
+  string search = 7;                // comment search
+}
+
+message GetTransactionsTotalsResponse {
+  Money total_income = 1;   // in tenant base currency
+  Money total_expense = 2;  // in tenant base currency
+}
+
+

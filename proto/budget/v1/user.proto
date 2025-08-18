@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package budget.v1;
+
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+
+import "google/protobuf/timestamp.proto";
+
+message User {
+  string id = 1;                       // UUID
+  string email = 2;
+  string name = 3;
+  string locale = 4;                   // e.g. "en", "ru"
+  bool email_verified = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message GetMeRequest {}
+message GetMeResponse { User user = 1; }
+
+message UpdateProfileRequest {
+  string name = 1;
+  string locale = 2;
+}
+message UpdateProfileResponse { User user = 1; }
+
+message ChangePasswordRequest {
+  string current_password = 1;
+  string new_password = 2;
+}
+message ChangePasswordResponse {}
+
+service UserService {
+  rpc GetMe(GetMeRequest) returns (GetMeResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+}
+
+
