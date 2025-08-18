@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"budget-bot/internal/repository"
+	"budget-bot/internal/bot/ui"
+	grpcclient "budget-bot/internal/grpc"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
 )
@@ -16,10 +18,12 @@ type Handler struct {
 	auth       *AuthManager
 	logger     *zap.Logger
 	parser     *MessageParser
+	categories grpcclient.CategoryClient
+	mappings   repository.CategoryMappingRepository
 }
 
 func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, auth *AuthManager, logger *zap.Logger) *Handler {
-	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser()}
+	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser(), categories: &grpcclient.StaticCategoryClient{}}
 }
 
 func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
@@ -78,6 +82,8 @@ func (h *Handler) handleCommand(ctx context.Context, update tgbotapi.Update) {
 		h.handleMap(ctx, update)
 	case "unmap":
 		h.handleUnmap(ctx, update)
+	case "categories":
+		h.handleCategories(ctx, update)
 	default:
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Unknown command")
 		_, _ = h.bot.Send(msg)
@@ -196,6 +202,23 @@ func (h *Handler) handleUnmap(ctx context.Context, update tgbotapi.Update) {
 		return
 	}
 	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Удаление сопоставления будет реализовано после подключения репозитория в handler"))
+}
+
+func (h *Handler) handleCategories(ctx context.Context, update tgbotapi.Update) {
+	sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
+	if err != nil {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
+		return
+	}
+	list, err := h.categories.ListCategories(ctx, sess.TenantID)
+	if err != nil {
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить категории"))
+		return
+	}
+	kb := ui.CreateCategoryKeyboard(list)
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Выберите категорию")
+	msg.ReplyMarkup = kb
+	_, _ = h.bot.Send(msg)
 }
 
 
