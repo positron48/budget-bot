@@ -81,9 +81,10 @@ func main() {
 	stateRepo := repository.NewSQLiteDialogStateRepository(dbConn)
 	sessionRepo := repository.NewSQLiteSessionRepository(dbConn)
 	mappingRepo := repository.NewSQLiteCategoryMappingRepository(dbConn)
+	prefsRepo := repository.NewSQLitePreferencesRepository(dbConn)
 	fakeAuth := &fakeAuthClient{}
 	authManager := botpkg.NewAuthManager(fakeAuth, sessionRepo, log)
-	h := botpkg.NewHandler(bot, stateRepo, authManager, mappingRepo, nil, log)
+	h := botpkg.NewHandler(bot, stateRepo, authManager, mappingRepo, nil, log).WithPreferences(prefsRepo)
 
 	for {
 		select {

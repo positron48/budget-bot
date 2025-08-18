@@ -24,6 +24,7 @@ type Handler struct {
 	mappings   repository.CategoryMappingRepository
 	matcher    *CategoryMatcher
 	txClient   grpcclient.TransactionClient
+	prefs      repository.PreferencesRepository
 }
 
 func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, auth *AuthManager, mappings repository.CategoryMappingRepository, categories grpcclient.CategoryClient, logger *zap.Logger) *Handler {
@@ -31,6 +32,12 @@ func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, a
 		categories = &grpcclient.StaticCategoryClient{}
 	}
 	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser(), categories: categories, mappings: mappings, matcher: NewCategoryMatcher(mappings), txClient: &grpcclient.FakeTransactionClient{}}
+}
+
+// WithPreferences allows injecting a preferences repository after construction.
+func (h *Handler) WithPreferences(p repository.PreferencesRepository) *Handler {
+	h.prefs = p
+	return h
 }
 
 func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
@@ -71,8 +78,17 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 	// Try parse transaction
 	parsed, _ := h.parser.ParseMessage(update.Message.Text)
 	if parsed != nil && parsed.IsValid {
-		amt := float64(parsed.Amount.AmountMinor) / 100.0
+		// Default currency from preferences if missing
 		cur := parsed.Currency
+		if cur == "" && h.prefs != nil {
+			if pref, err := h.prefs.GetPreferences(ctx, update.Message.From.ID); err == nil && pref != nil && pref.DefaultCurrency != "" {
+				cur = pref.DefaultCurrency
+			}
+			if cur == "" {
+				cur = "RUB"
+			}
+		}
+		amt := float64(parsed.Amount.AmountMinor) / 100.0
 		// Try suggest category if session present
 		if sess, err := h.auth.GetSession(ctx, update.Message.From.ID); err == nil && sess != nil {
 			var catID string
@@ -219,16 +235,29 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 		_, _ = h.bot.Send(msg)
 		return
 	}
-
 	if strings.HasPrefix(data, "lang:") {
 		lang := strings.TrimPrefix(data, "lang:")
+		if h.prefs != nil {
+			// preserve currency
+			var cur string
+			if pref, err := h.prefs.GetPreferences(ctx, cb.From.ID); err == nil && pref != nil {
+				cur = pref.DefaultCurrency
+			}
+			_ = h.prefs.SavePreferences(ctx, &repository.UserPreferences{TelegramID: cb.From.ID, Language: lang, DefaultCurrency: cur})
+		}
 		_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Язык: "+lang))
 		_, _ = h.bot.Send(tgbotapi.NewMessage(cb.Message.Chat.ID, "Язык обновлён"))
 		return
 	}
-
 	if strings.HasPrefix(data, "cur:") {
 		cur := strings.TrimPrefix(data, "cur:")
+		if h.prefs != nil {
+			var lang string
+			if pref, err := h.prefs.GetPreferences(ctx, cb.From.ID); err == nil && pref != nil {
+				lang = pref.Language
+			}
+			_ = h.prefs.SavePreferences(ctx, &repository.UserPreferences{TelegramID: cb.From.ID, Language: lang, DefaultCurrency: cur})
+		}
 		_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Валюта: "+cur))
 		_, _ = h.bot.Send(tgbotapi.NewMessage(cb.Message.Chat.ID, "Валюта по умолчанию обновлена"))
 		return
