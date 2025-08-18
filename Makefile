@@ -28,6 +28,16 @@ setup:
 
 up: run
 
+.PHONY: docker-build compose-up compose-down
+docker-build:
+	docker build -t budget-bot:latest .
+
+compose-up:
+	docker compose up -d --build
+
+compose-down:
+	docker compose down
+
 # --- Proto generation ---
 PROTO_DIR ?= ./proto
 PB_OUT := internal/pb

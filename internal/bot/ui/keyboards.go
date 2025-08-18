@@ -50,4 +50,21 @@ func CreateTenantKeyboard(items []*grpcclient.Tenant) tgbotapi.InlineKeyboardMar
     return tgbotapi.NewInlineKeyboardMarkup(rows...)
 }
 
+func CreateMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
+    row1 := tgbotapi.NewKeyboardButtonRow(
+        tgbotapi.NewKeyboardButton("/stats"),
+        tgbotapi.NewKeyboardButton("/recent"),
+        tgbotapi.NewKeyboardButton("/top_categories"),
+    )
+    row2 := tgbotapi.NewKeyboardButtonRow(
+        tgbotapi.NewKeyboardButton("/categories"),
+        tgbotapi.NewKeyboardButton("/profile"),
+        tgbotapi.NewKeyboardButton("/switch_tenant"),
+    )
+    kb := tgbotapi.NewReplyKeyboard(row1, row2)
+    kb.ResizeKeyboard = true
+    kb.Selective = true
+    return kb
+}
+
 

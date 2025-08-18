@@ -396,6 +396,8 @@ func (h *Handler) handleStart(ctx context.Context, update tgbotapi.Update) {
 	b.WriteString("/register — регистрация\n")
 	b.WriteString("/logout — выход\n")
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, b.String())
+	menu := ui.CreateMainMenuKeyboard()
+	msg.ReplyMarkup = menu
 	_, _ = h.bot.Send(msg)
 }
 
