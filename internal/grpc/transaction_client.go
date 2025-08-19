@@ -22,6 +22,7 @@ type CreateTransactionRequest struct {
 type TransactionClient interface {
     CreateTransaction(ctx context.Context, req *CreateTransactionRequest, accessToken string) (string, error)
     ListRecent(ctx context.Context, tenantID string, limit int, accessToken string) ([]*pb.Transaction, error)
+    ListForExport(ctx context.Context, tenantID string, from, to time.Time, limit int, accessToken string) ([]*pb.Transaction, error)
 }
 
 // FakeTransactionClient is a temporary stub.
@@ -32,6 +33,10 @@ func (f *FakeTransactionClient) CreateTransaction(ctx context.Context, req *Crea
 }
 
 func (f *FakeTransactionClient) ListRecent(ctx context.Context, tenantID string, limit int, accessToken string) ([]*pb.Transaction, error) {
+    return []*pb.Transaction{}, nil
+}
+
+func (f *FakeTransactionClient) ListForExport(ctx context.Context, tenantID string, from, to time.Time, limit int, accessToken string) ([]*pb.Transaction, error) {
     return []*pb.Transaction{}, nil
 }
 
@@ -59,6 +64,16 @@ func (g *GRPCTransactionClient) ListRecent(ctx context.Context, tenantID string,
     res, err := g.client.ListTransactions(ctx, &pb.ListTransactionsRequest{
         Page: &pb.PageRequest{Page: 1, PageSize: int32(limit), Sort: "occurred_at desc"},
     })
+    if err != nil { return nil, err }
+    return res.GetTransactions(), nil
+}
+
+func (g *GRPCTransactionClient) ListForExport(ctx context.Context, tenantID string, from, to time.Time, limit int, accessToken string) ([]*pb.Transaction, error) {
+    if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
+    pr := &pb.PageRequest{Page: 1, PageSize: int32(limit)}
+    if limit <= 0 { pr.PageSize = 100 }
+    dr := &pb.DateRange{From: timestamppb.New(from), To: timestamppb.New(to)}
+    res, err := g.client.ListTransactions(ctx, &pb.ListTransactionsRequest{Page: pr, DateRange: dr})
     if err != nil { return nil, err }
     return res.GetTransactions(), nil
 }

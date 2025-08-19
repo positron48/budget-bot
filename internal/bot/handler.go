@@ -363,6 +363,8 @@ func (h *Handler) handleCommand(ctx context.Context, update tgbotapi.Update) {
 		h.handleTopCategories(ctx, update)
 	case "recent":
 		h.handleRecent(ctx, update)
+	case "export":
+		h.handleExport(ctx, update)
 	case "switch_tenant":
 		h.handleSwitchTenant(ctx, update)
 	case "profile":
@@ -618,10 +620,24 @@ func (h *Handler) handleStats(ctx context.Context, update tgbotapi.Update) {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
 		return
 	}
-	// Current month
+	// Current month (overridden by optional arg)
 	now := time.Now()
 	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	to := from.AddDate(0, 1, -1)
+	if arg := strings.TrimSpace(update.Message.CommandArguments()); arg != "" {
+		if arg == "week" {
+			wd := int(now.Weekday())
+			if wd == 0 { wd = 7 }
+			from = time.Date(now.Year(), now.Month(), now.Day()-(wd-1), 0, 0, 0, 0, now.Location())
+			to = from.AddDate(0, 0, 6)
+		} else if len(arg) == 7 {
+			var y, m int
+			if _, e := fmt.Sscanf(arg, "%d-%d", &y, &m); e == nil && m >= 1 && m <= 12 {
+				from = time.Date(y, time.Month(m), 1, 0, 0, 0, 0, now.Location())
+				to = from.AddDate(0, 1, -1)
+			}
+		}
+	}
 	st, err := h.report.GetStats(ctx, sess.TenantID, from, to, sess.AccessToken)
 	if err != nil {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить статистику"))
@@ -640,7 +656,33 @@ func (h *Handler) handleTopCategories(ctx context.Context, update tgbotapi.Updat
 	now := time.Now()
 	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	to := from.AddDate(0, 1, -1)
-	items, err := h.report.TopCategories(ctx, sess.TenantID, from, to, 5, sess.AccessToken)
+	limit := 5
+	if arg := strings.TrimSpace(update.Message.CommandArguments()); arg != "" {
+		parts := strings.Fields(arg)
+		for _, p := range parts {
+			if p == "week" {
+				wd := int(now.Weekday())
+				if wd == 0 { wd = 7 }
+				from = time.Date(now.Year(), now.Month(), now.Day()-(wd-1), 0, 0, 0, 0, now.Location())
+				to = from.AddDate(0, 0, 6)
+				continue
+			}
+			if len(p) == 7 {
+				var y, m int
+				if _, e := fmt.Sscanf(p, "%d-%d", &y, &m); e == nil && m >= 1 && m <= 12 {
+					from = time.Date(y, time.Month(m), 1, 0, 0, 0, 0, now.Location())
+					to = from.AddDate(0, 1, -1)
+					continue
+				}
+			}
+			if v, e := fmt.Sscanf(p, "%d", &limit); e == nil && v >= 0 {
+				// limit parsed via Sscanf above; ensure sensible bounds
+				if limit <= 0 { limit = 5 }
+				if limit > 50 { limit = 50 }
+			}
+		}
+	}
+	items, err := h.report.TopCategories(ctx, sess.TenantID, from, to, limit, sess.AccessToken)
 	if err != nil {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить топ категорий"))
 		return
@@ -663,7 +705,14 @@ func (h *Handler) handleRecent(ctx context.Context, update tgbotapi.Update) {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
 		return
 	}
-	txs, err := h.txClient.ListRecent(ctx, sess.TenantID, 10, sess.AccessToken)
+	limit := 10
+	if arg := strings.TrimSpace(update.Message.CommandArguments()); arg != "" {
+		var parsed int
+		if _, e := fmt.Sscanf(arg, "%d", &parsed); e == nil {
+			if parsed > 0 && parsed <= 100 { limit = parsed }
+		}
+	}
+	txs, err := h.txClient.ListRecent(ctx, sess.TenantID, limit, sess.AccessToken)
 	if err != nil {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить последние транзакции"))
 		return
@@ -684,6 +733,37 @@ func (h *Handler) handleRecent(ctx context.Context, update tgbotapi.Update) {
 		b.WriteString(fmt.Sprintf("- %s%.2f %s %s\n", sign, amt, curr, t.GetComment()))
 	}
 	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
+}
+
+func (h *Handler) handleExport(ctx context.Context, update tgbotapi.Update) {
+    sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
+    if err != nil {
+        _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
+        return
+    }
+    // Export current month by default
+    now := time.Now()
+    from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+    to := from.AddDate(0, 1, -1)
+    txs, err := h.txClient.ListForExport(ctx, sess.TenantID, from, to, 100, sess.AccessToken)
+    if err != nil {
+        _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось выгрузить транзакции"))
+        return
+    }
+    var b strings.Builder
+    b.WriteString("date,type,amount,currency,category_id,comment\n")
+    for _, t := range txs {
+        dt := t.GetOccurredAt().AsTime().Format("2006-01-02")
+        typ := "expense"
+        if t.GetType() == pb.TransactionType_TRANSACTION_TYPE_INCOME { typ = "income" }
+        amt := float64(t.GetAmount().GetMinorUnits())/100.0
+        curr := t.GetAmount().GetCurrencyCode()
+        b.WriteString(fmt.Sprintf("%s,%s,%.2f,%s,%s,%s\n", dt, typ, amt, curr, t.GetCategoryId(), strings.ReplaceAll(t.GetComment(), ",", " ")))
+    }
+    file := tgbotapi.FileBytes{Name: "export.csv", Bytes: []byte(b.String())}
+    msg := tgbotapi.NewDocument(update.Message.Chat.ID, file)
+    msg.Caption = "Экспорт за текущий месяц"
+    _, _ = h.bot.Send(msg)
 }
 
 func (h *Handler) handleProfile(ctx context.Context, update tgbotapi.Update) {
