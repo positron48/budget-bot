@@ -36,4 +36,24 @@ func WireClients(log *zap.Logger) (CategoryClient, ReportClient, TenantClient, T
     return cat, rep, ten, tx
 }
 
+// WireFxClient dials gRPC and returns a real FxClient when available; otherwise a fake.
+func WireFxClient(log *zap.Logger) FxClient {
+    ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+    defer cancel()
+    _ = ctx
+    cfg, _ := botcfg.Load()
+    addr := "127.0.0.1:8080"
+    insecure := true
+    if cfg != nil {
+        if cfg.GRPC.Address != "" { addr = cfg.GRPC.Address }
+        insecure = cfg.GRPC.Insecure
+    }
+    conn, err := Dial(DialOptions{Address: addr, Insecure: insecure})
+    if err != nil {
+        log.Warn("grpc dial failed for fx, using fake", zap.Error(err))
+        return &FakeFxClient{}
+    }
+    return NewGRPCFxClient(pb.NewFxServiceClient(conn))
+}
+
 
