@@ -34,27 +34,3 @@ jobs:
         with:
           version: v1.54.2
           args: --timeout=3m
-name: CI
-
-on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-      - name: Tidy
-        run: go mod tidy
-      - name: Build
-        run: go build ./cmd/bot
-      - name: Lint placeholder
-        run: echo "Add golangci-lint later"
-
-
