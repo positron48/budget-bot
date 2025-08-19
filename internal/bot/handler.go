@@ -145,7 +145,10 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 			}
 			// If no mapping -> ask for category (persist as draft)
 			if catID == "" {
-				list, err := h.categories.ListCategories(ctx, sess.TenantID, sess.AccessToken)
+				pref, _ := h.prefs.GetPreferences(ctx, update.Message.From.ID)
+				locale := ""
+				if pref != nil && pref.Language != "" { locale = pref.Language }
+				list, err := h.categories.ListCategories(ctx, sess.TenantID, sess.AccessToken, locale)
 				if err != nil || len(list) == 0 {
 					_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить категории"))
 					return
@@ -589,7 +592,10 @@ func (h *Handler) handleCategories(ctx context.Context, update tgbotapi.Update) 
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
 		return
 	}
-	list, err := h.categories.ListCategories(ctx, sess.TenantID, sess.AccessToken)
+	pref, _ := h.prefs.GetPreferences(ctx, update.Message.From.ID)
+	locale := ""
+	if pref != nil && pref.Language != "" { locale = pref.Language }
+	list, err := h.categories.ListCategories(ctx, sess.TenantID, sess.AccessToken, locale)
 	if err != nil {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить категории"))
 		return

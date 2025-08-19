@@ -9,13 +9,13 @@ import (
 )
 
 type CategoryClient interface {
-    ListCategories(ctx context.Context, tenantID string, accessToken string) ([]*domain.Category, error)
+    ListCategories(ctx context.Context, tenantID string, accessToken string, locale ...string) ([]*domain.Category, error)
 }
 
 // StaticCategoryClient is a temporary implementation returning fixed categories.
 type StaticCategoryClient struct{}
 
-func (s *StaticCategoryClient) ListCategories(_ context.Context, _ string, _ string) ([]*domain.Category, error) {
+func (s *StaticCategoryClient) ListCategories(_ context.Context, _ string, _ string, _ ...string) ([]*domain.Category, error) {
     return []*domain.Category{
         {ID: "cat-food", Name: "Питание", Emoji: "🍽️"},
         {ID: "cat-transport", Name: "Транспорт", Emoji: "🚗"},
@@ -30,11 +30,13 @@ type GRPCCategoryClient struct{
 
 func NewGRPCCategoryClient(c pb.CategoryServiceClient) *GRPCCategoryClient { return &GRPCCategoryClient{client: c} }
 
-func (g *GRPCCategoryClient) ListCategories(ctx context.Context, _ string, accessToken string) ([]*domain.Category, error) {
+func (g *GRPCCategoryClient) ListCategories(ctx context.Context, _ string, accessToken string, locale ...string) ([]*domain.Category, error) {
     if accessToken != "" {
         ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken)
     }
-    res, err := g.client.ListCategories(ctx, &pb.ListCategoriesRequest{IncludeInactive: false})
+    req := &pb.ListCategoriesRequest{IncludeInactive: false}
+    if len(locale) > 0 && locale[0] != "" { req.Locale = locale[0] }
+    res, err := g.client.ListCategories(ctx, req)
     if err != nil {
         return nil, err
     }
