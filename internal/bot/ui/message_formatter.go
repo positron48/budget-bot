@@ -34,4 +34,8 @@ func (mf *MessageFormatter) FormatCategoriesList(categories []*domain.Category) 
 	return result
 }
 
+func (mf *MessageFormatter) FormatTransactionLine(sign string, amountMinor int64, currency, comment string) string {
+	return fmt.Sprintf("%s %.2f %s %s", sign, float64(amountMinor)/100.0, currency, comment)
+}
+
 
