@@ -4,7 +4,7 @@ GO := go
 -include .env
 .EXPORT_ALL_VARIABLES:
 
-.PHONY: all tidy build run test lint setup up
+.PHONY: all tidy build run test lint setup up coverage
 
 all: build
 
@@ -27,6 +27,12 @@ setup:
 	mkdir -p data
 
 up: run
+
+coverage:
+	@PKGS=$$(go list ./... | grep -v "/internal/pb/" | grep -v "/cmd/"); \
+	COVERPKG=$$(echo $$PKGS | tr ' ' ','); \
+	go test -coverpkg=$$COVERPKG $$PKGS -coverprofile=coverage.out; \
+	go tool cover -func=coverage.out | tail -n 1
 
 .PHONY: docker-build compose-up compose-down
 docker-build:
