@@ -741,11 +741,36 @@ func (h *Handler) handleExport(ctx context.Context, update tgbotapi.Update) {
         _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
         return
     }
-    // Export current month by default
+    // Export current month by default; supports args: YYYY-MM|week [limit]
     now := time.Now()
     from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
     to := from.AddDate(0, 1, -1)
-    txs, err := h.txClient.ListForExport(ctx, sess.TenantID, from, to, 100, sess.AccessToken)
+    limit := 100
+    if arg := strings.TrimSpace(update.Message.CommandArguments()); arg != "" {
+        parts := strings.Fields(arg)
+        for _, p := range parts {
+            if p == "week" {
+                wd := int(now.Weekday())
+                if wd == 0 { wd = 7 }
+                from = time.Date(now.Year(), now.Month(), now.Day()-(wd-1), 0, 0, 0, 0, now.Location())
+                to = from.AddDate(0, 0, 6)
+                continue
+            }
+            if len(p) == 7 {
+                var y, m int
+                if _, e := fmt.Sscanf(p, "%d-%d", &y, &m); e == nil && m >= 1 && m <= 12 {
+                    from = time.Date(y, time.Month(m), 1, 0, 0, 0, 0, now.Location())
+                    to = from.AddDate(0, 1, -1)
+                    continue
+                }
+            }
+            var v int
+            if _, e := fmt.Sscanf(p, "%d", &v); e == nil {
+                if v > 0 && v <= 5000 { limit = v }
+            }
+        }
+    }
+    txs, err := h.txClient.ListForExport(ctx, sess.TenantID, from, to, limit, sess.AccessToken)
     if err != nil {
         _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось выгрузить транзакции"))
         return

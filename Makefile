@@ -21,7 +21,7 @@ test:
 	$(GO) test ./...
 
 lint:
-	@echo "lint placeholder; integrate golangci-lint later"
+	golangci-lint run --timeout=3m
 
 setup:
 	mkdir -p data
