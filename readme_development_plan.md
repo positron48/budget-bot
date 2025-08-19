@@ -109,7 +109,7 @@
 
 
 #### День 3-4: Валидация и обработка ошибок
-- [ ] Создание системы валидации:
+- [x] Создание системы валидации:
   ```go
   type ValidationError struct {
       Field   string
@@ -119,15 +119,15 @@
   func (p *MessageParser) Validate(parsed *ParsedTransaction) []ValidationError
   ```
 - [ ] Обработка различных форматов ввода
-- [ ] Поддержка отрицательных сумм
+- [x] Поддержка отрицательных сумм
 - [ ] Обработка специальных символов и эмодзи
-- [ ] Парсинг валют (символы и коды)
-- [ ] Валидация корректности валют
+- [x] Парсинг валют (символы и коды)
+- [x] Валидация корректности валют
 
 #### День 5: Интеграция с обработчиком
-- [ ] Интеграция парсера в основной обработчик
-- [ ] Обработка сообщений в формате транзакций
-- [ ] Создание черновиков транзакций
+- [x] Интеграция парсера в основной обработчик
+- [x] Обработка сообщений в формате транзакций
+- [x] Создание черновиков транзакций
 - [ ] Тестирование различных форматов сообщений
 
 ---
@@ -153,7 +153,7 @@
 ### Неделя 6: Мультивалютность и конвертация
 
 #### День 1-2: Конвертация валют
-- [ ] Создание `internal/bot/currency_converter.go`:
+- [x] Создание `internal/bot/currency_converter.go`:
   ```go
   type CurrencyConverter struct {
       fxClient grpc.FxClient
@@ -163,12 +163,12 @@
   func (cc *CurrencyConverter) ConvertToBaseCurrency(amount *Money, fromCurrency, toCurrency string, date time.Time) (*Money, error)
   func (cc *CurrencyConverter) GetExchangeRate(fromCurrency, toCurrency string, date time.Time) (float64, error)
   ```
-- [ ] Интеграция с gRPC Fx Service
-- [ ] Кеширование курсов валют
-- [ ] Обработка ошибок конвертации
+- [x] Интеграция с gRPC Fx Service
+- [x] Кеширование курсов валют
+- [x] Обработка ошибок конвертации
 
 #### День 3-4: Парсинг валют
-- [ ] Создание `internal/bot/currency_parser.go`:
+- [x] Создание `internal/bot/currency_parser.go`:
   ```go
   type CurrencyParser struct {
       symbolToCode map[string]string
@@ -178,9 +178,9 @@
   func (cp *CurrencyParser) ParseCurrency(text string) (string, string, error)
   func (cp *CurrencyParser) ValidateCurrency(currency string) bool
   ```
-- [ ] Поддержка символов валют (₽, $, €, £, ¥)
-- [ ] Поддержка кодов валют (RUB, USD, EUR, GBP, JPY)
-- [ ] Валидация корректности валют
+- [x] Поддержка символов валют (₽, $, €, £, ¥)
+- [x] Поддержка кодов валют (RUB, USD, EUR, GBP, JPY)
+- [x] Валидация корректности валют
 
 #### День 5: Интеграция с парсером
 - [ ] Интеграция парсера валют в основной парсер сообщений

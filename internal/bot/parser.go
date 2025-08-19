@@ -11,6 +11,11 @@ import (
 
 type MessageParser struct{ currency *CurrencyParser }
 
+type ValidationError struct {
+	Field   string
+	Message string
+}
+
 type ParsedTransaction struct {
 	Type        domain.TransactionType
 	Amount      *domain.Money
@@ -80,18 +85,20 @@ func (p *MessageParser) ParseMessage(text string) (*ParsedTransaction, error) {
 		lower = cleaned
 	}
 
-	// Amount (+/-)
-	var sign int64 = 1
-	if strings.HasPrefix(strings.TrimSpace(lower), "+") {
-		sign = 1
-	} else if strings.HasPrefix(strings.TrimSpace(lower), "-") {
-		sign = -1
-	}
+	// Amount (+/-) and type inference from the matched token
 	if m := amountRe.FindStringSubmatch(lower); len(m) > 0 {
-		numeric := strings.ReplaceAll(m[1], ",", ".")
-		if strings.Contains(numeric, ".") {
-			parts := strings.SplitN(numeric, ".", 2)
-			whole, _ := strconv.ParseInt(strings.ReplaceAll(parts[0], "+", ""), 10, 64)
+		token := strings.TrimSpace(m[1])
+		var sign int64 = 1
+		if strings.HasPrefix(token, "-") {
+			sign = -1
+		} else if strings.HasPrefix(token, "+") {
+			sign = 1
+		}
+		numeric := strings.ReplaceAll(token, ",", ".")
+		numericAbs := strings.TrimLeft(numeric, "+-")
+		if strings.Contains(numericAbs, ".") {
+			parts := strings.SplitN(numericAbs, ".", 2)
+			wholeAbs, _ := strconv.ParseInt(parts[0], 10, 64)
 			frac := parts[1]
 			if len(frac) == 1 {
 				frac = frac + "0"
@@ -99,22 +106,19 @@ func (p *MessageParser) ParseMessage(text string) (*ParsedTransaction, error) {
 			if len(frac) > 2 {
 				frac = frac[:2]
 			}
-			minor, _ := strconv.ParseInt(frac, 10, 64)
-			amountMinor := sign*(whole*100) + sign*minor
+			minorAbs, _ := strconv.ParseInt(frac, 10, 64)
+			amountMinor := (wholeAbs*100)+minorAbs
 			result.Amount = domain.NewMoney(amountMinor, result.Currency)
 		} else {
-			whole, _ := strconv.ParseInt(strings.ReplaceAll(numeric, "+", ""), 10, 64)
-			result.Amount = domain.NewMoney(sign*whole*100, result.Currency)
+			wholeAbs, _ := strconv.ParseInt(numericAbs, 10, 64)
+			result.Amount = domain.NewMoney(wholeAbs*100, result.Currency)
 		}
 		lower = strings.Replace(lower, m[0], "", 1)
-	}
 
-	// Determine type by sign and default to expense when negative else income
-	if sign < 0 {
-		result.Type = domain.TransactionExpense
-	} else {
-		// By convention "+" is income, neutral default to expense unless plus specified.
-		if strings.HasPrefix(strings.TrimSpace(text), "+") {
+		// Determine type by sign; default to expense
+		if sign < 0 {
+			result.Type = domain.TransactionExpense
+		} else if strings.HasPrefix(token, "+") {
 			result.Type = domain.TransactionIncome
 		} else {
 			result.Type = domain.TransactionExpense
@@ -125,12 +129,32 @@ func (p *MessageParser) ParseMessage(text string) (*ParsedTransaction, error) {
 	desc := strings.TrimSpace(lower)
 	result.Description = desc
 
-	// Validate minimal fields
-	if result.Amount == nil {
-		result.Errors = append(result.Errors, "amount not found")
+	// Validate
+	verrs := p.Validate(result)
+	if len(verrs) > 0 {
+		for _, e := range verrs {
+			result.Errors = append(result.Errors, e.Field+": "+e.Message)
+		}
+		result.IsValid = false
+	} else {
+		result.IsValid = true
 	}
-	result.IsValid = len(result.Errors) == 0
 	return result, nil
+}
+
+// Validate performs basic validation of the parsed transaction.
+func (p *MessageParser) Validate(parsed *ParsedTransaction) []ValidationError {
+	var errs []ValidationError
+	if parsed == nil {
+		return []ValidationError{{Field: "_", Message: "nil parsed transaction"}}
+	}
+	if parsed.Amount == nil || parsed.Amount.AmountMinor == 0 {
+		errs = append(errs, ValidationError{Field: "amount", Message: "not found"})
+	}
+	if parsed.Currency != "" && !p.currency.ValidateCurrency(parsed.Currency) {
+		errs = append(errs, ValidationError{Field: "currency", Message: "invalid"})
+	}
+	return errs
 }
 
 
