@@ -2,41 +2,14 @@ package repository
 
 import (
 	"context"
-	"database/sql"
-	"os"
 	"testing"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	"budget-bot/internal/testutil"
 )
 
-func openTempDB(t *testing.T) *sql.DB {
-	t.Helper()
-	f, err := os.CreateTemp("", "botdb-*.sqlite")
-	if err != nil { t.Fatalf("temp file: %v", err) }
-	_ = f.Close()
-	dsn := "file:" + f.Name() + "?_foreign_keys=on"
-	db, err := sql.Open("sqlite3", dsn)
-	if err != nil { t.Fatalf("open db: %v", err) }
-	// minimal schema
-	_, err = db.Exec(`CREATE TABLE user_sessions (
-		telegram_id INTEGER PRIMARY KEY,
-		user_id TEXT NOT NULL,
-		tenant_id TEXT NOT NULL,
-		access_token TEXT NOT NULL,
-		refresh_token TEXT NOT NULL,
-		access_token_expires_at TIMESTAMP NOT NULL,
-		refresh_token_expires_at TIMESTAMP NOT NULL,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-	);`)
-	if err != nil { t.Fatalf("migrate: %v", err) }
-	t.Cleanup(func(){ _ = os.Remove(f.Name()); _ = db.Close() })
-	return db
-}
-
 func TestSQLiteSessionRepository_CRUD(t *testing.T) {
-	db := openTempDB(t)
+	db := testutil.OpenMigratedSQLite(t)
 	repo := NewSQLiteSessionRepository(db)
 	ctx := context.Background()
 

@@ -2,32 +2,14 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
+	"budget-bot/internal/testutil"
 )
 
-func openTempDialogDB(t *testing.T) *sql.DB {
-	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil { t.Fatalf("open: %v", err) }
-	_, err = db.Exec(`CREATE TABLE dialog_states (
-		telegram_id INTEGER PRIMARY KEY,
-		state TEXT NOT NULL,
-		draft_id TEXT,
-		context TEXT,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-	);`)
-	if err != nil { t.Fatalf("migrate: %v", err) }
-	return db
-}
-
 func TestSQLiteDialogStateRepository_SetGetClear(t *testing.T) {
-	db := openTempDialogDB(t)
-	defer db.Close()
+	db := testutil.OpenMigratedSQLite(t)
 	repo := NewSQLiteDialogStateRepository(db)
 	ctx := context.Background()
 	ctxMap := map[string]any{"a": 1, "b": "x"}

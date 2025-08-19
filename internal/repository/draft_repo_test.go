@@ -2,35 +2,14 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	"budget-bot/internal/testutil"
 )
 
-func openTempDraftDB(t *testing.T) *sql.DB {
-	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil { t.Fatalf("open: %v", err) }
-	_, err = db.Exec(`CREATE TABLE transaction_drafts (
-		id TEXT PRIMARY KEY,
-		telegram_id INTEGER NOT NULL,
-		type TEXT,
-		amount_minor INTEGER,
-		currency TEXT,
-		description TEXT,
-		category_id TEXT,
-		occurred_at TIMESTAMP,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-	);`)
-	if err != nil { t.Fatalf("migrate: %v", err) }
-	return db
-}
-
 func TestSQLiteDraftRepository_CRUD(t *testing.T) {
-	db := openTempDraftDB(t)
-	defer db.Close()
+	db := testutil.OpenMigratedSQLite(t)
 	repo := NewSQLiteDraftRepository(db)
 	ctx := context.Background()
 	id := "d1"
