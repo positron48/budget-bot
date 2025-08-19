@@ -192,6 +192,17 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 		_, _ = h.bot.Send(msg)
 		return
 	}
+
+	if parsed != nil && !parsed.IsValid {
+		// Provide simple validation feedback
+		msgText := "Не удалось распознать сообщение. Убедитесь, что указана сумма (например: 100 кофе)"
+		if len(parsed.Errors) > 0 {
+			// Show first error in a user-friendly way
+			msgText = "Ошибка: " + parsed.Errors[0]
+		}
+		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, msgText))
+		return
+	}
 }
 
 func occurredUnix(t *time.Time) int64 {
@@ -368,6 +379,12 @@ func (h *Handler) handleCommand(ctx context.Context, update tgbotapi.Update) {
 		h.handleRecent(ctx, update)
 	case "export":
 		h.handleExport(ctx, update)
+	case "create_category":
+		h.handleCreateCategory(ctx, update)
+	case "rename_category":
+		h.handleRenameCategory(ctx, update)
+	case "delete_category":
+		h.handleDeleteCategory(ctx, update)
 	case "switch_tenant":
 		h.handleSwitchTenant(ctx, update)
 	case "profile":
@@ -813,4 +830,84 @@ func (h *Handler) handleProfile(ctx context.Context, update tgbotapi.Update) {
 	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
 }
 
+
+func (h *Handler) handleCreateCategory(ctx context.Context, update tgbotapi.Update) {
+    sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
+    if err != nil {
+        _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
+        return
+    }
+    args := strings.TrimSpace(update.Message.CommandArguments())
+    if args == "" {
+        _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /create_category code название"))
+        return
+    }
+    parts := strings.Fields(args)
+    if len(parts) < 2 {
+        _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /create_category code название"))
+        return
+    }
+    code := parts[0]
+    name := strings.TrimSpace(strings.TrimPrefix(args, code))
+    if name == "" {
+        _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Укажите название категории"))
+        return
+    }
+    pref, _ := h.prefs.GetPreferences(ctx, update.Message.From.ID)
+    locale := ""
+    if pref != nil && pref.Language != "" { locale = pref.Language }
+    cat, err := h.categories.CreateCategory(ctx, sess.AccessToken, code, name, locale)
+    if err != nil {
+        _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось создать категорию (доступно в сборке withgrpc)"))
+        return
+    }
+    _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Категория создана: %s (%s)", cat.Name, cat.ID)))
+}
+
+func (h *Handler) handleRenameCategory(ctx context.Context, update tgbotapi.Update) {
+    sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
+    if err != nil {
+        _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
+        return
+    }
+    args := strings.TrimSpace(update.Message.CommandArguments())
+    parts := strings.Fields(args)
+    if len(parts) < 2 {
+        _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /rename_category category_id новое_название"))
+        return
+    }
+    id := parts[0]
+    name := strings.TrimSpace(strings.TrimPrefix(args, id))
+    if name == "" {
+        _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Укажите новое название"))
+        return
+    }
+    pref, _ := h.prefs.GetPreferences(ctx, update.Message.From.ID)
+    locale := ""
+    if pref != nil && pref.Language != "" { locale = pref.Language }
+    cat, err := h.categories.UpdateCategoryName(ctx, sess.AccessToken, id, name, locale)
+    if err != nil {
+        _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось обновить категорию (доступно в сборке withgrpc)"))
+        return
+    }
+    _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Категория обновлена: %s (%s)", cat.Name, cat.ID)))
+}
+
+func (h *Handler) handleDeleteCategory(ctx context.Context, update tgbotapi.Update) {
+    sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
+    if err != nil {
+        _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
+        return
+    }
+    id := strings.TrimSpace(update.Message.CommandArguments())
+    if id == "" {
+        _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /delete_category category_id"))
+        return
+    }
+    if err := h.categories.DeleteCategory(ctx, sess.AccessToken, id); err != nil {
+        _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось удалить категорию (доступно в сборке withgrpc)"))
+        return
+    }
+    _, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Категория удалена"))
+}
 
