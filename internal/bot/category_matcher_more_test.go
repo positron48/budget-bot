@@ -5,7 +5,7 @@ import (
     "testing"
 
     "budget-bot/internal/repository"
-    _ "github.com/mattn/go-sqlite3"
+    _ "modernc.org/sqlite"
 )
 
 func TestCategoryMatcher_ExactBeatsPartial(t *testing.T) {

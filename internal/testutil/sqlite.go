@@ -14,7 +14,7 @@ import (
 // It registers a cleanup to remove the temp file and close the DB.
 func OpenMigratedSQLite(t *testing.T) *sql.DB {
     t.Helper()
-    tmp, err := os.CreateTemp("", "botdb-*.sqlite3")
+    tmp, err := os.CreateTemp("", "botdb-*.sqlite")
     if err != nil { t.Fatalf("temp file: %v", err) }
     _ = tmp.Close()
 

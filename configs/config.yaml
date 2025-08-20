@@ -12,8 +12,8 @@ grpc:
   insecure: true
 
 database:
-  driver: "sqlite3"
-  dsn: "file:./data/bot.sqlite3?_foreign_keys=on"
+  driver: "sqlite"
+  dsn: "file:./data/bot.sqlite?_foreign_keys=on"
 
 logging:
   level: "debug"

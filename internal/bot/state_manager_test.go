@@ -6,13 +6,13 @@ import (
     "testing"
 
     "budget-bot/internal/repository"
-    _ "github.com/mattn/go-sqlite3"
+    _ "modernc.org/sqlite"
     "go.uber.org/zap"
 )
 
 func setupDialogStateDB(t *testing.T) *sql.DB {
     t.Helper()
-    db, err := sql.Open("sqlite3", ":memory:")
+    db, err := sql.Open("sqlite", ":memory:")
     if err != nil { t.Fatalf("open sqlite: %v", err) }
     _, err = db.Exec(`
         CREATE TABLE IF NOT EXISTS dialog_states (

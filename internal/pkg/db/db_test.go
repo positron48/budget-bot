@@ -5,12 +5,12 @@ import (
     "path/filepath"
     "testing"
 
-    _ "github.com/mattn/go-sqlite3"
+    _ "modernc.org/sqlite"
     "go.uber.org/zap"
 )
 
 func TestOpenAndMigrate_Works(t *testing.T) {
-    tmp, err := os.CreateTemp("", "dbtest-*.sqlite3")
+    tmp, err := os.CreateTemp("", "dbtest-*.sqlite")
     if err != nil { t.Fatalf("temp: %v", err) }
     _ = tmp.Close()
     t.Cleanup(func(){ _ = os.Remove(tmp.Name()) })

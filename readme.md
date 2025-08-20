@@ -450,8 +450,8 @@ GRPC_SERVER_ADDRESS=127.0.0.1:8080
 GRPC_INSECURE=true
 
 # Database
-DATABASE_DRIVER=sqlite3
-DATABASE_DSN=file:./data/bot.sqlite3?_foreign_keys=on
+DATABASE_DRIVER=sqlite
+DATABASE_DSN=file:./data/bot.sqlite?_foreign_keys=on
 
 # Logging
 LOG_LEVEL=debug

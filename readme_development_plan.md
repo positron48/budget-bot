@@ -29,7 +29,7 @@
       github.com/spf13/viper v1.18.2
       go.uber.org/zap v1.26.0
       github.com/prometheus/client_golang v1.18.0
-      github.com/mattn/go-sqlite3 v1.14.19
+      github.com/glebarez/sqlite v1.11.0
       github.com/golang-migrate/migrate/v4 v4.17.0
   )
   ```
