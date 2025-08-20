@@ -32,10 +32,9 @@ jobs:
       - name: Coverage
         run: |
           set -euo pipefail
-          # Run coverage for all packages at once (aggregated), then filter out generated pb & cmd
-          go test -covermode=atomic -coverprofile=coverage_all.out ./...
-          echo "mode: atomic" > coverage.out
-          grep -h -v "^mode:" coverage_all.out | grep -v "/internal/pb/" | grep -v "/cmd/" >> coverage.out
+          PKGS=$(go list ./... | grep -v "/internal/pb/" | grep -v "/cmd/")
+          COVERPKG=$(echo $PKGS | tr ' ' ',')
+          go test -coverpkg=$COVERPKG $PKGS -coverprofile=coverage.out
           go tool cover -func=coverage.out | tail -n 1 | tee coverage_total.txt
           TOTAL=$(awk '/^total:/ {print $3}' coverage_total.txt | tr -d '%')
           echo "Total coverage: $TOTAL%"
