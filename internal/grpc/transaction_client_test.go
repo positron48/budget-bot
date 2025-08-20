@@ -44,7 +44,7 @@ func TestGRPCTransactionClient_CreateAndList(t *testing.T) {
     defer srv.Stop()
     conn, err := grpc.Dial(addr, grpc.WithInsecure())
     if err != nil { t.Fatal(err) }
-    defer conn.Close()
+    defer func(){ _ = conn.Close() }()
     c := NewGRPCTransactionClient(pb.NewTransactionServiceClient(conn))
     // Create
     _, err = c.CreateTransaction(context.Background(), &CreateTransactionRequest{Description: "такси", AmountMinor: 10000, Currency: "RUB", CategoryID: "cat", Type: "expense", OccurredAt: time.Now()}, "tok")

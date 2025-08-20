@@ -30,7 +30,7 @@ func TestGRPCTenantClient_ListTenants(t *testing.T) {
     defer srv.Stop()
     conn, err := grpc.Dial(addr, grpc.WithInsecure())
     if err != nil { t.Fatal(err) }
-    defer conn.Close()
+    defer func(){ _ = conn.Close() }()
     c := NewGRPCTenantClient(pb.NewTenantServiceClient(conn))
     list, err := c.ListTenants(context.Background(), "tok")
     if err != nil || len(list) == 0 { t.Fatalf("tenants: %v n=%d", err, len(list)) }

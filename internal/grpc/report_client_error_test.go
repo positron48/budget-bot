@@ -27,7 +27,7 @@ func TestGRPCReportClient_GetStats_Error(t *testing.T) {
 
     conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
     if err != nil { t.Fatal(err) }
-    defer conn.Close()
+    defer func(){ _ = conn.Close() }()
     c := NewGRPCReportClient(pb.NewReportServiceClient(conn))
     _, e := c.GetStats(context.Background(), "tenant", time.Now(), time.Now(), "tok")
     if e == nil { t.Fatalf("expected error") }

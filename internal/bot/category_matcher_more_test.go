@@ -10,7 +10,7 @@ import (
 
 func TestCategoryMatcher_ExactBeatsPartial(t *testing.T) {
     db := setupTestDB(t)
-    defer db.Close()
+    defer func(){ _ = db.Close() }()
     repo := repository.NewSQLiteCategoryMappingRepository(db)
     // exact and partial both exist; exact should win regardless of priority
     _ = repo.AddMapping(context.Background(), &repository.CategoryMapping{ID:"1", TenantID:"t1", Keyword:"такси", CategoryID:"cat-taxi", Priority:0})

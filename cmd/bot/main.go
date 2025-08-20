@@ -136,8 +136,7 @@ func main() {
 		}
 	}
 
-	// add tiny sleep to appease lints about empty select default (not used here)
-	_ = time.Second
+	// end of main
 }
 
 // normalizeAPIEndpoint ensures endpoint string is a valid format expected by tgbotapi: it must contain exactly two %s placeholders for token and method.

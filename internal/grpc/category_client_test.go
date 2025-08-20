@@ -39,7 +39,7 @@ func TestGRPCCategoryClient_ListCategories(t *testing.T) {
     defer srv.Stop()
     conn, err := grpc.Dial(addr, grpc.WithInsecure())
     if err != nil { t.Fatal(err) }
-    defer conn.Close()
+    defer func(){ _ = conn.Close() }()
 
     c := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn))
     got, err := c.ListCategories(context.Background(), "tenant", "tok", "ru")

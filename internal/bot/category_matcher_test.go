@@ -56,7 +56,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 
 func TestCategoryMatcher_ExactMatch(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func(){ _ = db.Close() }()
 	repo := repository.NewSQLiteCategoryMappingRepository(db)
 	cm := NewCategoryMatcher(repo)
 	ctx := context.Background()
@@ -72,7 +72,7 @@ func TestCategoryMatcher_ExactMatch(t *testing.T) {
 
 func TestCategoryMatcher_PartialMatchWithPriority(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func(){ _ = db.Close() }()
 	repo := repository.NewSQLiteCategoryMappingRepository(db)
 	cm := NewCategoryMatcher(repo)
 	ctx := context.Background()
@@ -89,7 +89,7 @@ func TestCategoryMatcher_PartialMatchWithPriority(t *testing.T) {
 
 func TestCategoryMatcher_NoMatch(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func(){ _ = db.Close() }()
 	repo := repository.NewSQLiteCategoryMappingRepository(db)
 	cm := NewCategoryMatcher(repo)
 	m, err := cm.FindCategory(context.Background(), "t1", "без совпадений")

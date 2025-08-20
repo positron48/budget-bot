@@ -48,7 +48,7 @@ func setupSessionDB(t *testing.T) *sql.DB {
 
 func TestAuthManager_Register_Login_Refresh(t *testing.T) {
     db := setupSessionDB(t)
-    defer db.Close()
+    defer func(){ _ = db.Close() }()
     sessions := repository.NewSQLiteSessionRepository(db)
     am := NewAuthManager(&fakeAuth{}, sessions, zap.NewNop())
     ctx := context.Background()

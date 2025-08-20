@@ -26,7 +26,7 @@ func TestGRPCCategoryClient_ListCategories_Error(t *testing.T) {
 
     conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
     if err != nil { t.Fatal(err) }
-    defer conn.Close()
+    defer func(){ _ = conn.Close() }()
     c := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn))
     _, e := c.ListCategories(context.Background(), "tenant", "tok")
     if e == nil { t.Fatalf("expected error") }

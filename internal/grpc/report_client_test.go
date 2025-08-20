@@ -41,7 +41,7 @@ func TestGRPCReportClient_GetStatsAndTop(t *testing.T) {
     defer srv.Stop()
     conn, err := grpc.Dial(addr, grpc.WithInsecure())
     if err != nil { t.Fatal(err) }
-    defer conn.Close()
+    defer func(){ _ = conn.Close() }()
     c := NewGRPCReportClient(pb.NewReportServiceClient(conn))
     ctx := context.Background()
     from := time.Date(2025, 8, 1, 0, 0, 0, 0, time.UTC)

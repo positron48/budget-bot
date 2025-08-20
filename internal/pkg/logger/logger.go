@@ -19,7 +19,7 @@ func New(level string) (*zap.Logger, error) {
 	}
 	if level != "" {
 		if err := cfg.Level.UnmarshalText([]byte(level)); err != nil {
-			// ignore invalid and keep default
+			_ = err // ignore invalid and keep default
 		}
 	}
 	return cfg.Build()

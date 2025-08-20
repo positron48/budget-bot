@@ -58,7 +58,7 @@ func (r *SQLiteCategoryMappingRepository) ListMappings(ctx context.Context, tena
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(){ _ = rows.Close() }()
 	var list []*CategoryMapping
 	for rows.Next() {
 		var m CategoryMapping

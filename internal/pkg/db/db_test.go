@@ -24,7 +24,7 @@ func TestOpenAndMigrate_Works(t *testing.T) {
     log, _ := zap.NewDevelopment()
     dbc, err := OpenAndMigrate(dsn, migrations, log)
     if err != nil { t.Fatalf("OpenAndMigrate: %v", err) }
-    defer dbc.Close()
+    defer func(){ _ = dbc.Close() }()
 
     // ensure table exists
     var name string

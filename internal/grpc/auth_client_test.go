@@ -48,7 +48,7 @@ func TestAuthClient_Flow(t *testing.T) {
 
     conn, err := grpc.Dial(addr, grpc.WithInsecure())
     if err != nil { t.Fatal(err) }
-    defer conn.Close()
+    defer func(){ _ = conn.Close() }()
 
     log, _ := zap.NewDevelopment()
     c := NewAuthClient(pb.NewAuthServiceClient(conn), log)

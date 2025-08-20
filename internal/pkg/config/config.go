@@ -83,25 +83,25 @@ func Load() (*Config, error) {
 	v.AutomaticEnv()
 
 	// Map some convenient env names
-	v.BindEnv("telegram.token", "TELEGRAM_BOT_TOKEN")
-	v.BindEnv("telegram.api_base_url", "TELEGRAM_API_BASE_URL")
-	v.BindEnv("telegram.debug", "TELEGRAM_DEBUG")
-	v.BindEnv("telegram.updates_timeout", "TELEGRAM_UPDATES_TIMEOUT")
-	v.BindEnv("telegram.webhook_enable", "TELEGRAM_WEBHOOK_ENABLE")
-	v.BindEnv("telegram.webhook_url", "TELEGRAM_WEBHOOK_URL")
-	v.BindEnv("telegram.webhook_path", "TELEGRAM_WEBHOOK_PATH")
+	_ = v.BindEnv("telegram.token", "TELEGRAM_BOT_TOKEN")
+	_ = v.BindEnv("telegram.api_base_url", "TELEGRAM_API_BASE_URL")
+	_ = v.BindEnv("telegram.debug", "TELEGRAM_DEBUG")
+	_ = v.BindEnv("telegram.updates_timeout", "TELEGRAM_UPDATES_TIMEOUT")
+	_ = v.BindEnv("telegram.webhook_enable", "TELEGRAM_WEBHOOK_ENABLE")
+	_ = v.BindEnv("telegram.webhook_url", "TELEGRAM_WEBHOOK_URL")
+	_ = v.BindEnv("telegram.webhook_path", "TELEGRAM_WEBHOOK_PATH")
 
-	v.BindEnv("grpc.address", "GRPC_SERVER_ADDRESS")
-	v.BindEnv("grpc.insecure", "GRPC_INSECURE")
+	_ = v.BindEnv("grpc.address", "GRPC_SERVER_ADDRESS")
+	_ = v.BindEnv("grpc.insecure", "GRPC_INSECURE")
 
-	v.BindEnv("database.driver", "DATABASE_DRIVER")
-	v.BindEnv("database.dsn", "DATABASE_DSN")
+	_ = v.BindEnv("database.driver", "DATABASE_DRIVER")
+	_ = v.BindEnv("database.dsn", "DATABASE_DSN")
 
-	v.BindEnv("logging.level", "LOG_LEVEL")
+	_ = v.BindEnv("logging.level", "LOG_LEVEL")
 
-	v.BindEnv("metrics.enabled", "METRICS_ENABLED")
-	v.BindEnv("metrics.address", "METRICS_ADDRESS")
-	v.BindEnv("server.address", "SERVER_ADDRESS")
+	_ = v.BindEnv("metrics.enabled", "METRICS_ENABLED")
+	_ = v.BindEnv("metrics.address", "METRICS_ADDRESS")
+	_ = v.BindEnv("server.address", "SERVER_ADDRESS")
 
 	// Read file if present
 	if err := v.ReadInConfig(); err != nil {

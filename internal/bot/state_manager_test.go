@@ -30,7 +30,7 @@ func setupDialogStateDB(t *testing.T) *sql.DB {
 
 func TestStateManager_SetGetClear(t *testing.T) {
     db := setupDialogStateDB(t)
-    defer db.Close()
+    defer func(){ _ = db.Close() }()
     repo := repository.NewSQLiteDialogStateRepository(db)
     sm := NewStateManager(repo, zap.NewNop())
     ctx := context.Background()

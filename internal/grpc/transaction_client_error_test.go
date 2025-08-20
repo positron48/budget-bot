@@ -27,7 +27,7 @@ func TestGRPCTransactionClient_Create_Error(t *testing.T) {
 
     conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
     if err != nil { t.Fatal(err) }
-    defer conn.Close()
+    defer func(){ _ = conn.Close() }()
     c := NewGRPCTransactionClient(pb.NewTransactionServiceClient(conn))
     _, e := c.CreateTransaction(context.Background(), &CreateTransactionRequest{Description: "x", AmountMinor: 1, Currency: "RUB", Type: "expense", OccurredAt: time.Now()}, "tok")
     if e == nil { t.Fatalf("expected error") }
