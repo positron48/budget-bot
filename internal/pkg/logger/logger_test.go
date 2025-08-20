@@ -10,3 +10,9 @@ func TestNew_DebugAndInfo(t *testing.T) {
 	if err != nil || l2 == nil { t.Fatalf("info logger: %v %v", l2, err) }
 	_ = l2.Sync()
 }
+
+func TestNew_InvalidLevelFallsBack(t *testing.T) {
+	l, err := New("invalid-level")
+	if err != nil || l == nil { t.Fatalf("logger should still be created: %v %v", l, err) }
+	_ = l.Sync()
+}

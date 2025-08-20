@@ -1,0 +1,35 @@
+package grpc
+
+import (
+    "context"
+    "net"
+    "testing"
+
+    pb "budget-bot/internal/pb/budget/v1"
+    "google.golang.org/grpc"
+    status "google.golang.org/grpc/status"
+)
+
+type errCategoryServer struct{ pb.UnimplementedCategoryServiceServer }
+
+func (s *errCategoryServer) ListCategories(ctx context.Context, r *pb.ListCategoriesRequest) (*pb.ListCategoriesResponse, error) {
+    return nil, status.Error(13, "backend error")
+}
+
+func TestGRPCCategoryClient_ListCategories_Error(t *testing.T) {
+    lis, err := net.Listen("tcp", "127.0.0.1:0")
+    if err != nil { t.Fatal(err) }
+    srv := grpc.NewServer()
+    pb.RegisterCategoryServiceServer(srv, &errCategoryServer{})
+    go func(){ _ = srv.Serve(lis) }()
+    defer srv.Stop()
+
+    conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+    if err != nil { t.Fatal(err) }
+    defer conn.Close()
+    c := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn))
+    _, e := c.ListCategories(context.Background(), "tenant", "tok")
+    if e == nil { t.Fatalf("expected error") }
+}
+
+
