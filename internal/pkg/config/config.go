@@ -1,3 +1,4 @@
+// Package config loads and holds application configuration from files and env.
 package config
 
 import (
@@ -18,36 +19,57 @@ type Config struct {
 	Server   ServerConfig   `mapstructure:"server"`
 }
 
+// TelegramConfig holds Telegram Bot API settings.
 type TelegramConfig struct {
-	Token          string `mapstructure:"token"`
-	APIBaseURL     string `mapstructure:"api_base_url"`
-	Debug          bool   `mapstructure:"debug"`
-	UpdatesTimeout int    `mapstructure:"updates_timeout"`
-	WebhookEnable  bool   `mapstructure:"webhook_enable"`
-	WebhookURL     string `mapstructure:"webhook_url"`
-	WebhookPath    string `mapstructure:"webhook_path"`
+	// Token is a Telegram Bot API token
+	Token string `mapstructure:"token"`
+	// APIBaseURL allows pointing to a local Telegram emulator
+	APIBaseURL string `mapstructure:"api_base_url"`
+	// Debug enables verbose logging for bot API
+	Debug bool `mapstructure:"debug"`
+	// UpdatesTimeout long polling timeout in seconds
+	UpdatesTimeout int `mapstructure:"updates_timeout"`
+	// WebhookEnable toggles webhook mode
+	WebhookEnable bool `mapstructure:"webhook_enable"`
+	// WebhookURL public URL for webhook
+	WebhookURL string `mapstructure:"webhook_url"`
+	// WebhookPath path to serve webhook on
+	WebhookPath string `mapstructure:"webhook_path"`
 }
 
+// GRPCConfig holds backend gRPC settings.
 type GRPCConfig struct {
-	Address  string `mapstructure:"address"`
-	Insecure bool   `mapstructure:"insecure"`
+	// Address of backend gRPC server
+	Address string `mapstructure:"address"`
+	// Insecure skips TLS for local development
+	Insecure bool `mapstructure:"insecure"`
 }
 
+// DatabaseConfig contains DB connection settings.
 type DatabaseConfig struct {
+	// Driver is a database driver name, e.g., sqlite
 	Driver string `mapstructure:"driver"`
-	DSN    string `mapstructure:"dsn"`
+	// DSN is a connection string
+	DSN string `mapstructure:"dsn"`
 }
 
+// LoggingConfig holds logger settings.
 type LoggingConfig struct {
+	// Level is a zap log level (debug, info, warn, error)
 	Level string `mapstructure:"level"`
 }
 
+// MetricsConfig holds metrics service settings.
 type MetricsConfig struct {
-	Enabled bool   `mapstructure:"enabled"`
+	// Enabled toggles Prometheus metrics endpoint
+	Enabled bool `mapstructure:"enabled"`
+	// Address is an HTTP listen address for metrics
 	Address string `mapstructure:"address"`
 }
 
+// ServerConfig holds http server settings.
 type ServerConfig struct {
+	// Address is an HTTP listen address for health/metrics
 	Address string `mapstructure:"address"`
 }
 

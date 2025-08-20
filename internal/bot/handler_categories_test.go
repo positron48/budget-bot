@@ -19,13 +19,13 @@ type fakeCatClient struct{
     list []*domain.Category
     listErr error
 }
-func (f *fakeCatClient) ListCategories(ctx context.Context, tenantID string, accessToken string, locale ...string) ([]*domain.Category, error) {
+func (f *fakeCatClient) ListCategories(_ context.Context, _ string, _ string, _ ...string) ([]*domain.Category, error) {
     if f.listErr != nil { return nil, f.listErr }
     return f.list, nil
 }
-func (f *fakeCatClient) CreateCategory(ctx context.Context, accessToken string, code string, name string, locale string) (*domain.Category, error) { return &domain.Category{ID:"id1", Name:name}, nil }
-func (f *fakeCatClient) UpdateCategoryName(ctx context.Context, accessToken string, id string, name string, locale string) (*domain.Category, error) { return &domain.Category{ID:id, Name:name}, nil }
-func (f *fakeCatClient) DeleteCategory(ctx context.Context, accessToken string, id string) error { return nil }
+func (f *fakeCatClient) CreateCategory(_ context.Context, _ string, _ string, name string, _ string) (*domain.Category, error) { return &domain.Category{ID:"id1", Name:name}, nil }
+func (f *fakeCatClient) UpdateCategoryName(_ context.Context, _ string, id string, name string, _ string) (*domain.Category, error) { return &domain.Category{ID:id, Name:name}, nil }
+func (f *fakeCatClient) DeleteCategory(_ context.Context, _ string, _ string) error { return nil }
 
 func TestHandler_Categories_Success_And_Error(t *testing.T) {
     log := zap.NewNop()

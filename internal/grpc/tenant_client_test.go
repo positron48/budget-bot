@@ -7,11 +7,12 @@ import (
 
     pb "budget-bot/internal/pb/budget/v1"
     "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
 )
 
 type fakeTenantServer struct{ pb.UnimplementedTenantServiceServer }
 
-func (s *fakeTenantServer) ListMyTenants(ctx context.Context, r *pb.ListMyTenantsRequest) (*pb.ListMyTenantsResponse, error) {
+func (s *fakeTenantServer) ListMyTenants(_ context.Context, _ *pb.ListMyTenantsRequest) (*pb.ListMyTenantsResponse, error) {
     return &pb.ListMyTenantsResponse{Memberships: []*pb.TenantMembership{{Tenant: &pb.Tenant{Id: "t1", Name: "Личный"}}}}, nil
 }
 
@@ -28,7 +29,7 @@ func startTenantServer(t *testing.T) (*grpc.Server, string) {
 func TestGRPCTenantClient_ListTenants(t *testing.T) {
     srv, addr := startTenantServer(t)
     defer srv.Stop()
-    conn, err := grpc.Dial(addr, grpc.WithInsecure())
+    conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
     c := NewGRPCTenantClient(pb.NewTenantServiceClient(conn))

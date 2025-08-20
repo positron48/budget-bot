@@ -1,3 +1,4 @@
+// Package bot contains the core Telegram bot business logic.
 package bot
 
 import (
@@ -7,10 +8,12 @@ import (
     "budget-bot/internal/repository"
 )
 
+// CategoryMatcher matches free text to categories using mappings.
 type CategoryMatcher struct {
     mappingRepo repository.CategoryMappingRepository
 }
 
+// NewCategoryMatcher constructs a CategoryMatcher.
 func NewCategoryMatcher(repo repository.CategoryMappingRepository) *CategoryMatcher {
     return &CategoryMatcher{mappingRepo: repo}
 }

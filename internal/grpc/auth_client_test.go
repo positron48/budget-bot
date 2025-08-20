@@ -8,12 +8,13 @@ import (
     pb "budget-bot/internal/pb/budget/v1"
     "go.uber.org/zap"
     "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
 )
 
 // fake auth server
 type fakeAuthServer struct{ pb.UnimplementedAuthServiceServer }
 
-func (f *fakeAuthServer) Register(ctx context.Context, r *pb.RegisterRequest) (*pb.RegisterResponse, error) {
+func (f *fakeAuthServer) Register(_ context.Context, _ *pb.RegisterRequest) (*pb.RegisterResponse, error) {
     return &pb.RegisterResponse{
         User:   &pb.User{Id: "user-1"},
         Tenant: &pb.Tenant{Id: "tenant-1"},
@@ -21,14 +22,14 @@ func (f *fakeAuthServer) Register(ctx context.Context, r *pb.RegisterRequest) (*
     }, nil
 }
 
-func (f *fakeAuthServer) Login(ctx context.Context, r *pb.LoginRequest) (*pb.LoginResponse, error) {
+func (f *fakeAuthServer) Login(_ context.Context, _ *pb.LoginRequest) (*pb.LoginResponse, error) {
     return &pb.LoginResponse{
         Tokens: &pb.TokenPair{AccessToken: "a2", RefreshToken: "r2"},
         Memberships: []*pb.TenantMembership{{Tenant: &pb.Tenant{Id: "tenant-1"}, IsDefault: true}},
     }, nil
 }
 
-func (f *fakeAuthServer) RefreshToken(ctx context.Context, r *pb.RefreshTokenRequest) (*pb.RefreshTokenResponse, error) {
+func (f *fakeAuthServer) RefreshToken(_ context.Context, _ *pb.RefreshTokenRequest) (*pb.RefreshTokenResponse, error) {
     return &pb.RefreshTokenResponse{Tokens: &pb.TokenPair{AccessToken: "a3", RefreshToken: "r3"}}, nil
 }
 
@@ -46,7 +47,7 @@ func TestAuthClient_Flow(t *testing.T) {
     srv, addr := startAuthTestServer(t)
     defer srv.Stop()
 
-    conn, err := grpc.Dial(addr, grpc.WithInsecure())
+    conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
 

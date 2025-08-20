@@ -1,3 +1,4 @@
+// Package grpc contains gRPC client facades used by the bot.
 package grpc
 
 import (
@@ -17,11 +18,11 @@ type FxClient interface {
 	GetRate(ctx context.Context, fromCurrency, toCurrency string, asOf time.Time, accessToken string) (float64, error)
 }
 
-// FakeFxClient is a stubbed client returning a 1.0 rate for identical currencies
-// and 1.0 otherwise as a placeholder.
+// FakeFxClient is a stubbed client returning a 1.0 rate.
 type FakeFxClient struct{}
 
-func (f *FakeFxClient) GetRate(ctx context.Context, fromCurrency, toCurrency string, asOf time.Time, accessToken string) (float64, error) {
+// GetRate returns a decimal exchange rate; stubbed to 1.0 for now.
+func (f *FakeFxClient) GetRate(_ context.Context, fromCurrency, toCurrency string, _ time.Time, _ string) (float64, error) {
 	if fromCurrency == toCurrency {
 		return 1.0, nil
 	}
@@ -29,11 +30,14 @@ func (f *FakeFxClient) GetRate(ctx context.Context, fromCurrency, toCurrency str
 	return 1.0, nil
 }
 
-type GRPCFxClient struct{ client pb.FxServiceClient }
+// FxGRPCClient calls Fx service via gRPC.
+type FxGRPCClient struct{ client pb.FxServiceClient }
 
-func NewGRPCFxClient(c pb.FxServiceClient) *GRPCFxClient { return &GRPCFxClient{client: c} }
+// NewGRPCFxClient constructs a FxGRPCClient.
+func NewGRPCFxClient(c pb.FxServiceClient) *FxGRPCClient { return &FxGRPCClient{client: c} }
 
-func (g *GRPCFxClient) GetRate(ctx context.Context, fromCurrency, toCurrency string, asOf time.Time, accessToken string) (float64, error) {
+// GetRate returns a decimal exchange rate for given currencies/date.
+func (g *FxGRPCClient) GetRate(ctx context.Context, fromCurrency, toCurrency string, asOf time.Time, accessToken string) (float64, error) {
 	if accessToken != "" {
 		ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken)
 	}

@@ -19,19 +19,19 @@ type recCatClient struct{
     shouldErr  bool
 }
 
-func (r *recCatClient) ListCategories(ctx context.Context, tenantID, accessToken string, locale ...string) ([]*domain.Category, error) {
+func (r *recCatClient) ListCategories(_ context.Context, _ string, _ string, locale ...string) ([]*domain.Category, error) {
     if len(locale) > 0 { r.lastLocale = locale[0] }
     return []*domain.Category{{ID:"c1", Name:"Food"}}, nil
 }
-func (r *recCatClient) CreateCategory(ctx context.Context, accessToken string, code string, name string, locale string) (*domain.Category, error) {
+func (r *recCatClient) CreateCategory(_ context.Context, _ string, _ string, name string, _ string) (*domain.Category, error) {
     if r.shouldErr { return nil, errors.New("boom") }
     return &domain.Category{ID:"c2", Name:name}, nil
 }
-func (r *recCatClient) UpdateCategoryName(ctx context.Context, accessToken string, id string, name string, locale string) (*domain.Category, error) {
+func (r *recCatClient) UpdateCategoryName(_ context.Context, _ string, id string, name string, _ string) (*domain.Category, error) {
     if r.shouldErr { return nil, errors.New("boom") }
     return &domain.Category{ID:id, Name:name}, nil
 }
-func (r *recCatClient) DeleteCategory(ctx context.Context, accessToken string, id string) error {
+func (r *recCatClient) DeleteCategory(_ context.Context, _ string, _ string) error {
     if r.shouldErr { return errors.New("boom") }
     return nil
 }

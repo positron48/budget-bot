@@ -1,3 +1,4 @@
+// Package repository contains persistence layer implementations.
 package repository
 
 import (
@@ -6,6 +7,7 @@ import (
 	"time"
 )
 
+// UserSession stores auth tokens and related metadata.
 type UserSession struct {
 	TelegramID              int64
 	UserID                  string
@@ -18,6 +20,7 @@ type UserSession struct {
 	UpdatedAt               time.Time
 }
 
+// TokenPair holds access/refresh tokens.
 type TokenPair struct {
 	AccessToken           string
 	RefreshToken          string
@@ -25,6 +28,7 @@ type TokenPair struct {
 	RefreshTokenExpiresAt time.Time
 }
 
+// SessionRepository defines session persistence operations.
 type SessionRepository interface {
 	SaveSession(ctx context.Context, session *UserSession) error
 	GetSession(ctx context.Context, telegramID int64) (*UserSession, error)
@@ -33,14 +37,17 @@ type SessionRepository interface {
 	UpdateTenantID(ctx context.Context, telegramID int64, tenantID string) error
 }
 
+// SQLiteSessionRepository implements SessionRepository over SQLite.
 type SQLiteSessionRepository struct {
 	db *sql.DB
 }
 
+// NewSQLiteSessionRepository constructs a repository.
 func NewSQLiteSessionRepository(db *sql.DB) *SQLiteSessionRepository {
 	return &SQLiteSessionRepository{db: db}
 }
 
+// SaveSession inserts or updates a user session.
 func (r *SQLiteSessionRepository) SaveSession(ctx context.Context, s *UserSession) error {
 	_, err := r.db.ExecContext(ctx, `
 		INSERT INTO user_sessions (
@@ -58,6 +65,7 @@ func (r *SQLiteSessionRepository) SaveSession(ctx context.Context, s *UserSessio
 	return err
 }
 
+// GetSession returns a session by telegram ID.
 func (r *SQLiteSessionRepository) GetSession(ctx context.Context, telegramID int64) (*UserSession, error) {
 	row := r.db.QueryRowContext(ctx, `
 		SELECT telegram_id, user_id, tenant_id, access_token, refresh_token, access_token_expires_at, refresh_token_expires_at, created_at, updated_at
@@ -70,11 +78,13 @@ func (r *SQLiteSessionRepository) GetSession(ctx context.Context, telegramID int
 	return &s, nil
 }
 
+// DeleteSession deletes a session by telegram ID.
 func (r *SQLiteSessionRepository) DeleteSession(ctx context.Context, telegramID int64) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM user_sessions WHERE telegram_id = ?`, telegramID)
 	return err
 }
 
+// UpdateTokens updates token pair.
 func (r *SQLiteSessionRepository) UpdateTokens(ctx context.Context, telegramID int64, t *TokenPair) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE user_sessions SET
@@ -88,6 +98,7 @@ func (r *SQLiteSessionRepository) UpdateTokens(ctx context.Context, telegramID i
 	return err
 }
 
+// UpdateTenantID updates tenant association.
 func (r *SQLiteSessionRepository) UpdateTenantID(ctx context.Context, telegramID int64, tenantID string) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE user_sessions SET

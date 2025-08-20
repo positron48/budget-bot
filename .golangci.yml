@@ -1,3 +1,4 @@
+version: "1.61.0"
 run:
   timeout: 5m
   tests: true
@@ -12,15 +13,5 @@ linters:
     - unused
     - revive
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclude-rules:
-    - linters: [revive]
-      text: "package-comments"
-    - linters: [revive]
-      text: "exported:"
-    - linters: [staticcheck]
-      text: "SA1019"
-    - linters: [revive]
-      text: "unused-parameter"

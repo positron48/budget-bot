@@ -1,3 +1,4 @@
+// Command budget-bot runs the Telegram bot.
 package main
 
 import (
@@ -163,15 +164,15 @@ func normalizeAPIEndpoint(base string) string {
 // fakeAuthClient implements bot.AuthClient for local testing before real gRPC client is wired.
 type fakeAuthClient struct{}
 
-func (f *fakeAuthClient) Register(ctx context.Context, email, password, name string) (string, string, string, string, time.Time, time.Time, error) {
+func (f *fakeAuthClient) Register(_ context.Context, _ , _ , _ string) (string, string, string, string, time.Time, time.Time, error) {
 	return "user-123", "tenant-123", "access-token", "refresh-token", time.Now().Add(1*time.Hour), time.Now().Add(24*time.Hour), nil
 }
 
-func (f *fakeAuthClient) Login(ctx context.Context, email, password string) (string, string, string, string, time.Time, time.Time, error) {
+func (f *fakeAuthClient) Login(_ context.Context, _ , _ string) (string, string, string, string, time.Time, time.Time, error) {
 	return "user-123", "tenant-123", "access-token", "refresh-token", time.Now().Add(1*time.Hour), time.Now().Add(24*time.Hour), nil
 }
 
-func (f *fakeAuthClient) RefreshToken(ctx context.Context, refreshToken string) (string, string, time.Time, time.Time, error) {
+func (f *fakeAuthClient) RefreshToken(_ context.Context, _ string) (string, string, time.Time, time.Time, error) {
 	return "access-token2", "refresh-token2", time.Now().Add(1*time.Hour), time.Now().Add(24*time.Hour), nil
 }
 

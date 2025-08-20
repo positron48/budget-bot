@@ -1,3 +1,4 @@
+// Package bot contains the core Telegram bot business logic.
 package bot
 
 import (
@@ -26,6 +27,7 @@ type cachedRate struct {
 	storedAt time.Time
 }
 
+// NewCurrencyConverter constructs CurrencyConverter.
 func NewCurrencyConverter(fx grpcclient.FxClient, logger *zap.Logger) *CurrencyConverter {
 	if logger == nil {
 		logger = zap.NewNop()

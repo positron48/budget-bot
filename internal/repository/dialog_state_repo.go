@@ -1,3 +1,4 @@
+// Package repository contains persistence layer implementations.
 package repository
 
 import (
@@ -6,19 +7,29 @@ import (
 	"encoding/json"
 )
 
+// DialogState is a finite state of a user in a dialog.
 type DialogState string
 
 const (
-	StateIdle                   DialogState = "idle"
-	StateWaitingForEmail        DialogState = "waiting_for_email"
-	StateWaitingForPassword     DialogState = "waiting_for_password"
-	StateWaitingForRegisterEmail    DialogState = "waiting_for_register_email"
+	// StateIdle means no active dialog
+	StateIdle DialogState = "idle"
+	// StateWaitingForEmail when user is entering email
+	StateWaitingForEmail DialogState = "waiting_for_email"
+	// StateWaitingForPassword when user is entering password
+	StateWaitingForPassword DialogState = "waiting_for_password"
+	// StateWaitingForRegisterEmail when registering email
+	StateWaitingForRegisterEmail DialogState = "waiting_for_register_email"
+	// StateWaitingForRegisterPassword when registering password
 	StateWaitingForRegisterPassword DialogState = "waiting_for_register_password"
-	StateWaitingForRegisterName     DialogState = "waiting_for_register_name"
-	StateConfirmingTransaction  DialogState = "confirming_transaction"
-	StateWaitingForCategory     DialogState = "waiting_for_category"
+	// StateWaitingForRegisterName when registering name
+	StateWaitingForRegisterName DialogState = "waiting_for_register_name"
+	// StateConfirmingTransaction when user confirms parsed transaction
+	StateConfirmingTransaction DialogState = "confirming_transaction"
+	// StateWaitingForCategory when user chooses a category
+	StateWaitingForCategory DialogState = "waiting_for_category"
 )
 
+// DialogStateRecord is a persisted dialog state.
 type DialogStateRecord struct {
 	TelegramID int64
 	State      DialogState
@@ -26,20 +37,24 @@ type DialogStateRecord struct {
 	Context    map[string]any
 }
 
+// DialogStateRepository defines dialog state operations.
 type DialogStateRepository interface {
 	SetState(ctx context.Context, telegramID int64, state DialogState, context map[string]any, draftID *string) error
 	GetState(ctx context.Context, telegramID int64) (*DialogStateRecord, error)
 	ClearState(ctx context.Context, telegramID int64) error
 }
 
+// SQLiteDialogStateRepository stores dialog state in SQLite.
 type SQLiteDialogStateRepository struct {
 	db *sql.DB
 }
 
+// NewSQLiteDialogStateRepository constructs a repository.
 func NewSQLiteDialogStateRepository(db *sql.DB) *SQLiteDialogStateRepository {
 	return &SQLiteDialogStateRepository{db: db}
 }
 
+// SetState upserts a dialog state.
 func (r *SQLiteDialogStateRepository) SetState(ctx context.Context, telegramID int64, state DialogState, ctxMap map[string]any, draftID *string) error {
 	var ctxJSON *string
 	if ctxMap != nil {
@@ -59,6 +74,7 @@ func (r *SQLiteDialogStateRepository) SetState(ctx context.Context, telegramID i
 	return err
 }
 
+// GetState returns a dialog state by telegram id.
 func (r *SQLiteDialogStateRepository) GetState(ctx context.Context, telegramID int64) (*DialogStateRecord, error) {
 	row := r.db.QueryRowContext(ctx, `SELECT state, draft_id, context FROM dialog_states WHERE telegram_id = ?`, telegramID)
 	var state string
@@ -74,6 +90,7 @@ func (r *SQLiteDialogStateRepository) GetState(ctx context.Context, telegramID i
 	return &DialogStateRecord{TelegramID: telegramID, State: DialogState(state), DraftID: draftID, Context: ctxMap}, nil
 }
 
+// ClearState deletes a dialog state by telegram id.
 func (r *SQLiteDialogStateRepository) ClearState(ctx context.Context, telegramID int64) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM dialog_states WHERE telegram_id = ?`, telegramID)
 	return err

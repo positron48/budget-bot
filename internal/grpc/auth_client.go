@@ -1,3 +1,4 @@
+// Package grpc contains gRPC client facades used by the bot.
 package grpc
 
 import (
@@ -8,15 +9,18 @@ import (
 	"go.uber.org/zap"
 )
 
+// AuthClient wraps the gRPC Auth service with helper methods.
 type AuthClient struct {
 	client pb.AuthServiceClient
 	log    *zap.Logger
 }
 
+// NewAuthClient constructs an AuthClient.
 func NewAuthClient(client pb.AuthServiceClient, log *zap.Logger) *AuthClient {
 	return &AuthClient{client: client, log: log}
 }
 
+// Register registers a new user and returns ids and token expirations.
 func (a *AuthClient) Register(ctx context.Context, email, password, name string) (string, string, string, string, time.Time, time.Time, error) {
 	res, err := a.client.Register(ctx, &pb.RegisterRequest{Email: email, Password: password, Name: name})
 	if err != nil {
@@ -34,6 +38,7 @@ func (a *AuthClient) Register(ctx context.Context, email, password, name string)
 	return userID, tenantID, tokens.AccessToken, tokens.RefreshToken, tokens.AccessTokenExpiresAt.AsTime(), tokens.RefreshTokenExpiresAt.AsTime(), nil
 }
 
+// Login authenticates and returns ids and token expirations.
 func (a *AuthClient) Login(ctx context.Context, email, password string) (string, string, string, string, time.Time, time.Time, error) {
 	res, err := a.client.Login(ctx, &pb.LoginRequest{Email: email, Password: password})
 	if err != nil {
@@ -53,6 +58,7 @@ func (a *AuthClient) Login(ctx context.Context, email, password string) (string,
 	return "", tenantID, tokens.AccessToken, tokens.RefreshToken, tokens.AccessTokenExpiresAt.AsTime(), tokens.RefreshTokenExpiresAt.AsTime(), nil
 }
 
+// RefreshToken exchanges refresh token for a new access/refresh pair.
 func (a *AuthClient) RefreshToken(ctx context.Context, refreshToken string) (string, string, time.Time, time.Time, error) {
 	res, err := a.client.RefreshToken(ctx, &pb.RefreshTokenRequest{RefreshToken: refreshToken})
 	if err != nil {

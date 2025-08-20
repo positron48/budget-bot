@@ -8,13 +8,14 @@ import (
 
     pb "budget-bot/internal/pb/budget/v1"
     "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
     "google.golang.org/grpc/metadata"
     "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type fakeTxServer struct{ pb.UnimplementedTransactionServiceServer; sawAuth string }
 
-func (s *fakeTxServer) CreateTransaction(ctx context.Context, r *pb.CreateTransactionRequest) (*pb.CreateTransactionResponse, error) {
+func (s *fakeTxServer) CreateTransaction(ctx context.Context, _ *pb.CreateTransactionRequest) (*pb.CreateTransactionResponse, error) {
     if md, ok := metadata.FromIncomingContext(ctx); ok {
         vals := md.Get("authorization")
         if len(vals) > 0 { s.sawAuth = vals[0] }
@@ -22,7 +23,7 @@ func (s *fakeTxServer) CreateTransaction(ctx context.Context, r *pb.CreateTransa
     return &pb.CreateTransactionResponse{Transaction: &pb.Transaction{Id: "tx1"}}, nil
 }
 
-func (s *fakeTxServer) ListTransactions(ctx context.Context, r *pb.ListTransactionsRequest) (*pb.ListTransactionsResponse, error) {
+func (s *fakeTxServer) ListTransactions(_ context.Context, _ *pb.ListTransactionsRequest) (*pb.ListTransactionsResponse, error) {
     return &pb.ListTransactionsResponse{Transactions: []*pb.Transaction{
         {Type: pb.TransactionType_TRANSACTION_TYPE_EXPENSE, Amount: &pb.Money{CurrencyCode: "RUB", MinorUnits: 10000}, Comment: "такси", OccurredAt: timestamppb.New(time.Now())},
     }}, nil
@@ -42,7 +43,7 @@ func startTxServer(t *testing.T) (*grpc.Server, string, *fakeTxServer) {
 func TestGRPCTransactionClient_CreateAndList(t *testing.T) {
     srv, addr, impl := startTxServer(t)
     defer srv.Stop()
-    conn, err := grpc.Dial(addr, grpc.WithInsecure())
+    conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
     c := NewGRPCTransactionClient(pb.NewTransactionServiceClient(conn))

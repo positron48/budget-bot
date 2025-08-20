@@ -13,15 +13,15 @@ import (
 
 type fakeAuth struct{}
 
-func (f *fakeAuth) Register(ctx context.Context, email, password, name string) (string, string, string, string, time.Time, time.Time, error) {
+func (f *fakeAuth) Register(_ context.Context, _ , _ , _ string) (string, string, string, string, time.Time, time.Time, error) {
     return "user-1", "tenant-1", "acc-1", "ref-1", time.Now().Add(time.Hour), time.Now().Add(24 * time.Hour), nil
 }
 
-func (f *fakeAuth) Login(ctx context.Context, email, password string) (string, string, string, string, time.Time, time.Time, error) {
+func (f *fakeAuth) Login(_ context.Context, _ , _ string) (string, string, string, string, time.Time, time.Time, error) {
     return "user-2", "tenant-2", "acc-2", "ref-2", time.Now().Add(time.Hour), time.Now().Add(24 * time.Hour), nil
 }
 
-func (f *fakeAuth) RefreshToken(ctx context.Context, refreshToken string) (string, string, time.Time, time.Time, error) {
+func (f *fakeAuth) RefreshToken(_ context.Context, _ string) (string, string, time.Time, time.Time, error) {
     return "acc-3", "ref-3", time.Now().Add(2 * time.Hour), time.Now().Add(48 * time.Hour), nil
 }
 

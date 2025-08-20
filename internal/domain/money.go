@@ -6,6 +6,7 @@ type Money struct {
 	CurrencyCode string
 }
 
+// NewMoney constructs Money from minor units and ISO currency code.
 func NewMoney(minor int64, code string) *Money {
 	return &Money{AmountMinor: minor, CurrencyCode: code}
 }

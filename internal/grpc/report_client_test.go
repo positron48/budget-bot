@@ -8,12 +8,13 @@ import (
 
     pb "budget-bot/internal/pb/budget/v1"
     "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
     "google.golang.org/grpc/metadata"
 )
 
 type fakeReportServer struct{ pb.UnimplementedReportServiceServer; sawAuth string }
 
-func (s *fakeReportServer) GetMonthlySummary(ctx context.Context, r *pb.GetMonthlySummaryRequest) (*pb.GetMonthlySummaryResponse, error) {
+func (s *fakeReportServer) GetMonthlySummary(ctx context.Context, _ *pb.GetMonthlySummaryRequest) (*pb.GetMonthlySummaryResponse, error) {
     if md, ok := metadata.FromIncomingContext(ctx); ok {
         vals := md.Get("authorization")
         if len(vals) > 0 { s.sawAuth = vals[0] }
@@ -39,7 +40,7 @@ func startReportServer(t *testing.T) (*grpc.Server, string, *fakeReportServer) {
 func TestGRPCReportClient_GetStatsAndTop(t *testing.T) {
     srv, addr, impl := startReportServer(t)
     defer srv.Stop()
-    conn, err := grpc.Dial(addr, grpc.WithInsecure())
+    conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
     c := NewGRPCReportClient(pb.NewReportServiceClient(conn))

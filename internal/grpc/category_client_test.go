@@ -7,12 +7,13 @@ import (
 
     pb "budget-bot/internal/pb/budget/v1"
     "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
     "google.golang.org/grpc/metadata"
 )
 
 type fakeCategoryServer struct{ pb.UnimplementedCategoryServiceServer; sawAuth string }
 
-func (s *fakeCategoryServer) ListCategories(ctx context.Context, r *pb.ListCategoriesRequest) (*pb.ListCategoriesResponse, error) {
+func (s *fakeCategoryServer) ListCategories(ctx context.Context, _ *pb.ListCategoriesRequest) (*pb.ListCategoriesResponse, error) {
     if md, ok := metadata.FromIncomingContext(ctx); ok {
         vals := md.Get("authorization")
         if len(vals) > 0 { s.sawAuth = vals[0] }
@@ -37,7 +38,7 @@ func startCategoryServer(t *testing.T) (*grpc.Server, string, *fakeCategoryServe
 func TestGRPCCategoryClient_ListCategories(t *testing.T) {
     srv, addr, impl := startCategoryServer(t)
     defer srv.Stop()
-    conn, err := grpc.Dial(addr, grpc.WithInsecure())
+    conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
 

@@ -7,12 +7,13 @@ import (
 
     pb "budget-bot/internal/pb/budget/v1"
     "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
     status "google.golang.org/grpc/status"
 )
 
 type errCategoryServer struct{ pb.UnimplementedCategoryServiceServer }
 
-func (s *errCategoryServer) ListCategories(ctx context.Context, r *pb.ListCategoriesRequest) (*pb.ListCategoriesResponse, error) {
+func (s *errCategoryServer) ListCategories(_ context.Context, _ *pb.ListCategoriesRequest) (*pb.ListCategoriesResponse, error) {
     return nil, status.Error(13, "backend error")
 }
 
@@ -24,7 +25,7 @@ func TestGRPCCategoryClient_ListCategories_Error(t *testing.T) {
     go func(){ _ = srv.Serve(lis) }()
     defer srv.Stop()
 
-    conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+    conn, err := grpc.NewClient(lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
     c := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn))

@@ -18,12 +18,12 @@ import (
 
 // failing clients to simulate backend errors
 type failReport struct{ grpcclient.ReportClient }
-func (f *failReport) GetStats(ctx context.Context, tenantID string, from, to time.Time, accessToken string) (*domain.Stats, error) { return nil, errors.New("boom") }
-func (f *failReport) TopCategories(ctx context.Context, tenantID string, from, to time.Time, limit int, accessToken string) ([]*domain.CategoryTotal, error) { return nil, errors.New("boom") }
+func (f *failReport) GetStats(_ context.Context, _ string, _ , _ time.Time, _ string) (*domain.Stats, error) { return nil, errors.New("boom") }
+func (f *failReport) TopCategories(_ context.Context, _ string, _ , _ time.Time, _ int, _ string) ([]*domain.CategoryTotal, error) { return nil, errors.New("boom") }
 
 type failTx struct{ grpcclient.TransactionClient }
-func (f *failTx) ListRecent(ctx context.Context, tenantID string, limit int, accessToken string) ([]*pb.Transaction, error) { return nil, errors.New("boom") }
-func (f *failTx) ListForExport(ctx context.Context, tenantID string, from, to time.Time, limit int, accessToken string) ([]*pb.Transaction, error) { return nil, errors.New("boom") }
+func (f *failTx) ListRecent(_ context.Context, _ string, _ int, _ string) ([]*pb.Transaction, error) { return nil, errors.New("boom") }
+func (f *failTx) ListForExport(_ context.Context, _ string, _ , _ time.Time, _ int, _ string) ([]*pb.Transaction, error) { return nil, errors.New("boom") }
 
 func TestHandler_ErrorBranches_NoPanic(t *testing.T) {
     log := zap.NewNop()

@@ -1,3 +1,4 @@
+// Package grpc contains gRPC client facades used by the bot.
 package grpc
 
 import (
@@ -9,6 +10,7 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+// CategoryClient exposes category operations.
 type CategoryClient interface {
     ListCategories(ctx context.Context, tenantID string, accessToken string, locale ...string) ([]*domain.Category, error)
     CreateCategory(ctx context.Context, accessToken string, code string, name string, locale string) (*domain.Category, error)
@@ -17,8 +19,10 @@ type CategoryClient interface {
 }
 
 // StaticCategoryClient is a temporary implementation returning fixed categories.
+// StaticCategoryClient is a temporary implementation returning fixed categories.
 type StaticCategoryClient struct{}
 
+// ListCategories returns a static list of categories.
 func (s *StaticCategoryClient) ListCategories(_ context.Context, _ string, _ string, _ ...string) ([]*domain.Category, error) {
     return []*domain.Category{
         {ID: "cat-food", Name: "Питание", Emoji: "🍽️"},
@@ -28,25 +32,31 @@ func (s *StaticCategoryClient) ListCategories(_ context.Context, _ string, _ str
     }, nil
 }
 
-func (s *StaticCategoryClient) CreateCategory(ctx context.Context, accessToken string, code string, name string, locale string) (*domain.Category, error) {
+// CreateCategory is unsupported in static client.
+func (s *StaticCategoryClient) CreateCategory(_ context.Context, _ string, _ string, _ string, _ string) (*domain.Category, error) {
     return nil, fmt.Errorf("category creation not supported without gRPC")
 }
 
-func (s *StaticCategoryClient) UpdateCategoryName(ctx context.Context, accessToken string, id string, name string, locale string) (*domain.Category, error) {
+// UpdateCategoryName is unsupported in static client.
+func (s *StaticCategoryClient) UpdateCategoryName(_ context.Context, _ string, _ string, _ string, _ string) (*domain.Category, error) {
     return nil, fmt.Errorf("category update not supported without gRPC")
 }
 
-func (s *StaticCategoryClient) DeleteCategory(ctx context.Context, accessToken string, id string) error {
+// DeleteCategory is unsupported in static client.
+func (s *StaticCategoryClient) DeleteCategory(_ context.Context, _ string, _ string) error {
     return fmt.Errorf("category delete not supported without gRPC")
 }
 
-type GRPCCategoryClient struct{
+// CategoryGRPCClient calls Category service via gRPC.
+type CategoryGRPCClient struct{
     client pb.CategoryServiceClient
 }
 
-func NewGRPCCategoryClient(c pb.CategoryServiceClient) *GRPCCategoryClient { return &GRPCCategoryClient{client: c} }
+// NewGRPCCategoryClient constructs a CategoryGRPCClient.
+func NewGRPCCategoryClient(c pb.CategoryServiceClient) *CategoryGRPCClient { return &CategoryGRPCClient{client: c} }
 
-func (g *GRPCCategoryClient) ListCategories(ctx context.Context, _ string, accessToken string, locale ...string) ([]*domain.Category, error) {
+// ListCategories returns categories with optional locale translation.
+func (g *CategoryGRPCClient) ListCategories(ctx context.Context, _ string, accessToken string, locale ...string) ([]*domain.Category, error) {
     if accessToken != "" {
         ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken)
     }
@@ -67,7 +77,8 @@ func (g *GRPCCategoryClient) ListCategories(ctx context.Context, _ string, acces
     return out, nil
 }
 
-func (g *GRPCCategoryClient) CreateCategory(ctx context.Context, accessToken string, code string, name string, locale string) (*domain.Category, error) {
+// CreateCategory creates a new category.
+func (g *CategoryGRPCClient) CreateCategory(ctx context.Context, accessToken string, code string, name string, locale string) (*domain.Category, error) {
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     if locale == "" { locale = "ru" }
     req := &pb.CreateCategoryRequest{
@@ -84,7 +95,8 @@ func (g *GRPCCategoryClient) CreateCategory(ctx context.Context, accessToken str
     return out, nil
 }
 
-func (g *GRPCCategoryClient) UpdateCategoryName(ctx context.Context, accessToken string, id string, name string, locale string) (*domain.Category, error) {
+// UpdateCategoryName updates category translation name.
+func (g *CategoryGRPCClient) UpdateCategoryName(ctx context.Context, accessToken string, id string, name string, locale string) (*domain.Category, error) {
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     if locale == "" { locale = "ru" }
     req := &pb.UpdateCategoryRequest{
@@ -99,7 +111,8 @@ func (g *GRPCCategoryClient) UpdateCategoryName(ctx context.Context, accessToken
     return out, nil
 }
 
-func (g *GRPCCategoryClient) DeleteCategory(ctx context.Context, accessToken string, id string) error {
+// DeleteCategory deletes a category by id.
+func (g *CategoryGRPCClient) DeleteCategory(ctx context.Context, accessToken string, id string) error {
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     _, err := g.client.DeleteCategory(ctx, &pb.DeleteCategoryRequest{Id: id})
     return err

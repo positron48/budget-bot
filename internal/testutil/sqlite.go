@@ -1,3 +1,4 @@
+// Package testutil provides helpers for tests (SQLite DB, Telegram fakes, etc.).
 package testutil
 
 import (

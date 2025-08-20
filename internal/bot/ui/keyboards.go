@@ -1,3 +1,4 @@
+// Package ui contains helpers to build Telegram reply/inline keyboards.
 package ui
 
 import (
@@ -6,6 +7,7 @@ import (
     grpcclient "budget-bot/internal/grpc"
 )
 
+// CreateCategoryKeyboard builds an inline keyboard for categories.
 func CreateCategoryKeyboard(categories []*domain.Category) tgbotapi.InlineKeyboardMarkup {
     var rows [][]tgbotapi.InlineKeyboardButton
     for _, c := range categories {
@@ -15,6 +17,7 @@ func CreateCategoryKeyboard(categories []*domain.Category) tgbotapi.InlineKeyboa
     return tgbotapi.NewInlineKeyboardMarkup(rows...)
 }
 
+// CreateConfirmationKeyboard builds Yes/No inline keyboard.
 func CreateConfirmationKeyboard() tgbotapi.InlineKeyboardMarkup {
     yes := tgbotapi.NewInlineKeyboardButtonData("✅ Подтвердить", "confirm:yes")
     no := tgbotapi.NewInlineKeyboardButtonData("❌ Отмена", "confirm:no")
@@ -23,12 +26,14 @@ func CreateConfirmationKeyboard() tgbotapi.InlineKeyboardMarkup {
     )
 }
 
+// CreateLanguageKeyboard builds language selection keyboard.
 func CreateLanguageKeyboard() tgbotapi.InlineKeyboardMarkup {
     ru := tgbotapi.NewInlineKeyboardButtonData("🇷🇺 Русский", "lang:ru")
     en := tgbotapi.NewInlineKeyboardButtonData("🇺🇸 English", "lang:en")
     return tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(ru, en))
 }
 
+// CreateCurrencyKeyboard builds default currency selection keyboard.
 func CreateCurrencyKeyboard() tgbotapi.InlineKeyboardMarkup {
     rub := tgbotapi.NewInlineKeyboardButtonData("₽ RUB", "cur:RUB")
     usd := tgbotapi.NewInlineKeyboardButtonData("$ USD", "cur:USD")
@@ -41,6 +46,7 @@ func CreateCurrencyKeyboard() tgbotapi.InlineKeyboardMarkup {
     )
 }
 
+// CreateTenantKeyboard builds a tenant selection keyboard.
 func CreateTenantKeyboard(items []*grpcclient.Tenant) tgbotapi.InlineKeyboardMarkup {
     var rows [][]tgbotapi.InlineKeyboardButton
     for _, t := range items {
@@ -50,6 +56,7 @@ func CreateTenantKeyboard(items []*grpcclient.Tenant) tgbotapi.InlineKeyboardMar
     return tgbotapi.NewInlineKeyboardMarkup(rows...)
 }
 
+// CreateMainMenuKeyboard builds the main menu keyboard.
 func CreateMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
     row1 := tgbotapi.NewKeyboardButtonRow(
         tgbotapi.NewKeyboardButton("/stats"),

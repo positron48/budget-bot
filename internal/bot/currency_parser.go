@@ -1,3 +1,4 @@
+// Package bot contains the core Telegram bot business logic.
 package bot
 
 import (
@@ -5,11 +6,13 @@ import (
     "strings"
 )
 
+// CurrencyParser validates and normalizes currency codes.
 type CurrencyParser struct {
     symbolToCode map[string]string
     codeToSymbol map[string]string
 }
 
+// NewCurrencyParser constructs a CurrencyParser.
 func NewCurrencyParser() *CurrencyParser {
     s2c := map[string]string{
         "₽": "RUB",
@@ -50,6 +53,7 @@ func (cp *CurrencyParser) ParseCurrency(text string) (code string, matched strin
     return "", "", t
 }
 
+// ValidateCurrency checks if code looks like an ISO 4217 currency.
 func (cp *CurrencyParser) ValidateCurrency(code string) bool {
     if code == "" {
         return false

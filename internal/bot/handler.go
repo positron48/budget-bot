@@ -1,3 +1,4 @@
+// Package bot contains the core Telegram bot business logic.
 package bot
 
 import (
@@ -16,6 +17,7 @@ import (
 	pb "budget-bot/internal/pb/budget/v1"
 )
 
+// Handler wires bot dependencies and handles Telegram updates.
 type Handler struct {
 	bot        *tgbotapi.BotAPI
 	states     repository.DialogStateRepository
@@ -33,6 +35,7 @@ type Handler struct {
 	fmt        *ui.MessageFormatter
 }
 
+// NewHandler constructs a Handler.
 func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, auth *AuthManager, mappings repository.CategoryMappingRepository, categories grpcclient.CategoryClient, logger *zap.Logger) *Handler {
 	if categories == nil {
 		categories = &grpcclient.StaticCategoryClient{}
@@ -84,6 +87,7 @@ func (h *Handler) WithTenantClient(tc grpcclient.TenantClient) *Handler {
 	return h
 }
 
+// HandleUpdate processes a single Telegram update.
 func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 	if update.CallbackQuery != nil {
 		h.handleCallback(ctx, update)
@@ -419,7 +423,7 @@ func (h *Handler) handleCancel(ctx context.Context, update tgbotapi.Update) {
 	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Текущая операция отменена"))
 }
 
-func (h *Handler) handleStart(ctx context.Context, update tgbotapi.Update) {
+func (h *Handler) handleStart(_ context.Context, update tgbotapi.Update) {
 	// Greet and show basic commands
 	var b strings.Builder
 	b.WriteString("Привет! Я бот учёта бюджета.\n")
@@ -623,14 +627,14 @@ func (h *Handler) handleCategories(ctx context.Context, update tgbotapi.Update) 
 	_, _ = h.bot.Send(msg)
 }
 
-func (h *Handler) handleLanguage(ctx context.Context, update tgbotapi.Update) {
+func (h *Handler) handleLanguage(_ context.Context, update tgbotapi.Update) {
 	kb := ui.CreateLanguageKeyboard()
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Выберите язык интерфейса")
 	msg.ReplyMarkup = kb
 	_, _ = h.bot.Send(msg)
 }
 
-func (h *Handler) handleCurrency(ctx context.Context, update tgbotapi.Update) {
+func (h *Handler) handleCurrency(_ context.Context, update tgbotapi.Update) {
 	kb := ui.CreateCurrencyKeyboard()
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Выберите валюту по умолчанию")
 	msg.ReplyMarkup = kb

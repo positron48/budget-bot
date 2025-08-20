@@ -1,3 +1,4 @@
+// Package metrics exposes Prometheus metrics handler.
 package metrics
 
 import (

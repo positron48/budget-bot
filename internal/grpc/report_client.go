@@ -1,3 +1,4 @@
+// Package grpc contains gRPC client facades used by the bot.
 package grpc
 
 import (
@@ -10,38 +11,52 @@ import (
     "google.golang.org/grpc/metadata"
 )
 
+// ReportClient exposes read-only reporting operations.
 type ReportClient interface {
     GetStats(ctx context.Context, tenantID string, from, to time.Time, accessToken string) (*domain.Stats, error)
     TopCategories(ctx context.Context, tenantID string, from, to time.Time, limit int, accessToken string) ([]*domain.CategoryTotal, error)
     Recent(ctx context.Context, tenantID string, limit int, accessToken string) ([]string, error)
 }
 
+// FakeReportClient is a stubbed implementation for tests and local runs.
 type FakeReportClient struct{}
 
-func (f *FakeReportClient) GetStats(ctx context.Context, tenantID string, from, to time.Time, _ string) (*domain.Stats, error) {
+// GetStats returns a fake stats response.
+func (f *FakeReportClient) GetStats(_ context.Context, tenantID string, from, to time.Time, _ string) (*domain.Stats, error) {
+    _ = tenantID
     return &domain.Stats{Period: from.Format("2006-01-02") + ".." + to.Format("2006-01-02"), TotalIncome: 2500000, TotalExpense: 1750000, Currency: "RUB"}, nil
 }
 
-func (f *FakeReportClient) TopCategories(ctx context.Context, tenantID string, from, to time.Time, limit int, _ string) ([]*domain.CategoryTotal, error) {
+// TopCategories returns fake top categories.
+func (f *FakeReportClient) TopCategories(_ context.Context, tenantID string, from, to time.Time, limit int, _ string) ([]*domain.CategoryTotal, error) {
+    _ = tenantID; _ = from; _ = to; _ = limit
     return []*domain.CategoryTotal{{CategoryID: "cat-food", Name: "Питание", SumMinor: 500000, Currency: "RUB"}, {CategoryID: "cat-transport", Name: "Транспорт", SumMinor: 300000, Currency: "RUB"}}, nil
 }
 
-func (f *FakeReportClient) Recent(ctx context.Context, tenantID string, limit int, _ string) ([]string, error) {
+// Recent returns fake recent lines.
+func (f *FakeReportClient) Recent(_ context.Context, tenantID string, limit int, _ string) ([]string, error) {
+    _ = tenantID; _ = limit
     return []string{"-1000 продукты", "-300 такси", "+50000 зарплата"}, nil
 }
 
-type GRPCReportClient struct{ client pb.ReportServiceClient }
+// ReportGRPCClient calls remote Report service via gRPC.
+type ReportGRPCClient struct{ client pb.ReportServiceClient }
 
-func NewGRPCReportClient(c pb.ReportServiceClient) *GRPCReportClient { return &GRPCReportClient{client: c} }
+// NewGRPCReportClient constructs a GRPCReportClient.
+func NewGRPCReportClient(c pb.ReportServiceClient) *ReportGRPCClient { return &ReportGRPCClient{client: c} }
 
-func (g *GRPCReportClient) GetStats(ctx context.Context, tenantID string, from, to time.Time, accessToken string) (*domain.Stats, error) {
+// GetStats fetches monthly stats for a period.
+func (g *ReportGRPCClient) GetStats(ctx context.Context, tenantID string, from, _ time.Time, accessToken string) (*domain.Stats, error) {
+    _ = tenantID
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     res, err := g.client.GetMonthlySummary(ctx, &pb.GetMonthlySummaryRequest{Year: int32(from.Year()), Month: int32(from.Month())})
     if err != nil { return nil, err }
     return &domain.Stats{Period: from.Format("2006-01") , TotalIncome: res.TotalIncome.MinorUnits, TotalExpense: res.TotalExpense.MinorUnits, Currency: res.TotalIncome.CurrencyCode}, nil
 }
 
-func (g *GRPCReportClient) TopCategories(ctx context.Context, tenantID string, from, to time.Time, limit int, accessToken string) ([]*domain.CategoryTotal, error) {
+// TopCategories returns top expense categories for the period.
+func (g *ReportGRPCClient) TopCategories(ctx context.Context, tenantID string, from, _ time.Time, limit int, accessToken string) ([]*domain.CategoryTotal, error) {
+    _ = tenantID
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     res, err := g.client.GetMonthlySummary(ctx, &pb.GetMonthlySummaryRequest{Year: int32(from.Year()), Month: int32(from.Month())})
     if err != nil { return nil, err }
@@ -59,7 +74,8 @@ func (g *GRPCReportClient) TopCategories(ctx context.Context, tenantID string, f
     return out, nil
 }
 
-func (g *GRPCReportClient) Recent(ctx context.Context, tenantID string, limit int, accessToken string) ([]string, error) {
+// Recent returns recent transactions as strings (not implemented by backend).
+func (g *ReportGRPCClient) Recent(ctx context.Context, _ string, _ int, accessToken string) ([]string, error) {
     // Not defined in proto; return empty for now (token attached for future use)
     if accessToken != "" { _ = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     return []string{}, nil

@@ -1,3 +1,4 @@
+// Package bot contains the core Telegram bot business logic.
 package bot
 
 import (
@@ -9,13 +10,16 @@ import (
 	"budget-bot/internal/domain"
 )
 
+// MessageParser parses free-form text into structured transactions.
 type MessageParser struct{ currency *CurrencyParser }
 
+// ValidationError describes invalid user input.
 type ValidationError struct {
 	Field   string
 	Message string
 }
 
+// ParsedTransaction is a result of parsing a message text.
 type ParsedTransaction struct {
 	Type        domain.TransactionType
 	Amount      *domain.Money
@@ -26,6 +30,7 @@ type ParsedTransaction struct {
 	Errors      []string
 }
 
+// NewMessageParser constructs a MessageParser with default currency parser.
 func NewMessageParser() *MessageParser { return &MessageParser{currency: NewCurrencyParser()} }
 
 var (
@@ -33,6 +38,7 @@ var (
 	dateDDMMYY = regexp.MustCompile(`\b(\d{1,2})[\./](\d{1,2})(?:[\./](\d{2,4}))?\b`)
 )
 
+// ParseMessage converts input text into a ParsedTransaction.
 func (p *MessageParser) ParseMessage(text string) (*ParsedTransaction, error) {
 	original := strings.TrimSpace(text)
 	result := &ParsedTransaction{IsValid: false}

@@ -9,6 +9,7 @@ import (
     "google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// CreateTransactionRequest is an app-level request to create a transaction.
 type CreateTransactionRequest struct {
     TenantID    string
     Type        string
@@ -19,6 +20,7 @@ type CreateTransactionRequest struct {
     OccurredAt  time.Time
 }
 
+// TransactionClient exposes transaction operations.
 type TransactionClient interface {
     CreateTransaction(ctx context.Context, req *CreateTransactionRequest, accessToken string) (string, error)
     ListRecent(ctx context.Context, tenantID string, limit int, accessToken string) ([]*pb.Transaction, error)
@@ -26,25 +28,32 @@ type TransactionClient interface {
 }
 
 // FakeTransactionClient is a temporary stub.
+// FakeTransactionClient is a stubbed client for tests/local runs.
 type FakeTransactionClient struct{}
 
-func (f *FakeTransactionClient) CreateTransaction(ctx context.Context, req *CreateTransactionRequest, accessToken string) (string, error) {
+// CreateTransaction returns a fake transaction id.
+func (f *FakeTransactionClient) CreateTransaction(_ context.Context, req *CreateTransactionRequest, _ string) (string, error) {
     return "tx-" + req.Description, nil
 }
 
-func (f *FakeTransactionClient) ListRecent(ctx context.Context, tenantID string, limit int, accessToken string) ([]*pb.Transaction, error) {
+// ListRecent returns an empty list in the fake client.
+func (f *FakeTransactionClient) ListRecent(_ context.Context, _ string, _ int, _ string) ([]*pb.Transaction, error) {
     return []*pb.Transaction{}, nil
 }
 
-func (f *FakeTransactionClient) ListForExport(ctx context.Context, tenantID string, from, to time.Time, limit int, accessToken string) ([]*pb.Transaction, error) {
+// ListForExport returns an empty list in the fake client.
+func (f *FakeTransactionClient) ListForExport(_ context.Context, _ string, _ , _ time.Time, _ int, _ string) ([]*pb.Transaction, error) {
     return []*pb.Transaction{}, nil
 }
 
-type GRPCTransactionClient struct{ client pb.TransactionServiceClient }
+// TransactionGRPCClient calls Transaction service via gRPC.
+type TransactionGRPCClient struct{ client pb.TransactionServiceClient }
 
-func NewGRPCTransactionClient(c pb.TransactionServiceClient) *GRPCTransactionClient { return &GRPCTransactionClient{client: c} }
+// NewGRPCTransactionClient constructs a TransactionGRPCClient.
+func NewGRPCTransactionClient(c pb.TransactionServiceClient) *TransactionGRPCClient { return &TransactionGRPCClient{client: c} }
 
-func (g *GRPCTransactionClient) CreateTransaction(ctx context.Context, req *CreateTransactionRequest, accessToken string) (string, error) {
+// CreateTransaction creates a transaction and returns its id.
+func (g *TransactionGRPCClient) CreateTransaction(ctx context.Context, req *CreateTransactionRequest, accessToken string) (string, error) {
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     pbReq := &pb.CreateTransactionRequest{
         Type:      mapType(req.Type),
@@ -58,7 +67,9 @@ func (g *GRPCTransactionClient) CreateTransaction(ctx context.Context, req *Crea
     return res.Transaction.Id, nil
 }
 
-func (g *GRPCTransactionClient) ListRecent(ctx context.Context, tenantID string, limit int, accessToken string) ([]*pb.Transaction, error) {
+// ListRecent returns recent transactions.
+func (g *TransactionGRPCClient) ListRecent(ctx context.Context, tenantID string, limit int, accessToken string) ([]*pb.Transaction, error) {
+    _ = tenantID
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     if limit <= 0 { limit = 10 }
     res, err := g.client.ListTransactions(ctx, &pb.ListTransactionsRequest{
@@ -68,7 +79,9 @@ func (g *GRPCTransactionClient) ListRecent(ctx context.Context, tenantID string,
     return res.GetTransactions(), nil
 }
 
-func (g *GRPCTransactionClient) ListForExport(ctx context.Context, tenantID string, from, to time.Time, limit int, accessToken string) ([]*pb.Transaction, error) {
+// ListForExport returns transactions for a period.
+func (g *TransactionGRPCClient) ListForExport(ctx context.Context, tenantID string, from, to time.Time, limit int, accessToken string) ([]*pb.Transaction, error) {
+    _ = tenantID
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     pr := &pb.PageRequest{Page: 1, PageSize: int32(limit)}
     if limit <= 0 { pr.PageSize = 100 }
