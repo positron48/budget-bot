@@ -20,8 +20,17 @@ run: tidy build
 test:
 	$(GO) test ./...
 
+GOLANGCI := $(shell if [ -x ./bin/golangci-lint ]; then echo ./bin/golangci-lint; else echo golangci-lint; fi)
+LINT_TOOLCHAIN ?= go1.23.1
+
 lint:
-	golangci-lint run --timeout=3m
+	GOTOOLCHAIN=$(LINT_TOOLCHAIN) $(GOLANGCI) run --timeout=3m
+
+.PHONY: lint-install
+lint-install:
+	@echo "Installing golangci-lint v1.61.0 into ./bin..."
+	@mkdir -p bin
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ./bin v1.61.0
 
 setup:
 	mkdir -p data
