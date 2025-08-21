@@ -12,6 +12,9 @@ tidy:
 	$(GO) mod tidy
 
 build:
+	$(GO) build -tags withgrpc -o bin/$(APP_NAME) ./cmd/bot
+
+build-fake:
 	$(GO) build -o bin/$(APP_NAME) ./cmd/bot
 
 run: tidy build
