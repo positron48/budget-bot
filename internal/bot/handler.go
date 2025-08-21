@@ -99,7 +99,24 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 
 	metrics.IncUpdate()
 
+	// Debug logging for command detection
+	if strings.HasPrefix(update.Message.Text, "/") {
+		h.logger.Debug("potential command detected", 
+			zap.String("text", update.Message.Text),
+			zap.Bool("is_command", update.Message.IsCommand()),
+			zap.Any("entities", update.Message.Entities))
+	}
+
 	if update.Message.IsCommand() {
+		h.handleCommand(ctx, update)
+		return
+	}
+
+	// Fallback for commands that start with / but are not recognized as commands
+	if strings.HasPrefix(update.Message.Text, "/") {
+		h.logger.Warn("command not recognized by IsCommand()", 
+			zap.String("text", update.Message.Text))
+		// Try to handle as command anyway
 		h.handleCommand(ctx, update)
 		return
 	}
@@ -191,9 +208,12 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 			return
 		}
 		// No session; just echo parse
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID,
-			fmt.Sprintf("Распознано: %s %.2f %s — %s", string(parsed.Type), amt, cur, parsed.Description))
-		_, _ = h.bot.Send(msg)
+		msgText := fmt.Sprintf("Распознано: %s %.2f %s — %s", string(parsed.Type), amt, cur, parsed.Description)
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, msgText)
+		_, err := h.bot.Send(msg)
+		if err != nil {
+			h.logger.Error("failed to send parse result", zap.Error(err), zap.String("text", msgText))
+		}
 		return
 	}
 
@@ -204,7 +224,11 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 			// Show first error in a user-friendly way
 			msgText = "Ошибка: " + parsed.Errors[0]
 		}
-		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, msgText))
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, msgText)
+		_, err := h.bot.Send(msg)
+		if err != nil {
+			h.logger.Error("failed to send validation error", zap.Error(err), zap.String("text", msgText))
+		}
 		return
 	}
 }
@@ -396,8 +420,11 @@ func (h *Handler) handleCommand(ctx context.Context, update tgbotapi.Update) {
 	case "cancel":
 		h.handleCancel(ctx, update)
 	default:
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Unknown command")
-		_, _ = h.bot.Send(msg)
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Неизвестная команда")
+		_, err := h.bot.Send(msg)
+		if err != nil {
+			h.logger.Error("failed to send unknown command message", zap.Error(err))
+		}
 	}
 }
 
@@ -425,21 +452,30 @@ func (h *Handler) handleCancel(ctx context.Context, update tgbotapi.Update) {
 
 func (h *Handler) handleStart(_ context.Context, update tgbotapi.Update) {
 	// Greet and show basic commands
-	var b strings.Builder
-	b.WriteString("Привет! Я бот учёта бюджета.\n")
-	b.WriteString("/login — вход\n")
-	b.WriteString("/register — регистрация\n")
-	b.WriteString("/logout — выход\n")
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, b.String())
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Привет! Я бот учёта бюджета.\n\n"+
+		"/login — вход\n"+
+		"/register — регистрация\n"+
+		"/logout — выход\n\n"+
+		"Отправьте сумму и описание для добавления транзакции, например:\n"+
+		"1000 продукты\n"+
+		"+50000 зарплата")
+	
 	menu := ui.CreateMainMenuKeyboard()
 	msg.ReplyMarkup = menu
-	_, _ = h.bot.Send(msg)
+	
+	_, err := h.bot.Send(msg)
+	if err != nil {
+		h.logger.Error("failed to send start message", zap.Error(err))
+	}
 }
 
 func (h *Handler) startLogin(ctx context.Context, update tgbotapi.Update) {
 	_ = h.states.SetState(ctx, update.Message.From.ID, repository.StateWaitingForEmail, nil, nil)
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Введите email:")
-	_, _ = h.bot.Send(msg)
+	_, err := h.bot.Send(msg)
+	if err != nil {
+		h.logger.Error("failed to send login email prompt", zap.Error(err))
+	}
 }
 
 func (h *Handler) handleLoginEmail(ctx context.Context, update tgbotapi.Update) {
