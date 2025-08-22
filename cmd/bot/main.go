@@ -85,11 +85,29 @@ func main() {
 		WithTenantClient(tenantClient)
 
 	// Webhook mode vs long polling
-	if cfg.Telegram.WebhookEnable && cfg.Telegram.WebhookURL != "" {
-		whCfg, _ := tgbotapi.NewWebhook(cfg.Telegram.WebhookURL)
+	if cfg.Telegram.WebhookEnable {
+		// Determine webhook URL
+		var webhookURL string
+		if cfg.Telegram.WebhookURL != "" {
+			// Use explicit webhook URL if provided
+			webhookURL = cfg.Telegram.WebhookURL
+		} else if cfg.Telegram.WebhookDomain != "" {
+			// Build webhook URL from domain and path
+			webhookURL = strings.TrimSuffix(cfg.Telegram.WebhookDomain, "/") + cfg.Telegram.WebhookPath
+		} else {
+			log.Fatal("webhook enabled but neither webhook_url nor webhook_domain is configured")
+		}
+		
+		log.Info("setting webhook", zap.String("url", webhookURL))
+		
+		// Set webhook using the configured API base URL
+		whCfg, _ := tgbotapi.NewWebhook(webhookURL)
 		if _, err := bot.Request(whCfg); err != nil {
 			log.Fatal("failed to set webhook", zap.Error(err))
 		}
+		
+		log.Info("webhook set successfully")
+		
 		// Serve webhook on configured path
 		http.HandleFunc(cfg.Telegram.WebhookPath, func(w http.ResponseWriter, r *http.Request) {
 			update, err := bot.HandleUpdate(r)
@@ -108,8 +126,21 @@ func main() {
 		if cfg.Metrics.Enabled {
 			http.Handle("/metrics", metrics.Handler())
 		}
+		
+		log.Info("starting HTTP server for webhook", zap.String("address", cfg.Server.Address))
 		go func() { _ = http.ListenAndServe(cfg.Server.Address, nil) }()
+		
+		// Wait for shutdown signal
 		<-ctx.Done()
+		
+		// Clean up webhook on shutdown using the configured API base URL
+		log.Info("cleaning up webhook")
+		if _, err := bot.Request(tgbotapi.DeleteWebhookConfig{}); err != nil {
+			log.Warn("failed to delete webhook", zap.Error(err))
+		} else {
+			log.Info("webhook deleted successfully")
+		}
+		
 		log.Info("shutting down")
 		return
 	}

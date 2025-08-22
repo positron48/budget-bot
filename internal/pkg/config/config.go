@@ -33,6 +33,8 @@ type TelegramConfig struct {
 	WebhookEnable bool `mapstructure:"webhook_enable"`
 	// WebhookURL public URL for webhook
 	WebhookURL string `mapstructure:"webhook_url"`
+	// WebhookDomain domain with protocol (http:// or https://) for webhook URL
+	WebhookDomain string `mapstructure:"webhook_domain"`
 	// WebhookPath path to serve webhook on
 	WebhookPath string `mapstructure:"webhook_path"`
 }
@@ -111,6 +113,7 @@ func Load() (*Config, error) {
 	_ = v.BindEnv("telegram.updates_timeout", "TELEGRAM_UPDATES_TIMEOUT")
 	_ = v.BindEnv("telegram.webhook_enable", "TELEGRAM_WEBHOOK_ENABLE")
 	_ = v.BindEnv("telegram.webhook_url", "TELEGRAM_WEBHOOK_URL")
+	_ = v.BindEnv("telegram.webhook_domain", "TELEGRAM_WEBHOOK_DOMAIN")
 	_ = v.BindEnv("telegram.webhook_path", "TELEGRAM_WEBHOOK_PATH")
 
 	_ = v.BindEnv("grpc.address", "GRPC_SERVER_ADDRESS")

@@ -5,6 +5,7 @@ telegram:
   updates_timeout: 30
   webhook_enable: false
   webhook_url: ""
+  webhook_domain: "https://your-domain.com"
   webhook_path: "/tg"
 
 grpc:

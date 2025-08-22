@@ -42,28 +42,60 @@ Telegram бот для быстрого добавления транзакци�
 4. **Сборка и запуск**:
    ```bash
    # Для локальной разработки (с фейковыми gRPC клиентами)
-   go build -o bin/budget-bot ./cmd/bot
-   ./bin/budget-bot
+   make build-fake
+   make run
    
    # Для продакшена (с реальными gRPC клиентами)
-   go build -tags withgrpc -o bin/budget-bot ./cmd/bot
+   make build
+   make run
+   
+   # Или напрямую
+   go build -o bin/budget-bot ./cmd/bot
    ./bin/budget-bot
    ```
 
-### Docker
+### Развертывание в продакшене
+
+#### Systemd сервис (рекомендуется)
+
+Создайте файл `/etc/systemd/system/budget-bot.service`:
+
+```ini
+[Unit]
+Description=Budget Bot
+After=network.target
+
+[Service]
+Type=simple
+User=bot
+WorkingDirectory=/opt/budget-bot
+ExecStart=/opt/budget-bot/budget-bot
+Restart=always
+RestartSec=10
+Environment=TELEGRAM_BOT_TOKEN=your_token_here
+Environment=TELEGRAM_WEBHOOK_ENABLE=true
+Environment=TELEGRAM_WEBHOOK_DOMAIN=https://your-domain.com
+Environment=GRPC_SERVER_ADDRESS=your_grpc_server:8081
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Затем:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable budget-bot
+sudo systemctl start budget-bot
+sudo systemctl status budget-bot
+```
+
+#### Запуск в фоне
 
 ```bash
-# Сборка образа
-docker build -t budget-bot .
-
-# Запуск контейнера
-docker run -d \
-  --name budget-bot \
-  -e TELEGRAM_BOT_TOKEN=your_token_here \
-  -e GRPC_SERVER_ADDRESS=your_grpc_server:8081 
-  -v $(pwd)/data:/app/data \
-  budget-bot
+nohup ./budget-bot > bot.log 2>&1 &
 ```
+
+
 
 ## 💬 Как пользоваться
 
@@ -141,6 +173,11 @@ TELEGRAM_BOT_TOKEN=your_bot_token_here
 TELEGRAM_API_BASE_URL=https://api.telegram.org/
 TELEGRAM_DEBUG=false
 
+# Webhook (опционально)
+TELEGRAM_WEBHOOK_ENABLE=false
+TELEGRAM_WEBHOOK_DOMAIN=https://your-domain.com
+TELEGRAM_WEBHOOK_PATH=/tg
+
 # gRPC сервер
 GRPC_SERVER_ADDRESS=127.0.0.1:8081
 GRPC_INSECURE=true
@@ -179,6 +216,33 @@ logging:
   level: ${LOG_LEVEL}
   format: json
 ```
+
+### Webhook режим
+
+Бот поддерживает два режима работы с Telegram API:
+
+1. **Long Polling** (по умолчанию) - бот сам запрашивает обновления
+2. **Webhook** - Telegram отправляет обновления на указанный URL
+
+Для включения webhook режима:
+
+```bash
+# Включить webhook
+TELEGRAM_WEBHOOK_ENABLE=true
+
+# Указать домен с протоколом
+TELEGRAM_WEBHOOK_DOMAIN=https://your-domain.com
+
+# Путь для webhook (по умолчанию /tg)
+TELEGRAM_WEBHOOK_PATH=/tg
+
+# API для управления webhook (может быть эмулятор)
+TELEGRAM_API_BASE_URL=http://127.0.0.1:3001/bot%s/%s
+```
+
+**Важно:** Webhook устанавливается и удаляется автоматически через API, указанный в `TELEGRAM_API_BASE_URL`.
+
+Подробная документация по настройке webhook: [readme_webhook_setup.md](readme_webhook_setup.md)
 
 ## 🏗️ Архитектура
 

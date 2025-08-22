@@ -5,6 +5,7 @@ import (
     "net"
     "testing"
 
+    "budget-bot/internal/domain"
     pb "budget-bot/internal/pb/budget/v1"
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
