@@ -8,32 +8,22 @@ import (
 
 	pb "budget-bot/internal/pb/budget/v1"
 	"budget-bot/internal/repository"
+	grpcclient "budget-bot/internal/grpc"
 	"go.uber.org/zap"
 )
 
-// OAuthClient defines OAuth operations used by the bot.
-type OAuthClient interface {
-	GenerateAuthLink(ctx context.Context, email string, telegramUserID int64, userAgent, ipAddress string) (string, string, time.Time, error)
-	VerifyAuthCode(ctx context.Context, authToken, verificationCode string, telegramUserID int64) (*pb.TokenPair, string, error)
-	CancelAuth(ctx context.Context, authToken string, telegramUserID int64) error
-	GetAuthStatus(ctx context.Context, authToken string) (string, string, time.Time, error)
-	GetTelegramSession(ctx context.Context, sessionID string) (*pb.GetTelegramSessionResponse, error)
-	RevokeTelegramSession(ctx context.Context, sessionID string, telegramUserID int64) error
-	ListTelegramSessions(ctx context.Context, telegramUserID int64) ([]*pb.GetTelegramSessionResponse, error)
-	GetAuthLogs(ctx context.Context, telegramUserID int64, limit, offset int32) ([]*pb.AuthLogEntry, int32, error)
-	RefreshToken(ctx context.Context, refreshToken string) (string, string, time.Time, time.Time, error)
-}
+
 
 // OAuthManager coordinates OAuth flows and session persistence.
 type OAuthManager struct {
-	oauthClient  OAuthClient
+	oauthClient  grpcclient.OAuthClient
 	sessionRepo  repository.SessionRepository
 	logger       *zap.Logger
 	webBaseURL   string
 }
 
 // NewOAuthManager constructs an OAuthManager.
-func NewOAuthManager(oauthClient OAuthClient, sessionRepo repository.SessionRepository, logger *zap.Logger, webBaseURL string) *OAuthManager {
+func NewOAuthManager(oauthClient grpcclient.OAuthClient, sessionRepo repository.SessionRepository, logger *zap.Logger, webBaseURL string) *OAuthManager {
 	return &OAuthManager{
 		oauthClient: oauthClient,
 		sessionRepo: sessionRepo,
@@ -70,16 +60,24 @@ func (om *OAuthManager) GenerateAuthLink(ctx context.Context, telegramID int64, 
 func (om *OAuthManager) VerifyAuthCode(ctx context.Context, telegramID int64, authToken, verificationCode string) error {
 	om.logger.Info("Verifying OAuth auth code",
 		zap.Int64("telegramID", telegramID),
-		zap.String("authToken", authToken))
+		zap.String("authToken", authToken),
+		zap.String("verificationCode", verificationCode))
 
 	tokens, sessionID, err := om.oauthClient.VerifyAuthCode(ctx, authToken, verificationCode, telegramID)
 	if err != nil {
 		om.logger.Error("Failed to verify auth code",
 			zap.Int64("telegramID", telegramID),
 			zap.String("authToken", authToken),
+			zap.String("verificationCode", verificationCode),
 			zap.Error(err))
 		return fmt.Errorf("failed to verify auth code: %w", err)
 	}
+
+	om.logger.Info("Received successful response from gRPC",
+		zap.Int64("telegramID", telegramID),
+		zap.String("sessionID", sessionID),
+		zap.String("accessToken", tokens.AccessToken[:10]+"..."), // Логируем только первые 10 символов токена
+		zap.String("refreshToken", tokens.RefreshToken[:10]+"..."))
 
 	// Save session to local database
 	session := &repository.UserSession{
@@ -148,65 +146,12 @@ func (om *OAuthManager) GetSession(ctx context.Context, telegramID int64) (*repo
 		return nil, err
 	}
 	
-	// Проверяем, не истек ли access token
-	if time.Now().After(session.AccessTokenExpiresAt) {
-		om.logger.Debug("Access token expired, attempting refresh", 
-			zap.Int64("telegramID", telegramID),
-			zap.Time("expiresAt", session.AccessTokenExpiresAt))
-		
-		// Пытаемся обновить токены
-		err := om.RefreshTokens(ctx, telegramID)
-		if err != nil {
-			om.logger.Error("Failed to refresh tokens", 
-				zap.Int64("telegramID", telegramID),
-				zap.Error(err))
-			return nil, err
-		}
-		
-		// Получаем обновленную сессию
-		session, err = om.sessionRepo.GetSession(ctx, telegramID)
-		if err != nil {
-			return nil, err
-		}
-		
-		om.logger.Debug("Tokens refreshed successfully", 
-			zap.Int64("telegramID", telegramID),
-			zap.Time("newExpiresAt", session.AccessTokenExpiresAt))
-	}
+
 	
 	return session, nil
 }
 
-// RefreshTokens refreshes auth tokens and stores them.
-func (om *OAuthManager) RefreshTokens(ctx context.Context, telegramID int64) error {
-	session, err := om.sessionRepo.GetSession(ctx, telegramID)
-	if err != nil {
-		return fmt.Errorf("failed to get session for refresh: %w", err)
-	}
 
-	accessToken, refreshToken, accessExp, refreshExp, err := om.oauthClient.RefreshToken(ctx, session.RefreshToken)
-	if err != nil {
-		return fmt.Errorf("failed to refresh tokens: %w", err)
-	}
-
-	// Update session with new tokens
-	err = om.sessionRepo.UpdateTokens(ctx, telegramID, &repository.TokenPair{
-		AccessToken:           accessToken,
-		RefreshToken:          refreshToken,
-		AccessTokenExpiresAt:  accessExp,
-		RefreshTokenExpiresAt: refreshExp,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to update session tokens: %w", err)
-	}
-
-	om.logger.Info("Tokens refreshed successfully",
-		zap.Int64("telegramID", telegramID),
-		zap.Time("newAccessExp", accessExp),
-		zap.Time("newRefreshExp", refreshExp))
-
-	return nil
-}
 
 // Logout removes stored session for a user.
 func (om *OAuthManager) Logout(ctx context.Context, telegramID int64) error {
@@ -228,7 +173,7 @@ func (om *OAuthManager) Logout(ctx context.Context, telegramID int64) error {
 }
 
 // ListSessions lists all sessions for a user.
-func (om *OAuthManager) ListSessions(ctx context.Context, telegramID int64) ([]*pb.GetTelegramSessionResponse, error) {
+func (om *OAuthManager) ListSessions(ctx context.Context, telegramID int64) ([]*pb.TelegramSession, error) {
 	sessions, err := om.oauthClient.ListTelegramSessions(ctx, telegramID)
 	if err != nil {
 		om.logger.Error("Failed to list sessions",

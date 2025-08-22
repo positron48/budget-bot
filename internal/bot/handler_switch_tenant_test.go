@@ -21,7 +21,7 @@ func TestHandler_SwitchTenant(t *testing.T) {
     mappings := repository.NewSQLiteCategoryMappingRepository(db)
     prefs := repository.NewSQLitePreferencesRepository(db)
     drafts := repository.NewSQLiteDraftRepository(db)
-    auth := NewAuthManager(&fakeAuthClient{}, sessions, log)
+    auth := NewOAuthManager(&TestOAuthClient{}, sessions, log, "http://localhost:3000")
     bot := testutil.NewTestBot(t)
 
     h := NewHandler(bot, states, auth, mappings, nil, log).
@@ -36,14 +36,14 @@ func TestHandler_SwitchTenant(t *testing.T) {
     chatID := int64(5000)
     userID := int64(55)
 
-    // login to create session
+    // login to create session with OAuth
     updStart := tgbotapi.Update{UpdateID: 1, Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{ID: chatID}, From: &tgbotapi.User{ID: userID}, Text: "/login"}}
     updStart.Message.Entities = []tgbotapi.MessageEntity{{Type: "bot_command", Offset: 0, Length: 6}}
     h.HandleUpdate(ctx, updStart)
-    updEmail := updStart; updEmail.UpdateID = 2; updEmail.Message.Text = "u@e"; updEmail.Message.Entities = nil
+    updEmail := updStart; updEmail.UpdateID = 2; updEmail.Message.Text = "user@example.com"; updEmail.Message.Entities = nil
     h.HandleUpdate(ctx, updEmail)
-    updPass := updStart; updPass.UpdateID = 3; updPass.Message.Text = "p"; updPass.Message.Entities = nil
-    h.HandleUpdate(ctx, updPass)
+    updCode := updStart; updCode.UpdateID = 3; updCode.Message.Text = "123456"; updCode.Message.Entities = nil
+    h.HandleUpdate(ctx, updCode)
 
     // /switch_tenant shows tenants
     updSw := updStart; updSw.UpdateID = 4; updSw.Message.Text = "/switch_tenant"; updSw.Message.Entities = []tgbotapi.MessageEntity{{Type: "bot_command", Offset: 0, Length: 14}}

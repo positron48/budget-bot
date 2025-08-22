@@ -3,7 +3,6 @@ package bot
 import (
 	"context"
 	"testing"
-	"time"
 
 	"budget-bot/internal/bot/ui"
 	grpcclient "budget-bot/internal/grpc"
@@ -13,18 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// fakeAuthClient implements AuthClient for handler tests
-type fakeAuthClient struct{}
 
-func (f *fakeAuthClient) Register(_ context.Context, _ , _ , _ string) (string, string, string, string, time.Time, time.Time, error) {
-	return "user-1", "tenant-1", "acc", "ref", time.Now().Add(time.Hour), time.Now().Add(24*time.Hour), nil
-}
-func (f *fakeAuthClient) Login(_ context.Context, _ , _ string) (string, string, string, string, time.Time, time.Time, error) {
-	return "user-1", "tenant-1", "acc", "ref", time.Now().Add(time.Hour), time.Now().Add(24*time.Hour), nil
-}
-func (f *fakeAuthClient) RefreshToken(_ context.Context, _ string) (string, string, time.Time, time.Time, error) {
-	return "acc2", "ref2", time.Now().Add(time.Hour), time.Now().Add(24*time.Hour), nil
-}
 
 func TestHandler_Start_Login_TransactionFlow(t *testing.T) {
 	log := zap.NewNop()
@@ -34,7 +22,7 @@ func TestHandler_Start_Login_TransactionFlow(t *testing.T) {
 	mappings := repository.NewSQLiteCategoryMappingRepository(db)
 	prefs := repository.NewSQLitePreferencesRepository(db)
 	drafts := repository.NewSQLiteDraftRepository(db)
-	auth := NewAuthManager(&fakeAuthClient{}, sessions, log)
+	auth := NewOAuthManager(&TestOAuthClient{}, sessions, log, "http://localhost:3000")
 	bot := testutil.NewTestBot(t)
 
 	h := NewHandler(bot, states, auth, mappings, nil, log).

@@ -18,7 +18,7 @@ func TestHandler_CategoryCommands_InvalidArgs(t *testing.T) {
     sessions := repository.NewSQLiteSessionRepository(db)
     states := repository.NewSQLiteDialogStateRepository(db)
     mappings := repository.NewSQLiteCategoryMappingRepository(db)
-    auth := NewAuthManager(&fakeAuthClient{}, sessions, log)
+    auth := NewOAuthManager(&TestOAuthClient{}, sessions, log, "http://localhost:3000")
     bot := testutil.NewTestBot(t)
     h := NewHandler(bot, states, auth, mappings, nil, log)
     h.fmt = ui.NewMessageFormatter()

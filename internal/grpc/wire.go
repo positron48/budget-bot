@@ -5,6 +5,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	pb "budget-bot/internal/pb/budget/v1"
@@ -38,14 +39,17 @@ func (f *FakeOAuthClient) GetAuthStatus(ctx context.Context, authToken string) (
 
 func (f *FakeOAuthClient) GetTelegramSession(ctx context.Context, sessionID string) (*pb.GetTelegramSessionResponse, error) {
 	return &pb.GetTelegramSessionResponse{
-		SessionId:        sessionID,
-		UserId:           "user_123",
-		TenantId:         "tenant_123",
-		AccessTokenHash:  "hash_123",
-		RefreshTokenHash: "hash_456",
-		CreatedAt:        nil,
-		ExpiresAt:        nil,
-		IsActive:         true,
+		Session: &pb.TelegramSession{
+			SessionId:        sessionID,
+			UserId:           "user_123",
+			TelegramUserId:   "12345",
+			TenantId:         "tenant_123",
+			CreatedAt:        nil,
+			ExpiresAt:        nil,
+			IsActive:         true,
+		},
+		User:   nil,
+		Tenant: nil,
 	}, nil
 }
 
@@ -53,14 +57,13 @@ func (f *FakeOAuthClient) RevokeTelegramSession(ctx context.Context, sessionID s
 	return nil
 }
 
-func (f *FakeOAuthClient) ListTelegramSessions(ctx context.Context, telegramUserID int64) ([]*pb.GetTelegramSessionResponse, error) {
-	return []*pb.GetTelegramSessionResponse{
+func (f *FakeOAuthClient) ListTelegramSessions(ctx context.Context, telegramUserID int64) ([]*pb.TelegramSession, error) {
+	return []*pb.TelegramSession{
 		{
 			SessionId:        "session_1",
 			UserId:           "user_123",
+			TelegramUserId:   fmt.Sprintf("%d", telegramUserID),
 			TenantId:         "tenant_123",
-			AccessTokenHash:  "hash_123",
-			RefreshTokenHash: "hash_456",
 			CreatedAt:        nil,
 			ExpiresAt:        nil,
 			IsActive:         true,
@@ -72,20 +75,19 @@ func (f *FakeOAuthClient) GetAuthLogs(ctx context.Context, telegramUserID int64,
 	return []*pb.AuthLogEntry{
 		{
 			Id:             "log_1",
-			TelegramUserId: telegramUserID,
 			Email:          "test@example.com",
-			Action:         "generate_link",
-			Status:         "success",
+			TelegramUserId: fmt.Sprintf("%d", telegramUserID),
 			IpAddress:      "127.0.0.1",
 			UserAgent:      "TelegramBot/1.0",
+			Action:         "generate_link",
+			Status:         "success",
+			ErrorMessage:   "",
 			CreatedAt:      nil,
 		},
 	}, 1, nil
 }
 
-func (f *FakeOAuthClient) RefreshToken(ctx context.Context, refreshToken string) (string, string, time.Time, time.Time, error) {
-	return "access_token_new", "refresh_token_new", time.Now().Add(time.Hour), time.Now().Add(24*time.Hour), nil
-}
+
 
 // WireClients (default build) returns nil clients so the app uses fakes.
 // To enable real clients, build with -tags withgrpc and ensure proto is generated.

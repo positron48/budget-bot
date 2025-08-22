@@ -3,6 +3,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	pb "budget-bot/internal/pb/budget/v1"
@@ -11,12 +12,12 @@ import (
 
 // OAuthGRPCClient wraps the gRPC OAuth service with helper methods.
 type OAuthGRPCClient struct {
-	client pb.AuthServiceClient
+	client pb.OAuthServiceClient
 	log    *zap.Logger
 }
 
 // NewOAuthClient constructs an OAuthGRPCClient.
-func NewOAuthClient(client pb.AuthServiceClient, log *zap.Logger) OAuthClient {
+func NewOAuthClient(client pb.OAuthServiceClient, log *zap.Logger) OAuthClient {
 	return &OAuthGRPCClient{client: client, log: log}
 }
 
@@ -24,7 +25,7 @@ func NewOAuthClient(client pb.AuthServiceClient, log *zap.Logger) OAuthClient {
 func (o *OAuthGRPCClient) GenerateAuthLink(ctx context.Context, email string, telegramUserID int64, userAgent, ipAddress string) (string, string, time.Time, error) {
 	res, err := o.client.GenerateAuthLink(ctx, &pb.GenerateAuthLinkRequest{
 		Email:          email,
-		TelegramUserId: telegramUserID,
+		TelegramUserId: fmt.Sprintf("%d", telegramUserID),
 		UserAgent:      userAgent,
 		IpAddress:      ipAddress,
 	})
@@ -36,14 +37,30 @@ func (o *OAuthGRPCClient) GenerateAuthLink(ctx context.Context, email string, te
 
 // VerifyAuthCode verifies the OAuth verification code.
 func (o *OAuthGRPCClient) VerifyAuthCode(ctx context.Context, authToken, verificationCode string, telegramUserID int64) (*pb.TokenPair, string, error) {
+	o.log.Info("Sending VerifyAuthCode request to gRPC",
+		zap.String("authToken", authToken),
+		zap.String("verificationCode", verificationCode),
+		zap.Int64("telegramUserID", telegramUserID))
+
 	res, err := o.client.VerifyAuthCode(ctx, &pb.VerifyAuthCodeRequest{
 		AuthToken:        authToken,
 		VerificationCode: verificationCode,
-		TelegramUserId:   telegramUserID,
+		TelegramUserId:   fmt.Sprintf("%d", telegramUserID),
 	})
 	if err != nil {
+		o.log.Error("gRPC VerifyAuthCode failed",
+			zap.String("authToken", authToken),
+			zap.String("verificationCode", verificationCode),
+			zap.Int64("telegramUserID", telegramUserID),
+			zap.Error(err))
 		return nil, "", err
 	}
+
+	o.log.Info("gRPC VerifyAuthCode succeeded",
+		zap.String("sessionID", res.SessionId),
+		zap.String("accessToken", res.Tokens.AccessToken[:10]+"..."),
+		zap.String("refreshToken", res.Tokens.RefreshToken[:10]+"..."))
+
 	return res.Tokens, res.SessionId, nil
 }
 
@@ -51,7 +68,7 @@ func (o *OAuthGRPCClient) VerifyAuthCode(ctx context.Context, authToken, verific
 func (o *OAuthGRPCClient) CancelAuth(ctx context.Context, authToken string, telegramUserID int64) error {
 	_, err := o.client.CancelAuth(ctx, &pb.CancelAuthRequest{
 		AuthToken:      authToken,
-		TelegramUserId: telegramUserID,
+		TelegramUserId: fmt.Sprintf("%d", telegramUserID),
 	})
 	return err
 }
@@ -64,7 +81,7 @@ func (o *OAuthGRPCClient) GetAuthStatus(ctx context.Context, authToken string) (
 	if err != nil {
 		return "", "", time.Time{}, err
 	}
-	return res.Status, res.Email, res.ExpiresAt.AsTime(), nil
+	return res.Status.String(), res.Email, res.ExpiresAt.AsTime(), nil
 }
 
 // GetTelegramSession gets a Telegram session by session ID.
@@ -78,15 +95,15 @@ func (o *OAuthGRPCClient) GetTelegramSession(ctx context.Context, sessionID stri
 func (o *OAuthGRPCClient) RevokeTelegramSession(ctx context.Context, sessionID string, telegramUserID int64) error {
 	_, err := o.client.RevokeTelegramSession(ctx, &pb.RevokeTelegramSessionRequest{
 		SessionId:      sessionID,
-		TelegramUserId: telegramUserID,
+		TelegramUserId: fmt.Sprintf("%d", telegramUserID),
 	})
 	return err
 }
 
 // ListTelegramSessions lists all Telegram sessions for a user.
-func (o *OAuthGRPCClient) ListTelegramSessions(ctx context.Context, telegramUserID int64) ([]*pb.GetTelegramSessionResponse, error) {
+func (o *OAuthGRPCClient) ListTelegramSessions(ctx context.Context, telegramUserID int64) ([]*pb.TelegramSession, error) {
 	res, err := o.client.ListTelegramSessions(ctx, &pb.ListTelegramSessionsRequest{
-		TelegramUserId: telegramUserID,
+		TelegramUserId: fmt.Sprintf("%d", telegramUserID),
 	})
 	if err != nil {
 		return nil, err
@@ -97,7 +114,7 @@ func (o *OAuthGRPCClient) ListTelegramSessions(ctx context.Context, telegramUser
 // GetAuthLogs gets authentication logs for a user.
 func (o *OAuthGRPCClient) GetAuthLogs(ctx context.Context, telegramUserID int64, limit, offset int32) ([]*pb.AuthLogEntry, int32, error) {
 	res, err := o.client.GetAuthLogs(ctx, &pb.GetAuthLogsRequest{
-		TelegramUserId: telegramUserID,
+		TelegramUserId: fmt.Sprintf("%d", telegramUserID),
 		Limit:          limit,
 		Offset:         offset,
 	})
@@ -107,12 +124,4 @@ func (o *OAuthGRPCClient) GetAuthLogs(ctx context.Context, telegramUserID int64,
 	return res.Logs, res.TotalCount, nil
 }
 
-// RefreshToken exchanges refresh token for a new access/refresh pair.
-func (o *OAuthGRPCClient) RefreshToken(ctx context.Context, refreshToken string) (string, string, time.Time, time.Time, error) {
-	res, err := o.client.RefreshToken(ctx, &pb.RefreshTokenRequest{RefreshToken: refreshToken})
-	if err != nil {
-		return "", "", time.Time{}, time.Time{}, err
-	}
-	tokens := res.Tokens
-	return tokens.AccessToken, tokens.RefreshToken, tokens.AccessTokenExpiresAt.AsTime(), tokens.RefreshTokenExpiresAt.AsTime(), nil
-}
+

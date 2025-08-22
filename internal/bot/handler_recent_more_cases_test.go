@@ -20,7 +20,7 @@ func TestHandler_Recent_InvalidLimit_And_Error(t *testing.T) {
     mappings := repository.NewSQLiteCategoryMappingRepository(db)
     prefs := repository.NewSQLitePreferencesRepository(db)
     drafts := repository.NewSQLiteDraftRepository(db)
-    auth := NewAuthManager(&fakeAuthClient{}, sessions, log)
+    auth := NewOAuthManager(&TestOAuthClient{}, sessions, log, "http://localhost:3000")
     bot := testutil.NewTestBot(t)
 
     // Use failing tx client

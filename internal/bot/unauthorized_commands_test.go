@@ -22,7 +22,7 @@ func TestHandler_Unauthorized_Commands(t *testing.T) {
     prefs := repository.NewSQLitePreferencesRepository(db)
     drafts := repository.NewSQLiteDraftRepository(db)
     bot := testutil.NewTestBot(t)
-    auth := NewAuthManager(&fakeAuthClient{}, sessions, log)
+    auth := NewOAuthManager(&TestOAuthClient{}, sessions, log, "http://localhost:3000")
 
     h := NewHandler(bot, states, auth, mappings, nil, log).
         WithPreferences(prefs).

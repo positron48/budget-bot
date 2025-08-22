@@ -6,6 +6,7 @@ import (
     "testing"
 
     pb "budget-bot/internal/pb/budget/v1"
+    "go.uber.org/zap"
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
     "google.golang.org/grpc/metadata"
@@ -55,7 +56,7 @@ func TestGRPCCategoryClient_CRUD(t *testing.T) {
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
 
-    c := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn))
+    	c := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn), zap.NewNop())
     // Create
     cat, err := c.CreateCategory(context.Background(), "tok", "code", "Имя", "ru")
     if err != nil || cat == nil || cat.ID == "" { t.Fatalf("create: %v %+v", err, cat) }

@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 
@@ -39,14 +40,17 @@ func (f *fakeOAuthClient) GetAuthStatus(ctx context.Context, authToken string) (
 
 func (f *fakeOAuthClient) GetTelegramSession(ctx context.Context, sessionID string) (*pb.GetTelegramSessionResponse, error) {
 	return &pb.GetTelegramSessionResponse{
-		SessionId:        sessionID,
-		UserId:           "user_123",
-		TenantId:         "tenant_123",
-		AccessTokenHash:  "hash_123",
-		RefreshTokenHash: "hash_456",
-		CreatedAt:        timestamppb.New(time.Now()),
-		ExpiresAt:        timestamppb.New(time.Now().Add(24*time.Hour)),
-		IsActive:         true,
+		Session: &pb.TelegramSession{
+			SessionId:        sessionID,
+			UserId:           "user_123",
+			TelegramUserId:   "12345",
+			TenantId:         "tenant_123",
+			CreatedAt:        timestamppb.New(time.Now()),
+			ExpiresAt:        timestamppb.New(time.Now().Add(24*time.Hour)),
+			IsActive:         true,
+		},
+		User:   nil,
+		Tenant: nil,
 	}, nil
 }
 
@@ -54,14 +58,13 @@ func (f *fakeOAuthClient) RevokeTelegramSession(ctx context.Context, sessionID s
 	return nil
 }
 
-func (f *fakeOAuthClient) ListTelegramSessions(ctx context.Context, telegramUserID int64) ([]*pb.GetTelegramSessionResponse, error) {
-	return []*pb.GetTelegramSessionResponse{
+func (f *fakeOAuthClient) ListTelegramSessions(ctx context.Context, telegramUserID int64) ([]*pb.TelegramSession, error) {
+	return []*pb.TelegramSession{
 		{
 			SessionId:        "session_1",
 			UserId:           "user_123",
+			TelegramUserId:   fmt.Sprintf("%d", telegramUserID),
 			TenantId:         "tenant_123",
-			AccessTokenHash:  "hash_123",
-			RefreshTokenHash: "hash_456",
 			CreatedAt:        timestamppb.New(time.Now()),
 			ExpiresAt:        timestamppb.New(time.Now().Add(24*time.Hour)),
 			IsActive:         true,
@@ -73,20 +76,19 @@ func (f *fakeOAuthClient) GetAuthLogs(ctx context.Context, telegramUserID int64,
 	return []*pb.AuthLogEntry{
 		{
 			Id:             "log_1",
-			TelegramUserId: telegramUserID,
 			Email:          "test@example.com",
-			Action:         "generate_link",
-			Status:         "success",
+			TelegramUserId: fmt.Sprintf("%d", telegramUserID),
 			IpAddress:      "127.0.0.1",
 			UserAgent:      "TelegramBot/1.0",
+			Action:         "generate_link",
+			Status:         "success",
+			ErrorMessage:   "",
 			CreatedAt:      timestamppb.New(time.Now()),
 		},
 	}, 1, nil
 }
 
-func (f *fakeOAuthClient) RefreshToken(ctx context.Context, refreshToken string) (string, string, time.Time, time.Time, error) {
-	return "access_token_new", "refresh_token_new", time.Now().Add(time.Hour), time.Now().Add(24*time.Hour), nil
-}
+
 
 func setupOAuthSessionDB(t *testing.T) *sql.DB {
 	t.Helper()

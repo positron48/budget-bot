@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package budget.v1;
+
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+
+import "google/protobuf/timestamp.proto";
+import "budget/v1/user.proto";
+import "budget/v1/tenant.proto";
+import "budget/v1/auth.proto";
+
+// OAuth2 Flow для Telegram бота
+
+message GenerateAuthLinkRequest {
+  string email = 1;
+  string telegram_user_id = 2;  // ID пользователя в Telegram
+  string user_agent = 3;        // User-Agent для логирования
+  string ip_address = 4;        // IP адрес для логирования
+}
+
+message GenerateAuthLinkResponse {
+  string auth_url = 1;          // URL для авторизации в браузере
+  string auth_token = 2;        // Временный токен для верификации
+  google.protobuf.Timestamp expires_at = 3;  // Время истечения ссылки
+}
+
+message VerifyAuthCodeRequest {
+  string auth_token = 1;        // Временный токен из GenerateAuthLink
+  string verification_code = 2; // 6-значный код подтверждения
+  string telegram_user_id = 3;  // ID пользователя в Telegram
+}
+
+message VerifyAuthCodeResponse {
+  TokenPair tokens = 1;
+  User user = 2;
+  repeated TenantMembership memberships = 3;
+  string session_id = 4;        // ID сессии для Telegram бота
+}
+
+message CancelAuthRequest {
+  string auth_token = 1;
+  string telegram_user_id = 2;
+}
+
+message CancelAuthResponse {}
+
+message GetAuthStatusRequest {
+  string auth_token = 1;
+}
+
+message GetAuthStatusResponse {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_PENDING = 1;         // Ожидает авторизации в браузере
+    STATUS_COMPLETED = 2;       // Авторизация завершена
+    STATUS_EXPIRED = 3;         // Ссылка истекла
+    STATUS_CANCELLED = 4;       // Отменена пользователем
+  }
+  
+  Status status = 1;
+  google.protobuf.Timestamp created_at = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  string email = 4;
+}
+
+message TelegramSession {
+  string session_id = 1;
+  string user_id = 2;
+  string telegram_user_id = 3;
+  string tenant_id = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp expires_at = 6;
+  bool is_active = 7;
+}
+
+message GetTelegramSessionRequest {
+  string session_id = 1;
+}
+
+message GetTelegramSessionResponse {
+  TelegramSession session = 1;
+  User user = 2;
+  Tenant tenant = 3;
+}
+
+message RevokeTelegramSessionRequest {
+  string session_id = 1;
+  string telegram_user_id = 2;
+}
+
+message RevokeTelegramSessionResponse {}
+
+message ListTelegramSessionsRequest {
+  string telegram_user_id = 1;
+}
+
+message ListTelegramSessionsResponse {
+  repeated TelegramSession sessions = 1;
+}
+
+// Логирование безопасности
+message AuthLogEntry {
+  string id = 1;
+  string email = 2;
+  string telegram_user_id = 3;
+  string ip_address = 4;
+  string user_agent = 5;
+  string action = 6;            // "generate_link", "verify_code", "cancel", "revoke_session"
+  string status = 7;            // "success", "failed", "expired"
+  string error_message = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message GetAuthLogsRequest {
+  string telegram_user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message GetAuthLogsResponse {
+  repeated AuthLogEntry logs = 1;
+  int32 total_count = 2;
+}
+
+service OAuthService {
+  // Основные методы OAuth2 flow
+  rpc GenerateAuthLink(GenerateAuthLinkRequest) returns (GenerateAuthLinkResponse);
+  rpc VerifyAuthCode(VerifyAuthCodeRequest) returns (VerifyAuthCodeResponse);
+  rpc CancelAuth(CancelAuthRequest) returns (CancelAuthResponse);
+  rpc GetAuthStatus(GetAuthStatusRequest) returns (GetAuthStatusResponse);
+  
+  // Управление сессиями Telegram
+  rpc GetTelegramSession(GetTelegramSessionRequest) returns (GetTelegramSessionResponse);
+  rpc RevokeTelegramSession(RevokeTelegramSessionRequest) returns (RevokeTelegramSessionResponse);
+  rpc ListTelegramSessions(ListTelegramSessionsRequest) returns (ListTelegramSessionsResponse);
+  
+  // Логирование безопасности
+  rpc GetAuthLogs(GetAuthLogsRequest) returns (GetAuthLogsResponse);
+}

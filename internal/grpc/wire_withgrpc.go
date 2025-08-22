@@ -47,7 +47,7 @@ func WireClients(log *zap.Logger) (CategoryClient, ReportClient, TenantClient, T
     rep := NewGRPCReportClient(pb.NewReportServiceClient(conn), log)
     ten := NewGRPCTenantClient(pb.NewTenantServiceClient(conn), log)
     tx := NewGRPCTransactionClient(pb.NewTransactionServiceClient(conn), log)
-    oauth := NewOAuthClient(pb.NewAuthServiceClient(conn), log)
+    oauth := NewOAuthClient(pb.NewOAuthServiceClient(conn), log)
     return cat, rep, ten, tx, oauth
 }
 

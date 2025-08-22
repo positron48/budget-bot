@@ -265,12 +265,6 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 				}
 				sess, err := h.auth.GetSession(ctx, cb.From.ID)
 				if err == nil {
-					// Refresh tokens if expiring soon
-					if time.Until(sess.AccessTokenExpiresAt) < 30*time.Second {
-						_ = h.auth.RefreshTokens(ctx, cb.From.ID)
-						// reload session
-						sess, _ = h.auth.GetSession(ctx, cb.From.ID)
-					}
 					_, _ = h.txClient.CreateTransaction(ctx, &grpcclient.CreateTransactionRequest{
 						TenantID:    sess.TenantID,
 						Type:        typeStr,
@@ -472,13 +466,26 @@ func (h *Handler) startLogin(ctx context.Context, update tgbotapi.Update) {
 func (h *Handler) handleOAuthEmail(ctx context.Context, update tgbotapi.Update) {
 	email := strings.TrimSpace(update.Message.Text)
 	
+	// Простая валидация email на стороне клиента
+	if !isValidEmail(email) {
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Неверный формат email. Пожалуйста, введите корректный email адрес.\n\nПример: user@example.com")
+		_, _ = h.bot.Send(msg)
+		return
+	}
+	
 	// Generate OAuth auth link
 	userAgent := "TelegramBot/1.0"
 	ipAddress := "127.0.0.1" // In real implementation, get from request context
 	
 	authURL, authToken, expiresAt, err := h.auth.GenerateAuthLink(ctx, update.Message.From.ID, email, userAgent, ipAddress)
 	if err != nil {
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Ошибка генерации ссылки авторизации. Попробуйте снова /login")
+		errorMsg := GetUserFriendlyError(err)
+		if IsRetryableError(err) {
+			errorMsg += "\n\nПопробуйте снова через несколько секунд."
+		} else {
+			errorMsg += "\n\nПопробуйте снова /login"
+		}
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, errorMsg)
 		_, _ = h.bot.Send(msg)
 		return
 	}
@@ -508,8 +515,19 @@ func (h *Handler) handleOAuthCode(ctx context.Context, update tgbotapi.Update) {
 	authToken, _ := rec.Context["authToken"].(string)
 	verificationCode := strings.TrimSpace(update.Message.Text)
 	
+	h.logger.Info("User entered verification code",
+		zap.Int64("telegramID", update.Message.From.ID),
+		zap.String("verificationCode", verificationCode),
+		zap.String("authToken", authToken))
+	
 	if err := h.auth.VerifyAuthCode(ctx, update.Message.From.ID, authToken, verificationCode); err != nil {
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Ошибка верификации кода. Попробуйте снова /login")
+		errorMsg := GetUserFriendlyError(err)
+		if IsRetryableError(err) {
+			errorMsg += "\n\nПопробуйте снова через несколько секунд."
+		} else {
+			errorMsg += "\n\nПопробуйте снова /login"
+		}
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, errorMsg)
 		_, _ = h.bot.Send(msg)
 		return
 	}
@@ -523,6 +541,22 @@ func (h *Handler) handleLogout(ctx context.Context, update tgbotapi.Update) {
 	_ = h.auth.Logout(ctx, update.Message.From.ID)
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Вы вышли из системы")
 	_, _ = h.bot.Send(msg)
+}
+
+// getSessionWithErrorHandling получает сессию пользователя с понятной обработкой ошибок
+func (h *Handler) getSessionWithErrorHandling(ctx context.Context, chatID int64, userID int64) (*repository.UserSession, bool) {
+	session, err := h.auth.GetSession(ctx, userID)
+	if err != nil {
+		errorMsg := GetUserFriendlyError(err)
+		if errorMsg == "" {
+			errorMsg = "Требуется авторизация"
+		}
+		errorMsg += "\n\nВыполните вход: /login"
+		msg := tgbotapi.NewMessage(chatID, errorMsg)
+		_, _ = h.bot.Send(msg)
+		return nil, false
+	}
+	return session, true
 }
 
 // Registration is not supported in OAuth flow - users should register through the web interface

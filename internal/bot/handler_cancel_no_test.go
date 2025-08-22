@@ -13,6 +13,8 @@ import (
     "go.uber.org/zap"
 )
 
+
+
 func TestHandler_Cancel_And_ConfirmNo(t *testing.T) {
     log := zap.NewNop()
     db := testutil.OpenMigratedSQLite(t)
@@ -21,7 +23,7 @@ func TestHandler_Cancel_And_ConfirmNo(t *testing.T) {
     mappings := repository.NewSQLiteCategoryMappingRepository(db)
     prefs := repository.NewSQLitePreferencesRepository(db)
     drafts := repository.NewSQLiteDraftRepository(db)
-    auth := NewAuthManager(&fakeAuthClient{}, sessions, log)
+    auth := NewOAuthManager(&TestOAuthClient{}, sessions, log, "http://localhost:3000")
     bot := testutil.NewTestBot(t)
 
     h := NewHandler(bot, states, auth, mappings, nil, log).

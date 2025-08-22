@@ -18,7 +18,7 @@ func TestHandler_Language_Currency_Callbacks_NoExistingPrefs(t *testing.T) {
     states := repository.NewSQLiteDialogStateRepository(db)
     mappings := repository.NewSQLiteCategoryMappingRepository(db)
     prefs := repository.NewSQLitePreferencesRepository(db)
-    auth := NewAuthManager(&fakeAuthClient{}, sessions, log)
+    auth := NewOAuthManager(&TestOAuthClient{}, sessions, log, "http://localhost:3000")
     bot := testutil.NewTestBot(t)
     h := NewHandler(bot, states, auth, mappings, nil, log).WithPreferences(prefs)
     h.fmt = ui.NewMessageFormatter()

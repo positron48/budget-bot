@@ -20,7 +20,7 @@ var lis *bufconn.Listener
 func init() {
 	lis = bufconn.Listen(bufSize)
 	s := grpc.NewServer()
-	pb.RegisterAuthServiceServer(s, &mockOAuthServer{})
+	pb.RegisterOAuthServiceServer(s, &mockOAuthServer{})
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			panic(err)
@@ -29,7 +29,7 @@ func init() {
 }
 
 type mockOAuthServer struct {
-	pb.UnimplementedAuthServiceServer
+	pb.UnimplementedOAuthServiceServer
 }
 
 func (m *mockOAuthServer) GenerateAuthLink(ctx context.Context, req *pb.GenerateAuthLinkRequest) (*pb.GenerateAuthLinkResponse, error) {
@@ -59,7 +59,7 @@ func (m *mockOAuthServer) CancelAuth(ctx context.Context, req *pb.CancelAuthRequ
 
 func (m *mockOAuthServer) GetAuthStatus(ctx context.Context, req *pb.GetAuthStatusRequest) (*pb.GetAuthStatusResponse, error) {
 	return &pb.GetAuthStatusResponse{
-		Status:    "pending",
+		Status:    pb.GetAuthStatusResponse_STATUS_PENDING,
 		Email:     "test@example.com",
 		ExpiresAt: timestamppb.New(time.Now().Add(5 * time.Minute)),
 	}, nil
@@ -67,14 +67,17 @@ func (m *mockOAuthServer) GetAuthStatus(ctx context.Context, req *pb.GetAuthStat
 
 func (m *mockOAuthServer) GetTelegramSession(ctx context.Context, req *pb.GetTelegramSessionRequest) (*pb.GetTelegramSessionResponse, error) {
 	return &pb.GetTelegramSessionResponse{
-		SessionId:        req.SessionId,
-		UserId:           "user_123",
-		TenantId:         "tenant_123",
-		AccessTokenHash:  "hash_123",
-		RefreshTokenHash: "hash_456",
-		CreatedAt:        timestamppb.New(time.Now()),
-		ExpiresAt:        timestamppb.New(time.Now().Add(24 * time.Hour)),
-		IsActive:         true,
+		Session: &pb.TelegramSession{
+			SessionId:        req.SessionId,
+			UserId:           "user_123",
+			TelegramUserId:   "12345",
+			TenantId:         "tenant_123",
+			CreatedAt:        timestamppb.New(time.Now()),
+			ExpiresAt:        timestamppb.New(time.Now().Add(24 * time.Hour)),
+			IsActive:         true,
+		},
+		User:   nil,
+		Tenant: nil,
 	}, nil
 }
 
@@ -84,13 +87,12 @@ func (m *mockOAuthServer) RevokeTelegramSession(ctx context.Context, req *pb.Rev
 
 func (m *mockOAuthServer) ListTelegramSessions(ctx context.Context, req *pb.ListTelegramSessionsRequest) (*pb.ListTelegramSessionsResponse, error) {
 	return &pb.ListTelegramSessionsResponse{
-		Sessions: []*pb.GetTelegramSessionResponse{
+		Sessions: []*pb.TelegramSession{
 			{
 				SessionId:        "session_1",
 				UserId:           "user_123",
+				TelegramUserId:   req.TelegramUserId,
 				TenantId:         "tenant_123",
-				AccessTokenHash:  "hash_123",
-				RefreshTokenHash: "hash_456",
 				CreatedAt:        timestamppb.New(time.Now()),
 				ExpiresAt:        timestamppb.New(time.Now().Add(24 * time.Hour)),
 				IsActive:         true,
@@ -129,7 +131,7 @@ func TestOAuthClient_GenerateAuthLink(t *testing.T) {
 	}
 	defer conn.Close()
 
-	client := pb.NewAuthServiceClient(conn)
+	client := pb.NewOAuthServiceClient(conn)
 	oauthClient := NewOAuthClient(client, zap.NewNop())
 
 	authURL, authToken, expiresAt, err := oauthClient.GenerateAuthLink(ctx, "test@example.com", 12345, "TelegramBot/1.0", "127.0.0.1")
@@ -156,7 +158,7 @@ func TestOAuthClient_VerifyAuthCode(t *testing.T) {
 	}
 	defer conn.Close()
 
-	client := pb.NewAuthServiceClient(conn)
+	client := pb.NewOAuthServiceClient(conn)
 	oauthClient := NewOAuthClient(client, zap.NewNop())
 
 	tokens, sessionID, err := oauthClient.VerifyAuthCode(ctx, "auth_token_123", "123456", 12345)
@@ -186,7 +188,7 @@ func TestOAuthClient_GetAuthStatus(t *testing.T) {
 	}
 	defer conn.Close()
 
-	client := pb.NewAuthServiceClient(conn)
+	client := pb.NewOAuthServiceClient(conn)
 	oauthClient := NewOAuthClient(client, zap.NewNop())
 
 	status, email, expiresAt, err := oauthClient.GetAuthStatus(ctx, "auth_token_123")
@@ -213,7 +215,7 @@ func TestOAuthClient_GetTelegramSession(t *testing.T) {
 	}
 	defer conn.Close()
 
-	client := pb.NewAuthServiceClient(conn)
+	client := pb.NewOAuthServiceClient(conn)
 	oauthClient := NewOAuthClient(client, zap.NewNop())
 
 	session, err := oauthClient.GetTelegramSession(ctx, "session_123")
@@ -224,10 +226,10 @@ func TestOAuthClient_GetTelegramSession(t *testing.T) {
 	if session == nil {
 		t.Error("Expected non-nil session")
 	}
-	if session.SessionId != "session_123" {
-		t.Errorf("Expected session ID 'session_123', got '%s'", session.SessionId)
+	if session.Session.SessionId != "session_123" {
+		t.Errorf("Expected session ID 'session_123', got '%s'", session.Session.SessionId)
 	}
-	if !session.IsActive {
+	if !session.Session.IsActive {
 		t.Error("Expected active session")
 	}
 }
@@ -240,7 +242,7 @@ func TestOAuthClient_ListTelegramSessions(t *testing.T) {
 	}
 	defer conn.Close()
 
-	client := pb.NewAuthServiceClient(conn)
+	client := pb.NewOAuthServiceClient(conn)
 	oauthClient := NewOAuthClient(client, zap.NewNop())
 
 	sessions, err := oauthClient.ListTelegramSessions(ctx, 12345)
@@ -264,7 +266,7 @@ func TestOAuthClient_GetAuthLogs(t *testing.T) {
 	}
 	defer conn.Close()
 
-	client := pb.NewAuthServiceClient(conn)
+	client := pb.NewOAuthServiceClient(conn)
 	oauthClient := NewOAuthClient(client, zap.NewNop())
 
 	logs, totalCount, err := oauthClient.GetAuthLogs(ctx, 12345, 10, 0)

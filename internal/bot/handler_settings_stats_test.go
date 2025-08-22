@@ -21,7 +21,7 @@ func TestHandler_Language_Currency_Stats_Top_Recent_Export(t *testing.T) {
     mappings := repository.NewSQLiteCategoryMappingRepository(db)
     prefs := repository.NewSQLitePreferencesRepository(db)
     drafts := repository.NewSQLiteDraftRepository(db)
-    auth := NewAuthManager(&fakeAuthClient{}, sessions, log)
+    auth := NewOAuthManager(&TestOAuthClient{}, sessions, log, "http://localhost:3000")
     bot := testutil.NewTestBot(t)
 
     h := NewHandler(bot, states, auth, mappings, nil, log).

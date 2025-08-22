@@ -44,7 +44,7 @@ func TestHandler_Create_Rename_Delete_Category(t *testing.T) {
     mappings := repository.NewSQLiteCategoryMappingRepository(db)
     prefs := repository.NewSQLitePreferencesRepository(db)
     drafts := repository.NewSQLiteDraftRepository(db)
-    auth := NewAuthManager(&fakeAuthClient{}, sessions, log)
+    auth := NewOAuthManager(&TestOAuthClient{}, sessions, log, "http://localhost:3000")
     bot := testutil.NewTestBot(t)
 
     cat := &recCatClient{}
@@ -57,14 +57,14 @@ func TestHandler_Create_Rename_Delete_Category(t *testing.T) {
     chatID := int64(8200)
     userID := int64(33)
 
-    // login
+    // login with OAuth
     updLogin := tgbotapi.Update{UpdateID: 1, Message: &tgbotapi.Message{Chat:&tgbotapi.Chat{ID:chatID}, From:&tgbotapi.User{ID:userID}, Text:"/login"}}
     updLogin.Message.Entities = []tgbotapi.MessageEntity{{Type:"bot_command", Offset:0, Length:6}}
     h.HandleUpdate(ctx, updLogin)
-    updEmail := updLogin; updEmail.UpdateID = 2; updEmail.Message.Text = "u@e"; updEmail.Message.Entities = nil
+    updEmail := updLogin; updEmail.UpdateID = 2; updEmail.Message.Text = "user@example.com"; updEmail.Message.Entities = nil
     h.HandleUpdate(ctx, updEmail)
-    updPass := updLogin; updPass.UpdateID = 3; updPass.Message.Text = "p"; updPass.Message.Entities = nil
-    h.HandleUpdate(ctx, updPass)
+    updCode := updLogin; updCode.UpdateID = 3; updCode.Message.Text = "123456"; updCode.Message.Entities = nil
+    h.HandleUpdate(ctx, updCode)
 
     // /create_category code name
     updCreate := updLogin; updCreate.UpdateID = 4; updCreate.Message.Text = "/create_category food Питание"; updCreate.Message.Entities = []tgbotapi.MessageEntity{{Type:"bot_command", Offset:0, Length:16}}
@@ -97,7 +97,7 @@ func TestHandler_Categories_UsesLocaleFromPreferences(t *testing.T) {
     mappings := repository.NewSQLiteCategoryMappingRepository(db)
     prefsRepo := repository.NewSQLitePreferencesRepository(db)
     drafts := repository.NewSQLiteDraftRepository(db)
-    auth := NewAuthManager(&fakeAuthClient{}, sessions, log)
+    auth := NewOAuthManager(&TestOAuthClient{}, sessions, log, "http://localhost:3000")
     bot := testutil.NewTestBot(t)
 
     cat := &recCatClient{}
@@ -110,14 +110,14 @@ func TestHandler_Categories_UsesLocaleFromPreferences(t *testing.T) {
     chatID := int64(8300)
     userID := int64(34)
 
-    // login
+    // login with OAuth
     updLogin := tgbotapi.Update{UpdateID: 1, Message: &tgbotapi.Message{Chat:&tgbotapi.Chat{ID:chatID}, From:&tgbotapi.User{ID:userID}, Text:"/login"}}
     updLogin.Message.Entities = []tgbotapi.MessageEntity{{Type:"bot_command", Offset:0, Length:6}}
     h.HandleUpdate(ctx, updLogin)
-    updEmail := updLogin; updEmail.UpdateID = 2; updEmail.Message.Text = "u@e"; updEmail.Message.Entities = nil
+    updEmail := updLogin; updEmail.UpdateID = 2; updEmail.Message.Text = "user@example.com"; updEmail.Message.Entities = nil
     h.HandleUpdate(ctx, updEmail)
-    updPass := updLogin; updPass.UpdateID = 3; updPass.Message.Text = "p"; updPass.Message.Entities = nil
-    h.HandleUpdate(ctx, updPass)
+    updCode := updLogin; updCode.UpdateID = 3; updCode.Message.Text = "123456"; updCode.Message.Entities = nil
+    h.HandleUpdate(ctx, updCode)
 
     // set preferences language to en
     if err := prefsRepo.SavePreferences(ctx, &repository.UserPreferences{TelegramID:userID, Language:"en", DefaultCurrency:"USD"}); err != nil { t.Fatalf("save prefs: %v", err) }

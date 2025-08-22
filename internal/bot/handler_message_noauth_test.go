@@ -18,7 +18,7 @@ func TestHandler_MessageParse_NoAuth_Echo(t *testing.T) {
     sessions := repository.NewSQLiteSessionRepository(db)
     mappings := repository.NewSQLiteCategoryMappingRepository(db)
     bot := testutil.NewTestBot(t)
-    auth := NewAuthManager(&fakeAuthClient{}, sessions, log)
+    auth := NewOAuthManager(&TestOAuthClient{}, sessions, log, "http://localhost:3000")
     h := NewHandler(bot, states, auth, mappings, nil, log)
     h.fmt = ui.NewMessageFormatter()
 
@@ -36,7 +36,7 @@ func TestHandler_MessageParse_Invalid_Feedback(t *testing.T) {
     sessions := repository.NewSQLiteSessionRepository(db)
     mappings := repository.NewSQLiteCategoryMappingRepository(db)
     bot := testutil.NewTestBot(t)
-    auth := NewAuthManager(&fakeAuthClient{}, sessions, log)
+    auth := NewOAuthManager(&TestOAuthClient{}, sessions, log, "http://localhost:3000")
     h := NewHandler(bot, states, auth, mappings, nil, log)
     h.fmt = ui.NewMessageFormatter()
 
