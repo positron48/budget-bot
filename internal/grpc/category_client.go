@@ -8,6 +8,7 @@ import (
 	pb "budget-bot/internal/pb/budget/v1"
 	"budget-bot/internal/domain"
 	"google.golang.org/grpc/metadata"
+	"go.uber.org/zap"
 )
 
 // CategoryClient exposes category operations.
@@ -59,13 +60,21 @@ func (s *StaticCategoryClient) DeleteCategory(_ context.Context, _ string, _ str
 // CategoryGRPCClient calls Category service via gRPC.
 type CategoryGRPCClient struct{
     client pb.CategoryServiceClient
+    logger *zap.Logger
 }
 
 // NewGRPCCategoryClient constructs a CategoryGRPCClient.
-func NewGRPCCategoryClient(c pb.CategoryServiceClient) *CategoryGRPCClient { return &CategoryGRPCClient{client: c} }
+func NewGRPCCategoryClient(c pb.CategoryServiceClient, logger *zap.Logger) *CategoryGRPCClient { 
+    return &CategoryGRPCClient{client: c, logger: logger} 
+}
 
 // ListCategories returns categories with optional locale translation.
 func (g *CategoryGRPCClient) ListCategories(ctx context.Context, _ string, accessToken string, transactionType domain.TransactionType, locale ...string) ([]*domain.Category, error) {
+    g.logger.Debug("ListCategories request", 
+        zap.String("transactionType", string(transactionType)),
+        zap.String("accessToken", accessToken[:10] + "..."),
+        zap.Strings("locale", locale))
+    
     if accessToken != "" {
         ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken)
     }
@@ -84,10 +93,19 @@ func (g *CategoryGRPCClient) ListCategories(ctx context.Context, _ string, acces
     }
     if len(locale) > 0 && locale[0] != "" { req.Locale = locale[0] }
     
+    g.logger.Debug("ListCategories gRPC request", 
+        zap.String("kind", kind.String()),
+        zap.Bool("includeInactive", req.IncludeInactive),
+        zap.String("locale", req.Locale))
+    
     res, err := g.client.ListCategories(ctx, req)
     if err != nil {
+        g.logger.Error("ListCategories gRPC call failed", zap.Error(err))
         return nil, err
     }
+    
+    g.logger.Debug("ListCategories gRPC response", 
+        zap.Int("categoriesCount", len(res.Categories)))
     
     var out []*domain.Category
     for _, c := range res.Categories {
@@ -98,11 +116,20 @@ func (g *CategoryGRPCClient) ListCategories(ctx context.Context, _ string, acces
         out = append(out, &domain.Category{ID: c.Id, Name: name})
     }
     
+    g.logger.Debug("ListCategories processed", 
+        zap.Int("categoriesReturned", len(out)))
+    
     return out, nil
 }
 
 // CreateCategory creates a new category.
 func (g *CategoryGRPCClient) CreateCategory(ctx context.Context, accessToken string, code string, name string, locale string) (*domain.Category, error) {
+    g.logger.Debug("CreateCategory request", 
+        zap.String("code", code),
+        zap.String("name", name),
+        zap.String("locale", locale),
+        zap.String("accessToken", accessToken[:10] + "..."))
+    
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     if locale == "" { locale = "ru" }
     req := &pb.CreateCategoryRequest{
@@ -111,34 +138,86 @@ func (g *CategoryGRPCClient) CreateCategory(ctx context.Context, accessToken str
         IsActive:    true,
         Translations: []*pb.CategoryTranslation{{Locale: locale, Name: name}},
     }
+    
+    g.logger.Debug("CreateCategory gRPC request", 
+        zap.String("kind", req.Kind.String()),
+        zap.String("code", req.Code),
+        zap.Bool("isActive", req.IsActive))
+    
     res, err := g.client.CreateCategory(ctx, req)
-    if err != nil { return nil, err }
+    if err != nil { 
+        g.logger.Error("CreateCategory gRPC call failed", zap.Error(err))
+        return nil, err 
+    }
+    
     cat := res.GetCategory()
-    if cat == nil { return nil, fmt.Errorf("empty response") }
+    if cat == nil { 
+        g.logger.Error("CreateCategory empty response")
+        return nil, fmt.Errorf("empty response") 
+    }
+    
+    g.logger.Debug("CreateCategory gRPC response", 
+        zap.String("categoryId", cat.GetId()))
+    
     out := &domain.Category{ID: cat.GetId(), Name: name}
     return out, nil
 }
 
 // UpdateCategoryName updates category translation name.
 func (g *CategoryGRPCClient) UpdateCategoryName(ctx context.Context, accessToken string, id string, name string, locale string) (*domain.Category, error) {
+    g.logger.Debug("UpdateCategoryName request", 
+        zap.String("id", id),
+        zap.String("name", name),
+        zap.String("locale", locale),
+        zap.String("accessToken", accessToken[:10] + "..."))
+    
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     if locale == "" { locale = "ru" }
     req := &pb.UpdateCategoryRequest{
         Id:           id,
         Translations: []*pb.CategoryTranslation{{Locale: locale, Name: name}},
     }
+    
+    g.logger.Debug("UpdateCategoryName gRPC request", 
+        zap.String("id", req.Id))
+    
     res, err := g.client.UpdateCategory(ctx, req)
-    if err != nil { return nil, err }
+    if err != nil { 
+        g.logger.Error("UpdateCategoryName gRPC call failed", zap.Error(err))
+        return nil, err 
+    }
+    
     cat := res.GetCategory()
-    if cat == nil { return nil, fmt.Errorf("empty response") }
+    if cat == nil { 
+        g.logger.Error("UpdateCategoryName empty response")
+        return nil, fmt.Errorf("empty response") 
+    }
+    
+    g.logger.Debug("UpdateCategoryName gRPC response", 
+        zap.String("categoryId", cat.GetId()))
+    
     out := &domain.Category{ID: cat.GetId(), Name: name}
     return out, nil
 }
 
 // DeleteCategory deletes a category by id.
 func (g *CategoryGRPCClient) DeleteCategory(ctx context.Context, accessToken string, id string) error {
+    g.logger.Debug("DeleteCategory request", 
+        zap.String("id", id),
+        zap.String("accessToken", accessToken[:10] + "..."))
+    
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
-    _, err := g.client.DeleteCategory(ctx, &pb.DeleteCategoryRequest{Id: id})
+    
+    req := &pb.DeleteCategoryRequest{Id: id}
+    g.logger.Debug("DeleteCategory gRPC request", 
+        zap.String("id", req.Id))
+    
+    _, err := g.client.DeleteCategory(ctx, req)
+    if err != nil {
+        g.logger.Error("DeleteCategory gRPC call failed", zap.Error(err))
+    } else {
+        g.logger.Debug("DeleteCategory gRPC call successful")
+    }
     return err
 }
 

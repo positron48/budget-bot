@@ -43,10 +43,10 @@ func WireClients(log *zap.Logger) (CategoryClient, ReportClient, TenantClient, T
     }
     log.Info("successfully connected to gRPC server", zap.String("address", cfg.GRPC.Address))
     
-    cat := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn))
-    rep := NewGRPCReportClient(pb.NewReportServiceClient(conn))
-    ten := NewGRPCTenantClient(pb.NewTenantServiceClient(conn))
-    tx := NewGRPCTransactionClient(pb.NewTransactionServiceClient(conn))
+    cat := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn), log)
+    rep := NewGRPCReportClient(pb.NewReportServiceClient(conn), log)
+    ten := NewGRPCTenantClient(pb.NewTenantServiceClient(conn), log)
+    tx := NewGRPCTransactionClient(pb.NewTransactionServiceClient(conn), log)
     return cat, rep, ten, tx
 }
 

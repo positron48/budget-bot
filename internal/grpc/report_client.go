@@ -9,6 +9,7 @@ import (
     pb "budget-bot/internal/pb/budget/v1"
     "budget-bot/internal/domain"
     "google.golang.org/grpc/metadata"
+    "go.uber.org/zap"
 )
 
 // ReportClient exposes read-only reporting operations.
@@ -40,26 +41,77 @@ func (f *FakeReportClient) Recent(_ context.Context, tenantID string, limit int,
 }
 
 // ReportGRPCClient calls remote Report service via gRPC.
-type ReportGRPCClient struct{ client pb.ReportServiceClient }
+type ReportGRPCClient struct{ 
+    client pb.ReportServiceClient 
+    logger *zap.Logger
+}
 
 // NewGRPCReportClient constructs a GRPCReportClient.
-func NewGRPCReportClient(c pb.ReportServiceClient) *ReportGRPCClient { return &ReportGRPCClient{client: c} }
+func NewGRPCReportClient(c pb.ReportServiceClient, logger *zap.Logger) *ReportGRPCClient { 
+    return &ReportGRPCClient{client: c, logger: logger} 
+}
 
 // GetStats fetches monthly stats for a period.
 func (g *ReportGRPCClient) GetStats(ctx context.Context, tenantID string, from, _ time.Time, accessToken string) (*domain.Stats, error) {
-    _ = tenantID
-    if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
-    res, err := g.client.GetMonthlySummary(ctx, &pb.GetMonthlySummaryRequest{Year: int32(from.Year()), Month: int32(from.Month())})
-    if err != nil { return nil, err }
-    return &domain.Stats{Period: from.Format("2006-01") , TotalIncome: res.TotalIncome.MinorUnits, TotalExpense: res.TotalExpense.MinorUnits, Currency: res.TotalIncome.CurrencyCode}, nil
+    g.logger.Debug("GetStats request", 
+        zap.String("tenantID", tenantID),
+        zap.Time("from", from),
+        zap.String("accessToken", accessToken[:10] + "..."))
+    
+    if accessToken != "" { 
+        ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) 
+    }
+    
+    req := &pb.GetMonthlySummaryRequest{Year: int32(from.Year()), Month: int32(from.Month())}
+    g.logger.Debug("GetStats gRPC request", 
+        zap.Int32("year", req.Year),
+        zap.Int32("month", req.Month))
+    
+    res, err := g.client.GetMonthlySummary(ctx, req)
+    if err != nil { 
+        g.logger.Error("GetStats gRPC call failed", zap.Error(err))
+        return nil, err 
+    }
+    
+    g.logger.Debug("GetStats gRPC response", 
+        zap.Int64("totalIncome", res.TotalIncome.MinorUnits),
+        zap.Int64("totalExpense", res.TotalExpense.MinorUnits),
+        zap.String("currency", res.TotalIncome.CurrencyCode))
+    
+    return &domain.Stats{
+        Period: from.Format("2006-01"), 
+        TotalIncome: res.TotalIncome.MinorUnits, 
+        TotalExpense: res.TotalExpense.MinorUnits, 
+        Currency: res.TotalIncome.CurrencyCode,
+    }, nil
 }
 
 // TopCategories returns top expense categories for the period.
 func (g *ReportGRPCClient) TopCategories(ctx context.Context, tenantID string, from, _ time.Time, limit int, accessToken string) ([]*domain.CategoryTotal, error) {
-    _ = tenantID
-    if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
-    res, err := g.client.GetMonthlySummary(ctx, &pb.GetMonthlySummaryRequest{Year: int32(from.Year()), Month: int32(from.Month())})
-    if err != nil { return nil, err }
+    g.logger.Debug("TopCategories request", 
+        zap.String("tenantID", tenantID),
+        zap.Time("from", from),
+        zap.Int("limit", limit),
+        zap.String("accessToken", accessToken[:10] + "..."))
+    
+    if accessToken != "" { 
+        ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) 
+    }
+    
+    req := &pb.GetMonthlySummaryRequest{Year: int32(from.Year()), Month: int32(from.Month())}
+    g.logger.Debug("TopCategories gRPC request", 
+        zap.Int32("year", req.Year),
+        zap.Int32("month", req.Month))
+    
+    res, err := g.client.GetMonthlySummary(ctx, req)
+    if err != nil { 
+        g.logger.Error("TopCategories gRPC call failed", zap.Error(err))
+        return nil, err 
+    }
+    
+    g.logger.Debug("TopCategories gRPC response", 
+        zap.Int("itemsCount", len(res.GetItems())))
+    
     // Collect only expense categories and sort by total desc
     items := res.GetItems()
     out := make([]*domain.CategoryTotal, 0, len(items))
@@ -71,13 +123,23 @@ func (g *ReportGRPCClient) TopCategories(ctx context.Context, tenantID string, f
     // sort desc by SumMinor
     sort.Slice(out, func(i, j int) bool { return out[i].SumMinor > out[j].SumMinor })
     if limit > 0 && len(out) > limit { out = out[:limit] }
+    
+    g.logger.Debug("TopCategories processed", 
+        zap.Int("expenseItems", len(out)),
+        zap.Int("limit", limit))
+    
     return out, nil
 }
 
 // Recent returns recent transactions as strings (not implemented by backend).
 func (g *ReportGRPCClient) Recent(ctx context.Context, _ string, _ int, accessToken string) ([]string, error) {
+    g.logger.Debug("Recent request", 
+        zap.String("accessToken", accessToken[:10] + "..."))
+    
     // Not defined in proto; return empty for now (token attached for future use)
-    if accessToken != "" { _ = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
+    if accessToken != "" { 
+        _ = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) 
+    }
     return []string{}, nil
 }
 

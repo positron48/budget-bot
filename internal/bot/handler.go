@@ -680,11 +680,23 @@ func (h *Handler) handleCurrency(_ context.Context, update tgbotapi.Update) {
 }
 
 func (h *Handler) handleStats(ctx context.Context, update tgbotapi.Update) {
+	h.logger.Debug("handleStats called", 
+		zap.Int64("userID", update.Message.From.ID),
+		zap.String("commandArgs", update.Message.CommandArguments()))
+	
 	sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
 	if err != nil {
+		h.logger.Warn("handleStats: no session found", 
+			zap.Int64("userID", update.Message.From.ID),
+			zap.Error(err))
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
 		return
 	}
+	
+	h.logger.Debug("handleStats: session found", 
+		zap.String("tenantID", sess.TenantID),
+		zap.String("accessToken", sess.AccessToken[:10] + "..."))
+	
 	// Current month (overridden by optional arg)
 	now := time.Now()
 	from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
@@ -703,11 +715,28 @@ func (h *Handler) handleStats(ctx context.Context, update tgbotapi.Update) {
 			}
 		}
 	}
+	
+	h.logger.Debug("handleStats: calling GetStats", 
+		zap.Time("from", from),
+		zap.Time("to", to))
+	
 	st, err := h.report.GetStats(ctx, sess.TenantID, from, to, sess.AccessToken)
 	if err != nil {
+		h.logger.Error("handleStats: GetStats failed", 
+			zap.String("tenantID", sess.TenantID),
+			zap.Time("from", from),
+			zap.Time("to", to),
+			zap.Error(err))
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить статистику"))
 		return
 	}
+	
+	h.logger.Debug("handleStats: GetStats successful", 
+		zap.String("period", st.Period),
+		zap.Int64("totalIncome", st.TotalIncome),
+		zap.Int64("totalExpense", st.TotalExpense),
+		zap.String("currency", st.Currency))
+	
 	text := h.fmt.FormatStats(st)
 	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, text))
 }

@@ -69,7 +69,38 @@ func (am *AuthManager) Logout(ctx context.Context, telegramID int64) error {
 
 // GetSession returns current session for a user.
 func (am *AuthManager) GetSession(ctx context.Context, telegramID int64) (*repository.UserSession, error) {
-	return am.sessionRepo.GetSession(ctx, telegramID)
+	session, err := am.sessionRepo.GetSession(ctx, telegramID)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Проверяем, не истек ли access token
+	if time.Now().After(session.AccessTokenExpiresAt) {
+		am.logger.Debug("Access token expired, attempting refresh", 
+			zap.Int64("telegramID", telegramID),
+			zap.Time("expiresAt", session.AccessTokenExpiresAt))
+		
+		// Пытаемся обновить токены
+		err := am.RefreshTokens(ctx, telegramID)
+		if err != nil {
+			am.logger.Error("Failed to refresh tokens", 
+				zap.Int64("telegramID", telegramID),
+				zap.Error(err))
+			return nil, err
+		}
+		
+		// Получаем обновленную сессию
+		session, err = am.sessionRepo.GetSession(ctx, telegramID)
+		if err != nil {
+			return nil, err
+		}
+		
+		am.logger.Debug("Tokens refreshed successfully", 
+			zap.Int64("telegramID", telegramID),
+			zap.Time("newExpiresAt", session.AccessTokenExpiresAt))
+	}
+	
+	return session, nil
 }
 
 // RefreshTokens refreshes auth tokens and stores them.
