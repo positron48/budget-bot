@@ -15,7 +15,7 @@ func TestLoad_DefaultsAndEnvOverride(t *testing.T) {
 	if cfg == nil {
 		t.Fatalf("nil config")
 	}
-	if cfg.GRPC.Address != "127.0.0.1:8080" {
+	if cfg.GRPC.Address != "127.0.0.1:8081" {
 		t.Fatalf("default grpc address unexpected: %s", cfg.GRPC.Address)
 	}
 	// Override via env

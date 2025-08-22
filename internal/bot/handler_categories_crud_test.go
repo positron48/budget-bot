@@ -19,7 +19,7 @@ type recCatClient struct{
     shouldErr  bool
 }
 
-func (r *recCatClient) ListCategories(_ context.Context, _ string, _ string, locale ...string) ([]*domain.Category, error) {
+func (r *recCatClient) ListCategories(_ context.Context, _ string, _ string, _ domain.TransactionType, locale ...string) ([]*domain.Category, error) {
     if len(locale) > 0 { r.lastLocale = locale[0] }
     return []*domain.Category{{ID:"c1", Name:"Food"}}, nil
 }

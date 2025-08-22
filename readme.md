@@ -60,7 +60,7 @@ docker build -t budget-bot .
 docker run -d \
   --name budget-bot \
   -e TELEGRAM_BOT_TOKEN=your_token_here \
-  -e GRPC_SERVER_ADDRESS=your_grpc_server:8080 \
+  -e GRPC_SERVER_ADDRESS=your_grpc_server:8081 
   -v $(pwd)/data:/app/data \
   budget-bot
 ```
@@ -142,7 +142,7 @@ TELEGRAM_API_BASE_URL=https://api.telegram.org/
 TELEGRAM_DEBUG=false
 
 # gRPC сервер
-GRPC_SERVER_ADDRESS=127.0.0.1:8080
+GRPC_SERVER_ADDRESS=127.0.0.1:8081
 GRPC_INSECURE=true
 
 # База данных

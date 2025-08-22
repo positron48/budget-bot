@@ -85,7 +85,7 @@ func Load() (*Config, error) {
 	v.SetDefault("telegram.updates_timeout", 30)
 	v.SetDefault("telegram.webhook_enable", false)
 	v.SetDefault("telegram.webhook_path", "/tg")
-	v.SetDefault("grpc.address", "127.0.0.1:8080")
+	v.SetDefault("grpc.address", "127.0.0.1:8081")
 	v.SetDefault("grpc.insecure", true)
 	v.SetDefault("database.driver", "sqlite")
 	v.SetDefault("database.dsn", "file:./data/bot.sqlite?_foreign_keys=on")

@@ -19,7 +19,7 @@ type fakeCatClient struct{
     list []*domain.Category
     listErr error
 }
-func (f *fakeCatClient) ListCategories(_ context.Context, _ string, _ string, _ ...string) ([]*domain.Category, error) {
+func (f *fakeCatClient) ListCategories(_ context.Context, _ string, _ string, _ domain.TransactionType, _ ...string) ([]*domain.Category, error) {
     if f.listErr != nil { return nil, f.listErr }
     return f.list, nil
 }

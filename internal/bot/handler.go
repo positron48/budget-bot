@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"budget-bot/internal/bot/ui"
+	"budget-bot/internal/domain"
 	"budget-bot/internal/metrics"
 	grpcclient "budget-bot/internal/grpc"
 	"budget-bot/internal/repository"
@@ -169,7 +170,7 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 				pref, _ := h.prefs.GetPreferences(ctx, update.Message.From.ID)
 				locale := ""
 				if pref != nil && pref.Language != "" { locale = pref.Language }
-				list, err := h.categories.ListCategories(ctx, sess.TenantID, sess.AccessToken, locale)
+				list, err := h.categories.ListCategories(ctx, sess.TenantID, sess.AccessToken, parsed.Type, locale)
 				if err != nil || len(list) == 0 {
 					_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить категории"))
 					return
@@ -652,7 +653,8 @@ func (h *Handler) handleCategories(ctx context.Context, update tgbotapi.Update) 
 	pref, _ := h.prefs.GetPreferences(ctx, update.Message.From.ID)
 	locale := ""
 	if pref != nil && pref.Language != "" { locale = pref.Language }
-	list, err := h.categories.ListCategories(ctx, sess.TenantID, sess.AccessToken, locale)
+	// Default to expense categories for /categories command
+	list, err := h.categories.ListCategories(ctx, sess.TenantID, sess.AccessToken, domain.TransactionExpense, locale)
 	if err != nil {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить категории"))
 		return

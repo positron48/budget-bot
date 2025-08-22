@@ -43,7 +43,7 @@ func TestGRPCCategoryClient_ListCategories(t *testing.T) {
     defer func(){ _ = conn.Close() }()
 
     c := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn))
-    got, err := c.ListCategories(context.Background(), "tenant", "tok", "ru")
+    	got, err := c.ListCategories(context.Background(), "tenant", "tok", domain.TransactionExpense, "ru")
     if err != nil { t.Fatalf("err: %v", err) }
     if len(got) != 2 { t.Fatalf("want 2, got %d", len(got)) }
     if got[0].Name != "Питание" || got[1].Name != "transport" { t.Fatalf("unexpected names: %+v", got) }

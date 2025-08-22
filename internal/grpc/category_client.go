@@ -12,7 +12,7 @@ import (
 
 // CategoryClient exposes category operations.
 type CategoryClient interface {
-    ListCategories(ctx context.Context, tenantID string, accessToken string, locale ...string) ([]*domain.Category, error)
+    ListCategories(ctx context.Context, tenantID string, accessToken string, transactionType domain.TransactionType, locale ...string) ([]*domain.Category, error)
     CreateCategory(ctx context.Context, accessToken string, code string, name string, locale string) (*domain.Category, error)
     UpdateCategoryName(ctx context.Context, accessToken string, id string, name string, locale string) (*domain.Category, error)
     DeleteCategory(ctx context.Context, accessToken string, id string) error
@@ -23,7 +23,16 @@ type CategoryClient interface {
 type StaticCategoryClient struct{}
 
 // ListCategories returns a static list of categories.
-func (s *StaticCategoryClient) ListCategories(_ context.Context, _ string, _ string, _ ...string) ([]*domain.Category, error) {
+func (s *StaticCategoryClient) ListCategories(_ context.Context, _ string, _ string, transactionType domain.TransactionType, _ ...string) ([]*domain.Category, error) {
+    if transactionType == domain.TransactionIncome {
+        return []*domain.Category{
+            {ID: "cat-salary", Name: "Зарплата", Emoji: "💰"},
+            {ID: "cat-bonus", Name: "Премия", Emoji: "🎁"},
+            {ID: "cat-investment", Name: "Инвестиции", Emoji: "📈"},
+            {ID: "cat-other-income", Name: "Другое", Emoji: "💵"},
+        }, nil
+    }
+    // Default to expense categories
     return []*domain.Category{
         {ID: "cat-food", Name: "Питание", Emoji: "🍽️"},
         {ID: "cat-transport", Name: "Транспорт", Emoji: "🚗"},
@@ -56,16 +65,30 @@ type CategoryGRPCClient struct{
 func NewGRPCCategoryClient(c pb.CategoryServiceClient) *CategoryGRPCClient { return &CategoryGRPCClient{client: c} }
 
 // ListCategories returns categories with optional locale translation.
-func (g *CategoryGRPCClient) ListCategories(ctx context.Context, _ string, accessToken string, locale ...string) ([]*domain.Category, error) {
+func (g *CategoryGRPCClient) ListCategories(ctx context.Context, _ string, accessToken string, transactionType domain.TransactionType, locale ...string) ([]*domain.Category, error) {
     if accessToken != "" {
         ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken)
     }
-    req := &pb.ListCategoriesRequest{IncludeInactive: false}
+    
+    // Determine category kind based on transaction type
+    var kind pb.CategoryKind
+    if transactionType == domain.TransactionIncome {
+        kind = pb.CategoryKind_CATEGORY_KIND_INCOME
+    } else {
+        kind = pb.CategoryKind_CATEGORY_KIND_EXPENSE
+    }
+    
+    req := &pb.ListCategoriesRequest{
+        Kind: kind,
+        IncludeInactive: false,
+    }
     if len(locale) > 0 && locale[0] != "" { req.Locale = locale[0] }
+    
     res, err := g.client.ListCategories(ctx, req)
     if err != nil {
         return nil, err
     }
+    
     var out []*domain.Category
     for _, c := range res.Categories {
         name := c.Code
@@ -74,6 +97,7 @@ func (g *CategoryGRPCClient) ListCategories(ctx context.Context, _ string, acces
         }
         out = append(out, &domain.Category{ID: c.Id, Name: name})
     }
+    
     return out, nil
 }
 

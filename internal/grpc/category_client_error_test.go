@@ -29,7 +29,7 @@ func TestGRPCCategoryClient_ListCategories_Error(t *testing.T) {
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
     c := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn))
-    _, e := c.ListCategories(context.Background(), "tenant", "tok")
+    	_, e := c.ListCategories(context.Background(), "tenant", "tok", domain.TransactionExpense)
     if e == nil { t.Fatalf("expected error") }
 }
 

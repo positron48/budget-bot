@@ -13,7 +13,7 @@ import (
 )
 
 type emptyCatClient struct{}
-func (e *emptyCatClient) ListCategories(_ context.Context, _ string, _ string, _ ...string) ([]*domain.Category, error) { return []*domain.Category{}, nil }
+func (e *emptyCatClient) ListCategories(_ context.Context, _ string, _ string, _ domain.TransactionType, _ ...string) ([]*domain.Category, error) { return []*domain.Category{}, nil }
 func (e *emptyCatClient) CreateCategory(_ context.Context, _ string, _ string, name string, _ string) (*domain.Category, error) { return &domain.Category{ID:"id", Name:name}, nil }
 func (e *emptyCatClient) UpdateCategoryName(_ context.Context, _ string, id string, name string, _ string) (*domain.Category, error) { return &domain.Category{ID:id, Name:name}, nil }
 func (e *emptyCatClient) DeleteCategory(_ context.Context, _ string, _ string) error { return nil }
