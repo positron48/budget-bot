@@ -22,7 +22,7 @@ import (
 type Handler struct {
 	bot        *tgbotapi.BotAPI
 	states     repository.DialogStateRepository
-	auth       *AuthManager
+	auth       *OAuthManager
 	logger     *zap.Logger
 	parser     *MessageParser
 	categories grpcclient.CategoryClient
@@ -37,7 +37,7 @@ type Handler struct {
 }
 
 // NewHandler constructs a Handler.
-func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, auth *AuthManager, mappings repository.CategoryMappingRepository, categories grpcclient.CategoryClient, logger *zap.Logger) *Handler {
+func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, auth *OAuthManager, mappings repository.CategoryMappingRepository, categories grpcclient.CategoryClient, logger *zap.Logger) *Handler {
 	if categories == nil {
 		categories = &grpcclient.StaticCategoryClient{}
 	}
@@ -125,20 +125,11 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 	rec, _ := h.states.GetState(ctx, update.Message.From.ID)
 	if rec != nil {
 		switch rec.State {
-		case repository.StateWaitingForEmail:
-			h.handleLoginEmail(ctx, update)
+		case repository.StateWaitingForOAuthEmail:
+			h.handleOAuthEmail(ctx, update)
 			return
-		case repository.StateWaitingForPassword:
-			h.handleLoginPassword(ctx, update)
-			return
-		case repository.StateWaitingForRegisterEmail:
-			h.handleRegisterEmail(ctx, update)
-			return
-		case repository.StateWaitingForRegisterPassword:
-			h.handleRegisterPassword(ctx, update)
-			return
-		case repository.StateWaitingForRegisterName:
-			h.handleRegisterName(ctx, update)
+		case repository.StateWaitingForOAuthCode:
+			h.handleOAuthCode(ctx, update)
 			return
 		}
 	}
@@ -454,8 +445,7 @@ func (h *Handler) handleCancel(ctx context.Context, update tgbotapi.Update) {
 func (h *Handler) handleStart(_ context.Context, update tgbotapi.Update) {
 	// Greet and show basic commands
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Привет! Я бот учёта бюджета.\n\n"+
-		"/login — вход\n"+
-		"/register — регистрация\n"+
+		"/login — вход через OAuth\n"+
 		"/logout — выход\n\n"+
 		"Отправьте сумму и описание для добавления транзакции, например:\n"+
 		"1000 продукты\n"+
@@ -471,37 +461,61 @@ func (h *Handler) handleStart(_ context.Context, update tgbotapi.Update) {
 }
 
 func (h *Handler) startLogin(ctx context.Context, update tgbotapi.Update) {
-	_ = h.states.SetState(ctx, update.Message.From.ID, repository.StateWaitingForEmail, nil, nil)
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Введите email:")
+	_ = h.states.SetState(ctx, update.Message.From.ID, repository.StateWaitingForOAuthEmail, nil, nil)
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Введите email для авторизации через OAuth:")
 	_, err := h.bot.Send(msg)
 	if err != nil {
-		h.logger.Error("failed to send login email prompt", zap.Error(err))
+		h.logger.Error("failed to send OAuth login email prompt", zap.Error(err))
 	}
 }
 
-func (h *Handler) handleLoginEmail(ctx context.Context, update tgbotapi.Update) {
-	ctxMap := map[string]any{"email": strings.TrimSpace(update.Message.Text)}
-	_ = h.states.SetState(ctx, update.Message.From.ID, repository.StateWaitingForPassword, ctxMap, nil)
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Введите пароль:")
+func (h *Handler) handleOAuthEmail(ctx context.Context, update tgbotapi.Update) {
+	email := strings.TrimSpace(update.Message.Text)
+	
+	// Generate OAuth auth link
+	userAgent := "TelegramBot/1.0"
+	ipAddress := "127.0.0.1" // In real implementation, get from request context
+	
+	authURL, authToken, expiresAt, err := h.auth.GenerateAuthLink(ctx, update.Message.From.ID, email, userAgent, ipAddress)
+	if err != nil {
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Ошибка генерации ссылки авторизации. Попробуйте снова /login")
+		_, _ = h.bot.Send(msg)
+		return
+	}
+	
+	// Store auth token in context for later verification
+	ctxMap := map[string]any{
+		"email":      email,
+		"authToken":  authToken,
+		"expiresAt":  expiresAt,
+	}
+	_ = h.states.SetState(ctx, update.Message.From.ID, repository.StateWaitingForOAuthCode, ctxMap, nil)
+	
+	// Send auth link to user
+	authMessage := fmt.Sprintf("Для авторизации перейдите по ссылке:\n%s\n\nПосле авторизации введите код подтверждения, который появится на странице.", authURL)
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, authMessage)
 	_, _ = h.bot.Send(msg)
 }
 
-func (h *Handler) handleLoginPassword(ctx context.Context, update tgbotapi.Update) {
+func (h *Handler) handleOAuthCode(ctx context.Context, update tgbotapi.Update) {
 	rec, _ := h.states.GetState(ctx, update.Message.From.ID)
 	if rec == nil || rec.Context == nil {
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Начните с /login")
 		_, _ = h.bot.Send(msg)
 		return
 	}
-	email, _ := rec.Context["email"].(string)
-	password := strings.TrimSpace(update.Message.Text)
-	if err := h.auth.Login(ctx, update.Message.From.ID, email, password); err != nil {
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Ошибка входа. Попробуйте снова /login")
+	
+	authToken, _ := rec.Context["authToken"].(string)
+	verificationCode := strings.TrimSpace(update.Message.Text)
+	
+	if err := h.auth.VerifyAuthCode(ctx, update.Message.From.ID, authToken, verificationCode); err != nil {
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Ошибка верификации кода. Попробуйте снова /login")
 		_, _ = h.bot.Send(msg)
 		return
 	}
+	
 	_ = h.states.ClearState(ctx, update.Message.From.ID)
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Вы успешно вошли")
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Вы успешно авторизованы через OAuth!")
 	_, _ = h.bot.Send(msg)
 }
 
@@ -511,50 +525,9 @@ func (h *Handler) handleLogout(ctx context.Context, update tgbotapi.Update) {
 	_, _ = h.bot.Send(msg)
 }
 
+// Registration is not supported in OAuth flow - users should register through the web interface
 func (h *Handler) startRegister(ctx context.Context, update tgbotapi.Update) {
-	_ = h.states.SetState(ctx, update.Message.From.ID, repository.StateWaitingForRegisterEmail, nil, nil)
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Введите email для регистрации:")
-	_, _ = h.bot.Send(msg)
-}
-
-func (h *Handler) handleRegisterEmail(ctx context.Context, update tgbotapi.Update) {
-	ctxMap := map[string]any{"email": strings.TrimSpace(update.Message.Text)}
-	_ = h.states.SetState(ctx, update.Message.From.ID, repository.StateWaitingForRegisterPassword, ctxMap, nil)
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Введите пароль:")
-	_, _ = h.bot.Send(msg)
-}
-
-func (h *Handler) handleRegisterPassword(ctx context.Context, update tgbotapi.Update) {
-	rec, _ := h.states.GetState(ctx, update.Message.From.ID)
-	if rec == nil || rec.Context == nil {
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Начните с /register")
-		_, _ = h.bot.Send(msg)
-		return
-	}
-	email, _ := rec.Context["email"].(string)
-	ctxMap := map[string]any{"email": email, "password": strings.TrimSpace(update.Message.Text)}
-	_ = h.states.SetState(ctx, update.Message.From.ID, repository.StateWaitingForRegisterName, ctxMap, nil)
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Введите имя:")
-	_, _ = h.bot.Send(msg)
-}
-
-func (h *Handler) handleRegisterName(ctx context.Context, update tgbotapi.Update) {
-	rec, _ := h.states.GetState(ctx, update.Message.From.ID)
-	if rec == nil || rec.Context == nil {
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Начните с /register")
-		_, _ = h.bot.Send(msg)
-		return
-	}
-	email, _ := rec.Context["email"].(string)
-	password, _ := rec.Context["password"].(string)
-	name := strings.TrimSpace(update.Message.Text)
-	if err := h.auth.Register(ctx, update.Message.From.ID, email, password, name); err != nil {
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Ошибка регистрации. Попробуйте снова /register")
-		_, _ = h.bot.Send(msg)
-		return
-	}
-	_ = h.states.ClearState(ctx, update.Message.From.ID)
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Регистрация успешна. Вы вошли в систему.")
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Регистрация через бота не поддерживается. Пожалуйста, зарегистрируйтесь через веб-интерфейс.")
 	_, _ = h.bot.Send(msg)
 }
 

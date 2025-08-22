@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	botpkg "budget-bot/internal/bot"
 	"budget-bot/internal/pkg/config"
@@ -74,9 +73,14 @@ func main() {
 	mappingRepo := repository.NewSQLiteCategoryMappingRepository(dbConn)
 	prefsRepo := repository.NewSQLitePreferencesRepository(dbConn)
 	draftRepo := repository.NewSQLiteDraftRepository(dbConn)
-	authManager := botpkg.NewAuthManager(makeAuthClient(log, cfg), sessionRepo, log)
-	catClient, reportClient, tenantClient, txClient := grpcwire.WireClients(log)
-	h := botpkg.NewHandler(bot, stateRepo, authManager, mappingRepo, catClient, log).
+	
+	// Wire OAuth clients
+	catClient, reportClient, tenantClient, txClient, oauthClient := grpcwire.WireClients(log)
+	
+	// Create OAuth manager
+	oauthManager := botpkg.NewOAuthManager(oauthClient, sessionRepo, log, cfg.OAuth.WebBaseURL)
+	
+	h := botpkg.NewHandler(bot, stateRepo, oauthManager, mappingRepo, catClient, log).
 		WithPreferences(prefsRepo).
 		WithDrafts(draftRepo).
 		WithCategoryClient(catClient).
@@ -192,19 +196,6 @@ func normalizeAPIEndpoint(base string) string {
 	return s + "/bot%s/%s"
 }
 
-// fakeAuthClient implements bot.AuthClient for local testing before real gRPC client is wired.
-type fakeAuthClient struct{}
 
-func (f *fakeAuthClient) Register(_ context.Context, _ , _ , _ string) (string, string, string, string, time.Time, time.Time, error) {
-	return "user-123", "tenant-123", "access-token", "refresh-token", time.Now().Add(1*time.Hour), time.Now().Add(24*time.Hour), nil
-}
-
-func (f *fakeAuthClient) Login(_ context.Context, _ , _ string) (string, string, string, string, time.Time, time.Time, error) {
-	return "user-123", "tenant-123", "access-token", "refresh-token", time.Now().Add(1*time.Hour), time.Now().Add(24*time.Hour), nil
-}
-
-func (f *fakeAuthClient) RefreshToken(_ context.Context, _ string) (string, string, time.Time, time.Time, error) {
-	return "access-token2", "refresh-token2", time.Now().Add(1*time.Hour), time.Now().Add(24*time.Hour), nil
-}
 
 

@@ -46,6 +46,7 @@ coverage:
 	go test -coverpkg=$$COVERPKG $$PKGS -coverprofile=coverage.out; \
 	go tool cover -func=coverage.out | tail -n 1
 
+
 # --- Proto generation ---
 PROTO_DIR ?= ./proto
 PB_OUT := internal/pb

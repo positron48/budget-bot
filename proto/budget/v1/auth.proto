@@ -50,12 +50,123 @@ message ResetPasswordRequest {
 }
 message ResetPasswordResponse {}
 
+// OAuth2 Flow Messages
+message GenerateAuthLinkRequest {
+  string email = 1;
+  int64 telegram_user_id = 2;
+  string user_agent = 3;
+  string ip_address = 4;
+}
+
+message GenerateAuthLinkResponse {
+  string auth_url = 1;
+  string auth_token = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message VerifyAuthCodeRequest {
+  string auth_token = 1;
+  string verification_code = 2;
+  int64 telegram_user_id = 3;
+}
+
+message VerifyAuthCodeResponse {
+  TokenPair tokens = 1;
+  string session_id = 2;
+  User user = 3;
+  repeated TenantMembership memberships = 4;
+}
+
+message CancelAuthRequest {
+  string auth_token = 1;
+  int64 telegram_user_id = 2;
+}
+
+message CancelAuthResponse {}
+
+message GetAuthStatusRequest {
+  string auth_token = 1;
+}
+
+message GetAuthStatusResponse {
+  string status = 1; // "pending", "completed", "expired", "cancelled"
+  string email = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message GetTelegramSessionRequest {
+  string session_id = 1;
+}
+
+message GetTelegramSessionResponse {
+  string session_id = 1;
+  string user_id = 2;
+  string tenant_id = 3;
+  string access_token_hash = 4;
+  string refresh_token_hash = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp expires_at = 7;
+  bool is_active = 8;
+}
+
+message RevokeTelegramSessionRequest {
+  string session_id = 1;
+  int64 telegram_user_id = 2;
+}
+
+message RevokeTelegramSessionResponse {}
+
+message ListTelegramSessionsRequest {
+  int64 telegram_user_id = 1;
+}
+
+message ListTelegramSessionsResponse {
+  repeated GetTelegramSessionResponse sessions = 1;
+}
+
+message GetAuthLogsRequest {
+  int64 telegram_user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message AuthLogEntry {
+  string id = 1;
+  int64 telegram_user_id = 2;
+  string email = 3;
+  string action = 4; // "generate_link", "verify_code", "cancel", "revoke_session"
+  string status = 5; // "success", "failed", "expired"
+  string ip_address = 6;
+  string user_agent = 7;
+  google.protobuf.Timestamp created_at = 8;
+  string error_message = 9;
+}
+
+message GetAuthLogsResponse {
+  repeated AuthLogEntry logs = 1;
+  int32 total_count = 2;
+}
+
 service AuthService {
   rpc Register(RegisterRequest) returns (RegisterResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
   rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
   rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+  
+  // OAuth2 Flow Methods
+  rpc GenerateAuthLink(GenerateAuthLinkRequest) returns (GenerateAuthLinkResponse);
+  rpc VerifyAuthCode(VerifyAuthCodeRequest) returns (VerifyAuthCodeResponse);
+  rpc CancelAuth(CancelAuthRequest) returns (CancelAuthResponse);
+  rpc GetAuthStatus(GetAuthStatusRequest) returns (GetAuthStatusResponse);
+  
+  // Session Management
+  rpc GetTelegramSession(GetTelegramSessionRequest) returns (GetTelegramSessionResponse);
+  rpc RevokeTelegramSession(RevokeTelegramSessionRequest) returns (RevokeTelegramSessionResponse);
+  rpc ListTelegramSessions(ListTelegramSessionsRequest) returns (ListTelegramSessionsResponse);
+  
+  // Security Logs
+  rpc GetAuthLogs(GetAuthLogsRequest) returns (GetAuthLogsResponse);
 }
 
 

@@ -17,6 +17,7 @@ type Config struct {
 	Logging  LoggingConfig  `mapstructure:"logging"`
 	Metrics  MetricsConfig  `mapstructure:"metrics"`
 	Server   ServerConfig   `mapstructure:"server"`
+	OAuth    OAuthConfig    `mapstructure:"oauth"`
 }
 
 // TelegramConfig holds Telegram Bot API settings.
@@ -75,6 +76,12 @@ type ServerConfig struct {
 	Address string `mapstructure:"address"`
 }
 
+// OAuthConfig holds OAuth2 settings.
+type OAuthConfig struct {
+	// WebBaseURL is the base URL for OAuth web interface
+	WebBaseURL string `mapstructure:"web_base_url"`
+}
+
 // Load loads configuration from configs/config.yaml and environment variables.
 func Load() (*Config, error) {
 	v := viper.New()
@@ -95,6 +102,7 @@ func Load() (*Config, error) {
 	v.SetDefault("metrics.enabled", false)
 	v.SetDefault("metrics.address", ":9090")
 	v.SetDefault("server.address", ":8088")
+	v.SetDefault("oauth.web_base_url", "http://localhost:3000")
 
 	// Files
 	v.SetConfigName("config")

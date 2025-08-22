@@ -27,6 +27,9 @@ const (
 	StateConfirmingTransaction DialogState = "confirming_transaction"
 	// StateWaitingForCategory when user chooses a category
 	StateWaitingForCategory DialogState = "waiting_for_category"
+	// OAuth States
+	StateWaitingForOAuthEmail DialogState = "waiting_for_oauth_email"
+	StateWaitingForOAuthCode DialogState = "waiting_for_oauth_code"
 )
 
 // DialogStateRecord is a persisted dialog state.
