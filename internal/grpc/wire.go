@@ -19,14 +19,29 @@ func (f *FakeOAuthClient) GenerateAuthLink(ctx context.Context, email string, te
 	return "https://example.com/auth?token=test", "auth_token_123", time.Now().Add(5*time.Minute), nil
 }
 
-func (f *FakeOAuthClient) VerifyAuthCode(ctx context.Context, authToken, verificationCode string, telegramUserID int64) (*pb.TokenPair, string, error) {
-	return &pb.TokenPair{
-		AccessToken:           "access_token_123",
-		RefreshToken:          "refresh_token_123",
-		AccessTokenExpiresAt:  nil,
-		RefreshTokenExpiresAt: nil,
-		TokenType:             "Bearer",
-	}, "session_123", nil
+func (f *FakeOAuthClient) VerifyAuthCode(ctx context.Context, authToken, verificationCode string, telegramUserID int64) (*VerifyAuthCodeResult, error) {
+	return &VerifyAuthCodeResult{
+		Tokens: &pb.TokenPair{
+			AccessToken:           "access_token_123",
+			RefreshToken:          "refresh_token_123",
+			AccessTokenExpiresAt:  nil,
+			RefreshTokenExpiresAt: nil,
+			TokenType:             "Bearer",
+		},
+		SessionID: "session_123",
+		User: &pb.User{
+			Id:    "user_123",
+			Email: "test@example.com",
+		},
+		Memberships: []*pb.TenantMembership{
+			{
+				Tenant: &pb.Tenant{
+					Id: "tenant_123",
+				},
+				Role: pb.TenantRole_TENANT_ROLE_OWNER,
+			},
+		},
+	}, nil
 }
 
 func (f *FakeOAuthClient) CancelAuth(ctx context.Context, authToken string, telegramUserID int64) error {

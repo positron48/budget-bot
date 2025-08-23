@@ -63,7 +63,7 @@ func (om *OAuthManager) VerifyAuthCode(ctx context.Context, telegramID int64, au
 		zap.String("authToken", authToken),
 		zap.String("verificationCode", verificationCode))
 
-	tokens, sessionID, err := om.oauthClient.VerifyAuthCode(ctx, authToken, verificationCode, telegramID)
+	result, err := om.oauthClient.VerifyAuthCode(ctx, authToken, verificationCode, telegramID)
 	if err != nil {
 		om.logger.Error("Failed to verify auth code",
 			zap.Int64("telegramID", telegramID),
@@ -75,32 +75,44 @@ func (om *OAuthManager) VerifyAuthCode(ctx context.Context, telegramID int64, au
 
 	om.logger.Info("Received successful response from gRPC",
 		zap.Int64("telegramID", telegramID),
-		zap.String("sessionID", sessionID),
-		zap.String("accessToken", tokens.AccessToken[:10]+"..."), // Логируем только первые 10 символов токена
-		zap.String("refreshToken", tokens.RefreshToken[:10]+"..."))
+		zap.String("sessionID", result.SessionID),
+		zap.String("userID", result.User.Id),
+		zap.String("accessToken", result.Tokens.AccessToken[:10]+"..."), // Логируем только первые 10 символов токена
+		zap.String("refreshToken", result.Tokens.RefreshToken[:10]+"..."),
+		zap.Int("membershipsCount", len(result.Memberships)))
+
+	// Determine default tenant from memberships
+	var defaultTenantID string
+	if len(result.Memberships) > 0 {
+		defaultTenantID = result.Memberships[0].Tenant.Id
+		om.logger.Info("Using default tenant from memberships",
+			zap.String("tenantID", defaultTenantID))
+	}
 
 	// Save session to local database
 	session := &repository.UserSession{
 		TelegramID:            telegramID,
-		UserID:                "", // Will be filled from session later
-		TenantID:              "", // Will be filled from session later
-		AccessToken:           tokens.AccessToken,
-		RefreshToken:          tokens.RefreshToken,
-		AccessTokenExpiresAt:  tokens.AccessTokenExpiresAt.AsTime(),
-		RefreshTokenExpiresAt: tokens.RefreshTokenExpiresAt.AsTime(),
+		UserID:                result.User.Id,
+		TenantID:              defaultTenantID,
+		AccessToken:           result.Tokens.AccessToken,
+		RefreshToken:          result.Tokens.RefreshToken,
+		AccessTokenExpiresAt:  result.Tokens.AccessTokenExpiresAt.AsTime(),
+		RefreshTokenExpiresAt: result.Tokens.RefreshTokenExpiresAt.AsTime(),
 	}
 
 	if err := om.sessionRepo.SaveSession(ctx, session); err != nil {
 		om.logger.Error("Failed to save session",
 			zap.Int64("telegramID", telegramID),
-			zap.String("sessionID", sessionID),
+			zap.String("sessionID", result.SessionID),
 			zap.Error(err))
 		return fmt.Errorf("failed to save session: %w", err)
 	}
 
 	om.logger.Info("Auth code verified successfully",
 		zap.Int64("telegramID", telegramID),
-		zap.String("sessionID", sessionID))
+		zap.String("sessionID", result.SessionID),
+		zap.String("userID", result.User.Id),
+		zap.String("tenantID", defaultTenantID))
 
 	return nil
 }

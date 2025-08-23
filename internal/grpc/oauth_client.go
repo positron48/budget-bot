@@ -36,7 +36,7 @@ func (o *OAuthGRPCClient) GenerateAuthLink(ctx context.Context, email string, te
 }
 
 // VerifyAuthCode verifies the OAuth verification code.
-func (o *OAuthGRPCClient) VerifyAuthCode(ctx context.Context, authToken, verificationCode string, telegramUserID int64) (*pb.TokenPair, string, error) {
+func (o *OAuthGRPCClient) VerifyAuthCode(ctx context.Context, authToken, verificationCode string, telegramUserID int64) (*VerifyAuthCodeResult, error) {
 	o.log.Info("Sending VerifyAuthCode request to gRPC",
 		zap.String("authToken", authToken),
 		zap.String("verificationCode", verificationCode),
@@ -53,15 +53,24 @@ func (o *OAuthGRPCClient) VerifyAuthCode(ctx context.Context, authToken, verific
 			zap.String("verificationCode", verificationCode),
 			zap.Int64("telegramUserID", telegramUserID),
 			zap.Error(err))
-		return nil, "", err
+		return nil, err
 	}
 
 	o.log.Info("gRPC VerifyAuthCode succeeded",
 		zap.String("sessionID", res.SessionId),
 		zap.String("accessToken", res.Tokens.AccessToken[:10]+"..."),
-		zap.String("refreshToken", res.Tokens.RefreshToken[:10]+"..."))
+		zap.String("refreshToken", res.Tokens.RefreshToken[:10]+"..."),
+		zap.String("userID", res.User.Id),
+		zap.Int("membershipsCount", len(res.Memberships)))
 
-	return res.Tokens, res.SessionId, nil
+	result := &VerifyAuthCodeResult{
+		Tokens:      res.Tokens,
+		SessionID:   res.SessionId,
+		User:        res.User,
+		Memberships: res.Memberships,
+	}
+
+	return result, nil
 }
 
 // CancelAuth cancels the OAuth authorization process.

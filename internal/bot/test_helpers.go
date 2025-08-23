@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	grpcclient "budget-bot/internal/grpc"
 	pb "budget-bot/internal/pb/budget/v1"
 )
 
@@ -14,14 +15,29 @@ func (f *TestOAuthClient) GenerateAuthLink(ctx context.Context, email string, te
 	return "https://example.com/auth", "auth_token", time.Now().Add(5*time.Minute), nil
 }
 
-func (f *TestOAuthClient) VerifyAuthCode(ctx context.Context, authToken, verificationCode string, telegramUserID int64) (*pb.TokenPair, string, error) {
-	return &pb.TokenPair{
-		AccessToken:           "access_token",
-		RefreshToken:          "refresh_token",
-		AccessTokenExpiresAt:  nil,
-		RefreshTokenExpiresAt: nil,
-		TokenType:             "Bearer",
-	}, "session_id", nil
+func (f *TestOAuthClient) VerifyAuthCode(ctx context.Context, authToken, verificationCode string, telegramUserID int64) (*grpcclient.VerifyAuthCodeResult, error) {
+	return &grpcclient.VerifyAuthCodeResult{
+		Tokens: &pb.TokenPair{
+			AccessToken:           "access_token",
+			RefreshToken:          "refresh_token",
+			AccessTokenExpiresAt:  nil,
+			RefreshTokenExpiresAt: nil,
+			TokenType:             "Bearer",
+		},
+		SessionID: "session_id",
+		User: &pb.User{
+			Id:    "test_user_id",
+			Email: "test@example.com",
+		},
+		Memberships: []*pb.TenantMembership{
+			{
+				Tenant: &pb.Tenant{
+					Id: "test_tenant_id",
+				},
+				Role: pb.TenantRole_TENANT_ROLE_OWNER,
+			},
+		},
+	}, nil
 }
 
 func (f *TestOAuthClient) CancelAuth(ctx context.Context, authToken string, telegramUserID int64) error {

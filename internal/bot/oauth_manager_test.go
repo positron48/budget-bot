@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	grpcclient "budget-bot/internal/grpc"
 	pb "budget-bot/internal/pb/budget/v1"
 	"budget-bot/internal/repository"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -20,14 +21,29 @@ func (f *fakeOAuthClient) GenerateAuthLink(ctx context.Context, email string, te
 	return "https://example.com/auth?token=test", "auth_token_123", time.Now().Add(5*time.Minute), nil
 }
 
-func (f *fakeOAuthClient) VerifyAuthCode(ctx context.Context, authToken, verificationCode string, telegramUserID int64) (*pb.TokenPair, string, error) {
-	return &pb.TokenPair{
-		AccessToken:           "access_token_123",
-		RefreshToken:          "refresh_token_123",
-		AccessTokenExpiresAt:  timestamppb.New(time.Now().Add(time.Hour)),
-		RefreshTokenExpiresAt: timestamppb.New(time.Now().Add(24*time.Hour)),
-		TokenType:             "Bearer",
-	}, "session_123", nil
+func (f *fakeOAuthClient) VerifyAuthCode(ctx context.Context, authToken, verificationCode string, telegramUserID int64) (*grpcclient.VerifyAuthCodeResult, error) {
+	return &grpcclient.VerifyAuthCodeResult{
+		Tokens: &pb.TokenPair{
+			AccessToken:           "access_token_123",
+			RefreshToken:          "refresh_token_123",
+			AccessTokenExpiresAt:  timestamppb.New(time.Now().Add(time.Hour)),
+			RefreshTokenExpiresAt: timestamppb.New(time.Now().Add(24*time.Hour)),
+			TokenType:             "Bearer",
+		},
+		SessionID: "session_123",
+		User: &pb.User{
+			Id:    "user_123",
+			Email: "test@example.com",
+		},
+		Memberships: []*pb.TenantMembership{
+			{
+				Tenant: &pb.Tenant{
+					Id: "tenant_123",
+				},
+				Role: pb.TenantRole_TENANT_ROLE_OWNER,
+			},
+		},
+	}, nil
 }
 
 func (f *fakeOAuthClient) CancelAuth(ctx context.Context, authToken string, telegramUserID int64) error {
