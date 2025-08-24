@@ -83,4 +83,12 @@ docker-dev-logs:
 docker-dev-restart:
 	docker-compose restart budget-bot
 
+# Установка зависимостей через Docker
+docker-deps:
+	docker run --rm -v $(PWD):/app -w /app golang:1.23.1-alpine sh -c "go mod download && go mod vendor"
+
+# Очистка vendor
+docker-clean-deps:
+	rm -rf vendor/
+
 

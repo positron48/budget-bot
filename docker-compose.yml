@@ -16,6 +16,8 @@ services:
       # Данные и логи (отдельные volumes для персистентности)
       - ./data:/app/data:rw
       - ./logs:/app/logs:rw
+      # Vendor директория для зависимостей
+      - ./vendor:/go/pkg/mod:ro
 
     environment:
       # Telegram Bot Configuration
