@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  budget-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: budget-bot
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8088:8088"  # Основной порт приложения
+      - "127.0.0.1:9090:9090"  # Порт метрик
+    volumes:
+      - ./data:/app/data:rw
+      - ./logs:/app/logs:rw
+      - ./configs:/app/configs:ro
+    environment:
+      # Telegram Bot Configuration
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_API_BASE_URL=${TELEGRAM_API_BASE_URL:-https://api.telegram.org/}
+      - TELEGRAM_DEBUG=${TELEGRAM_DEBUG:-false}
+      - TELEGRAM_UPDATES_TIMEOUT=${TELEGRAM_UPDATES_TIMEOUT:-30}
+      
+      # Webhook Configuration
+      - TELEGRAM_WEBHOOK_ENABLE=${TELEGRAM_WEBHOOK_ENABLE:-true}
+      - TELEGRAM_WEBHOOK_DOMAIN=${TELEGRAM_WEBHOOK_DOMAIN}
+      - TELEGRAM_WEBHOOK_PATH=${TELEGRAM_WEBHOOK_PATH:-/tg}
+      
+      # Server Configuration
+      - SERVER_ADDRESS=${SERVER_ADDRESS:-:8088}
+      
+      # gRPC Configuration
+      - GRPC_SERVER_ADDRESS=${GRPC_SERVER_ADDRESS}
+      - GRPC_INSECURE=${GRPC_INSECURE:-false}
+      
+      # Database Configuration
+      - DATABASE_DRIVER=${DATABASE_DRIVER:-sqlite}
+      - DATABASE_DSN=${DATABASE_DSN:-file:./data/bot.sqlite?_foreign_keys=on}
+      
+      # Logging Configuration
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      
+      # Metrics Configuration
+      - METRICS_ENABLED=${METRICS_ENABLED:-true}
+      - METRICS_ADDRESS=${METRICS_ADDRESS:-:9090}
+      
+      # OAuth2 Configuration
+      - OAUTH_AUTH_TOKEN_TTL=${OAUTH_AUTH_TOKEN_TTL:-5m}
+      - OAUTH_SESSION_TTL=${OAUTH_SESSION_TTL:-24h}
+      - OAUTH_VERIFICATION_CODE_TTL=${OAUTH_VERIFICATION_CODE_TTL:-10m}
+      - OAUTH_MAX_ATTEMPTS_PER_HOUR=${OAUTH_MAX_ATTEMPTS_PER_HOUR:-10}
+      - OAUTH_MAX_ATTEMPTS_PER_10MIN=${OAUTH_MAX_ATTEMPTS_PER_10MIN:-3}
+      - OAUTH_WEB_BASE_URL=${OAUTH_WEB_BASE_URL}
+      
+      # Redis Configuration (если используется)
+      - REDIS_URL=${REDIS_URL}
+    networks:
+      - budget-bot-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  budget-bot-network:
+    driver: bridge

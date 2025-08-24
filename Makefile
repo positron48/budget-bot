@@ -66,4 +66,28 @@ proto: proto-tools
 		--go-grpc_out=paths=source_relative:$(PB_OUT) \
 		$(PROTO_FILES)
 
+# --- Docker commands ---
+DOCKER_IMAGE := budget-bot
+DOCKER_TAG := latest
+
+.PHONY: docker-build docker-run docker-stop docker-logs docker-clean
+
+docker-build:
+	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+
+docker-run:
+	docker-compose up -d
+
+docker-stop:
+	docker-compose down
+
+docker-logs:
+	docker-compose logs -f
+
+docker-clean:
+	docker-compose down -v
+	docker rmi $(DOCKER_IMAGE):$(DOCKER_TAG) || true
+
+docker-rebuild: docker-clean docker-build docker-run
+
 
