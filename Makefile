@@ -12,7 +12,7 @@ tidy:
 	$(GO) mod tidy
 
 build:
-	$(GO) build -tags withgrpc -o bin/$(APP_NAME) ./cmd/bot
+	$(GO) build -o bin/$(APP_NAME) ./cmd/bot
 
 build-fake:
 	$(GO) build -o bin/$(APP_NAME) ./cmd/bot
@@ -47,24 +47,7 @@ coverage:
 	go tool cover -func=coverage.out | tail -n 1
 
 
-# --- Proto generation ---
-PROTO_DIR ?= ./proto
-PB_OUT := internal/pb
-PROTO_FILES := $(shell find $(PROTO_DIR) -name '*.proto')
 
-.PHONY: proto-tools proto
-
-proto-tools:
-	$(GO) install google.golang.org/protobuf/cmd/protoc-gen-go@v1.34.1
-	$(GO) install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.3.0
-
-proto: proto-tools
-	rm -rf $(PB_OUT)
-	mkdir -p $(PB_OUT)
-	protoc -I $(PROTO_DIR) \
-		--go_out=paths=source_relative:$(PB_OUT) \
-		--go-grpc_out=paths=source_relative:$(PB_OUT) \
-		$(PROTO_FILES)
 
 # --- Docker commands ---
 DOCKER_IMAGE := budget-bot
@@ -89,5 +72,15 @@ docker-clean:
 	docker rmi $(DOCKER_IMAGE):$(DOCKER_TAG) || true
 
 docker-rebuild: docker-clean docker-build docker-run
+
+# Команды для разработки
+docker-dev:
+	docker-compose up -d
+
+docker-dev-logs:
+	docker-compose logs -f
+
+docker-dev-restart:
+	docker-compose restart budget-bot
 
 

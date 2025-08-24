@@ -11,9 +11,11 @@ services:
       - "127.0.0.1:8088:8088"  # Основной порт приложения
       - "127.0.0.1:9090:9090"  # Порт метрик
     volumes:
+      # Монтирование всего исходного кода
+      - .:/app:rw
+      # Данные и логи (отдельные volumes для персистентности)
       - ./data:/app/data:rw
       - ./logs:/app/logs:rw
-      - ./configs:/app/configs:ro
     environment:
       # Telegram Bot Configuration
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
