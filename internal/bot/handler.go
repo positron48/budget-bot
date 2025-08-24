@@ -229,6 +229,7 @@ func occurredUnix(t *time.Time) int64 {
 	if t == nil {
 		return 0
 	}
+	// Time is already in UTC, just convert to Unix timestamp
 	return t.Unix()
 }
 
@@ -259,6 +260,7 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 				catID, _ := rec.Context["category_id"].(string)
 				var occurred time.Time
 				if ts, ok := rec.Context["occurred_at"].(float64); ok && ts > 0 {
+					// Time is already in UTC, just restore from Unix timestamp
 					occurred = time.Unix(int64(ts), 0)
 				} else {
 					occurred = time.Now()

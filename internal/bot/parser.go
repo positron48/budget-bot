@@ -51,18 +51,21 @@ func (p *MessageParser) ParseMessage(text string) (*ParsedTransaction, error) {
 	lower := strings.ToLower(original)
 	now := time.Now()
 	if strings.Contains(lower, "сегодня") {
-		d := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-		result.OccurredAt = &d
+		localTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		utcTime := localTime.UTC()
+		result.OccurredAt = &utcTime
 		lower = strings.ReplaceAll(lower, "сегодня", "")
 	} else if strings.Contains(lower, "вчера") {
-		d := now.AddDate(0, 0, -1)
-		d = time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location())
-		result.OccurredAt = &d
+		localTime := now.AddDate(0, 0, -1)
+		localTime = time.Date(localTime.Year(), localTime.Month(), localTime.Day(), 0, 0, 0, 0, localTime.Location())
+		utcTime := localTime.UTC()
+		result.OccurredAt = &utcTime
 		lower = strings.ReplaceAll(lower, "вчера", "")
 	} else if strings.Contains(lower, "позавчера") {
-		d := now.AddDate(0, 0, -2)
-		d = time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location())
-		result.OccurredAt = &d
+		localTime := now.AddDate(0, 0, -2)
+		localTime = time.Date(localTime.Year(), localTime.Month(), localTime.Day(), 0, 0, 0, 0, localTime.Location())
+		utcTime := localTime.UTC()
+		result.OccurredAt = &utcTime
 		lower = strings.ReplaceAll(lower, "позавчера", "")
 	}
 
@@ -79,8 +82,11 @@ func (p *MessageParser) ParseMessage(text string) (*ParsedTransaction, error) {
 			year = y
 		}
 		if day >= 1 && day <= 31 && mon >= 1 && mon <= 12 {
-			d := time.Date(year, time.Month(mon), day, 0, 0, 0, 0, now.Location())
-			result.OccurredAt = &d
+			// Create time in local timezone first, then convert to UTC
+			// This ensures that "01.08" always means August 1st in user's timezone
+			localTime := time.Date(year, time.Month(mon), day, 0, 0, 0, 0, now.Location())
+			utcTime := localTime.UTC()
+			result.OccurredAt = &utcTime
 			lower = strings.Replace(lower, m[0], "", 1)
 		}
 	}

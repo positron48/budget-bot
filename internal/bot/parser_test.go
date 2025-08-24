@@ -2,6 +2,7 @@ package bot
 
 import (
 	"testing"
+	"time"
 )
 
 func TestMessageParser_ParseMessage_SimpleExpense(t *testing.T) {
@@ -98,6 +99,42 @@ func TestMessageParser_DateWithSlashAndCurrencyCode(t *testing.T) {
     if res.OccurredAt == nil {
         t.Fatalf("expected occurredAt for 01/12")
     }
+}
+
+func TestMessageParser_DateParsing_Timezone(t *testing.T) {
+	parser := NewMessageParser()
+	
+	// Test with a specific timezone (Moscow, UTC+3)
+	moscowLoc := time.FixedZone("MSK", 3*60*60)
+	
+	// Test parsing "01.08" - should be August 1st in Moscow timezone
+	parsed, err := parser.ParseMessage("01.08 1000 продукты")
+	if err != nil {
+		t.Fatalf("ParseMessage failed: %v", err)
+	}
+	
+	if !parsed.IsValid {
+		t.Fatalf("Parsed transaction is not valid: %v", parsed.Errors)
+	}
+	
+	if parsed.OccurredAt == nil {
+		t.Fatal("OccurredAt is nil")
+	}
+	
+	// The time should be August 1st, 00:00 in Moscow timezone, converted to UTC
+	expectedUTC := time.Date(2025, 8, 1, 0, 0, 0, 0, moscowLoc).UTC()
+	
+	if !parsed.OccurredAt.Equal(expectedUTC) {
+		t.Errorf("Expected time %v, got %v", expectedUTC, parsed.OccurredAt)
+	}
+	
+	// Verify that the UTC time represents August 1st in Moscow timezone
+	moscowTime := parsed.OccurredAt.In(moscowLoc)
+	if moscowTime.Day() != 1 || moscowTime.Month() != time.August {
+		t.Errorf("Time in Moscow timezone should be August 1st, got %v", moscowTime)
+	}
+	
+	t.Logf("Successfully parsed date: %v (UTC) = %v (Moscow)", parsed.OccurredAt, moscowTime)
 }
 
 

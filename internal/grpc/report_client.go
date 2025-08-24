@@ -62,10 +62,19 @@ func (g *ReportGRPCClient) GetStats(ctx context.Context, tenantID string, from, 
         ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) 
     }
     
-    req := &pb.GetMonthlySummaryRequest{Year: int32(from.Year()), Month: int32(from.Month())}
+    // Calculate timezone offset in minutes (JS-style: minutes to add to local time to get UTC)
+    _, offset := from.Zone()
+    timezoneOffsetMinutes := int32(-offset / 60) // Negative because JS getTimezoneOffset() is opposite of Go
+    
+    req := &pb.GetMonthlySummaryRequest{
+        Year: int32(from.Year()), 
+        Month: int32(from.Month()),
+        TimezoneOffsetMinutes: timezoneOffsetMinutes,
+    }
     g.logger.Debug("GetStats gRPC request", 
         zap.Int32("year", req.Year),
-        zap.Int32("month", req.Month))
+        zap.Int32("month", req.Month),
+        zap.Int32("timezoneOffsetMinutes", req.TimezoneOffsetMinutes))
     
     res, err := g.client.GetMonthlySummary(ctx, req)
     if err != nil { 
@@ -98,10 +107,19 @@ func (g *ReportGRPCClient) TopCategories(ctx context.Context, tenantID string, f
         ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) 
     }
     
-    req := &pb.GetMonthlySummaryRequest{Year: int32(from.Year()), Month: int32(from.Month())}
+    // Calculate timezone offset in minutes (JS-style: minutes to add to local time to get UTC)
+    _, offset := from.Zone()
+    timezoneOffsetMinutes := int32(-offset / 60) // Negative because JS getTimezoneOffset() is opposite of Go
+    
+    req := &pb.GetMonthlySummaryRequest{
+        Year: int32(from.Year()), 
+        Month: int32(from.Month()),
+        TimezoneOffsetMinutes: timezoneOffsetMinutes,
+    }
     g.logger.Debug("TopCategories gRPC request", 
         zap.Int32("year", req.Year),
-        zap.Int32("month", req.Month))
+        zap.Int32("month", req.Month),
+        zap.Int32("timezoneOffsetMinutes", req.TimezoneOffsetMinutes))
     
     res, err := g.client.GetMonthlySummary(ctx, req)
     if err != nil { 

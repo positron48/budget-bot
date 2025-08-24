@@ -7,14 +7,20 @@ import (
     "time"
 
     pb "budget-bot/internal/pb/budget/v1"
+    "go.uber.org/zap"
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
     "google.golang.org/grpc/metadata"
 )
 
-type fakeReportServer struct{ pb.UnimplementedReportServiceServer; sawAuth string }
+type fakeReportServer struct{ 
+    pb.UnimplementedReportServiceServer
+    sawAuth string 
+    lastRequest *pb.GetMonthlySummaryRequest
+}
 
-func (s *fakeReportServer) GetMonthlySummary(ctx context.Context, _ *pb.GetMonthlySummaryRequest) (*pb.GetMonthlySummaryResponse, error) {
+func (s *fakeReportServer) GetMonthlySummary(ctx context.Context, req *pb.GetMonthlySummaryRequest) (*pb.GetMonthlySummaryResponse, error) {
+    s.lastRequest = req
     if md, ok := metadata.FromIncomingContext(ctx); ok {
         vals := md.Get("authorization")
         if len(vals) > 0 { s.sawAuth = vals[0] }
@@ -43,7 +49,7 @@ func TestGRPCReportClient_GetStatsAndTop(t *testing.T) {
     conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
-    c := NewGRPCReportClient(pb.NewReportServiceClient(conn))
+    c := NewGRPCReportClient(pb.NewReportServiceClient(conn), zap.NewNop())
     ctx := context.Background()
     from := time.Date(2025, 8, 1, 0, 0, 0, 0, time.UTC)
     to := from.AddDate(0, 1, -1)
