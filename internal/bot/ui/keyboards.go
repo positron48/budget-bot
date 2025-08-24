@@ -66,12 +66,37 @@ func CreateMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
     row2 := tgbotapi.NewKeyboardButtonRow(
         tgbotapi.NewKeyboardButton("/categories"),
         tgbotapi.NewKeyboardButton("/profile"),
-        tgbotapi.NewKeyboardButton("/switch_tenant"),
+        tgbotapi.NewKeyboardButton("/help"),
     )
     kb := tgbotapi.NewReplyKeyboard(row1, row2)
     kb.ResizeKeyboard = true
     kb.Selective = true
     return kb
+}
+
+// CreateHelpKeyboard builds the main help menu keyboard.
+func CreateHelpKeyboard() tgbotapi.InlineKeyboardMarkup {
+    auth := tgbotapi.NewInlineKeyboardButtonData("🔐 Аутентификация", "help:auth")
+    transactions := tgbotapi.NewInlineKeyboardButtonData("💰 Транзакции", "help:transactions")
+    categories := tgbotapi.NewInlineKeyboardButtonData("🏷️ Категории", "help:categories")
+    stats := tgbotapi.NewInlineKeyboardButtonData("📊 Статистика", "help:stats")
+    settings := tgbotapi.NewInlineKeyboardButtonData("⚙️ Настройки", "help:settings")
+    admin := tgbotapi.NewInlineKeyboardButtonData("👨‍💼 Админ", "help:admin")
+    
+    return tgbotapi.NewInlineKeyboardMarkup(
+        tgbotapi.NewInlineKeyboardRow(auth, transactions),
+        tgbotapi.NewInlineKeyboardRow(categories, stats),
+        tgbotapi.NewInlineKeyboardRow(settings, admin),
+    )
+}
+
+// CreateBackToHelpKeyboard builds a keyboard with back button.
+func CreateBackToHelpKeyboard() tgbotapi.InlineKeyboardMarkup {
+    back := tgbotapi.NewInlineKeyboardButtonData("🔙 Назад к справке", "help:")
+    
+    return tgbotapi.NewInlineKeyboardMarkup(
+        tgbotapi.NewInlineKeyboardRow(back),
+    )
 }
 
 
