@@ -33,4 +33,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8088/health || exit 1
 
 # Запуск приложения
-CMD ["sh", "-c", "go build -o bin/budget-bot ./cmd/bot && ./bin/budget-bot"]
+CMD ["sh", "-c", "go mod download && go build -o bin/budget-bot ./cmd/bot && ./bin/budget-bot"]

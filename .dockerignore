@@ -36,6 +36,9 @@ bin/
 dist/
 build/
 
+# Vendor directory (will be downloaded fresh)
+vendor/
+
 # Test files
 *_test.go
 testutil/
