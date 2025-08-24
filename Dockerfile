@@ -36,4 +36,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8088/health || exit 1
 
 # Запуск приложения
-CMD ["sh", "-c", "touch /app/data/bot.sqlite && chmod 666 /app/data/bot.sqlite && go build -mod=vendor -o bin/budget-bot ./cmd/bot && ./bin/budget-bot"]
+CMD ["sh", "-c", "touch /app/data/bot.sqlite && chmod 666 /app/data/bot.sqlite && go build -mod=vendor -tags withgrpc -o bin/budget-bot ./cmd/bot && ./bin/budget-bot"]
