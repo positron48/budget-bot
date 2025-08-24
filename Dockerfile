@@ -16,12 +16,12 @@ RUN addgroup -g 1001 -S budgetbot && \
     adduser -u 1001 -S budgetbot -G budgetbot
 
 # Создание необходимых директорий
-RUN mkdir -p /app/bin /app/data /app/configs /app/logs /app/migrations && \
+RUN mkdir -p /app/bin /app/data /app/configs /app/logs /app/migrations /app/.cache/go-build /app/.cache/go-mod && \
     chown -R budgetbot:budgetbot /app
 
-# Настройка кэширования Go
-ENV GOCACHE=/root/.cache/go-build
-ENV GOMODCACHE=/go/pkg/mod
+# Настройка кэширования Go в директории пользователя
+ENV GOCACHE=/app/.cache/go-build
+ENV GOMODCACHE=/app/.cache/go-mod
 
 # Установка рабочей директории
 WORKDIR /app
