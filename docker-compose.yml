@@ -16,9 +16,8 @@ services:
       # Данные и логи (отдельные volumes для персистентности)
       - ./data:/app/data:rw
       - ./logs:/app/logs:rw
-      # Кэширование Go модулей (монтируем в стандартные пути Go)
-      - go-cache:/go/pkg/mod
-      - go-build-cache:/root/.cache/go-build
+      # Vendor директория для зависимостей
+      - ./vendor:/go/pkg/mod:ro
     environment:
       # Telegram Bot Configuration
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
@@ -77,6 +76,4 @@ networks:
   budget-bot-network:
     driver: bridge
 
-volumes:
-  go-cache:
-  go-build-cache:
+

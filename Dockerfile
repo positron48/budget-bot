@@ -20,15 +20,11 @@ RUN mkdir -p /app/bin /app/data /app/configs /app/logs /app/migrations && \
     chown -R budgetbot:budgetbot /app && \
     chmod 755 /app/data
 
-# Настройка кэширования Go (используем стандартные пути)
-ENV GOCACHE=/root/.cache/go-build
-ENV GOMODCACHE=/go/pkg/mod
+# Настройка для использования vendor
+ENV GOFLAGS="-mod=vendor"
 
 # Установка рабочей директории
 WORKDIR /app
-
-# Даем права на запись в Go кэш
-RUN chown -R budgetbot:budgetbot /go/pkg/mod /root/.cache
 
 # Переключение на пользователя budgetbot
 USER budgetbot
