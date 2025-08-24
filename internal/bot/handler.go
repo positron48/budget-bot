@@ -28,6 +28,7 @@ type Handler struct {
 	categories grpcclient.CategoryClient
 	mappings   repository.CategoryMappingRepository
 	matcher    *CategoryMatcher
+	nameMapper *CategoryNameMapper
 	txClient   grpcclient.TransactionClient
 	prefs      repository.PreferencesRepository
 	report     grpcclient.ReportClient
@@ -41,7 +42,7 @@ func NewHandler(bot *tgbotapi.BotAPI, states repository.DialogStateRepository, a
 	if categories == nil {
 		categories = &grpcclient.StaticCategoryClient{}
 	}
-	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser(), categories: categories, mappings: mappings, matcher: NewCategoryMatcher(mappings), txClient: &grpcclient.FakeTransactionClient{}, report: &grpcclient.FakeReportClient{}, tenants: &grpcclient.FakeTenantClient{}, fmt: ui.NewMessageFormatter()}
+	return &Handler{bot: bot, states: states, auth: auth, logger: logger, parser: NewMessageParser(), categories: categories, mappings: mappings, matcher: NewCategoryMatcher(mappings), nameMapper: NewCategoryNameMapper(categories), txClient: &grpcclient.FakeTransactionClient{}, report: &grpcclient.FakeReportClient{}, tenants: &grpcclient.FakeTenantClient{}, fmt: ui.NewMessageFormatter()}
 }
 
 // WithPreferences allows injecting a preferences repository after construction.
@@ -184,9 +185,26 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 				return
 			}
 			// Have category -> ask to confirm
+			// Get category name by ID for display
+			var categoryDisplayName string
+			if h.nameMapper != nil {
+				pref, _ := h.prefs.GetPreferences(ctx, update.Message.From.ID)
+				locale := "ru"
+				if pref != nil && pref.Language != "" {
+					locale = pref.Language
+				}
+				if name, err := h.nameMapper.GetCategoryNameByID(ctx, sess.TenantID, sess.AccessToken, catID, parsed.Type, locale); err == nil && name != "" {
+					categoryDisplayName = name
+				} else {
+					categoryDisplayName = catID // fallback to ID if name not found
+				}
+			} else {
+				categoryDisplayName = catID // fallback to ID if nameMapper not available
+			}
+			
 			kb := ui.CreateConfirmationKeyboard()
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID,
-				fmt.Sprintf("Сохранить: %s %.2f %s — %s (категория: %s)?", string(parsed.Type), amt, cur, parsed.Description, catID))
+				fmt.Sprintf("Сохранить: %s %.2f %s — %s (категория: %s)?", string(parsed.Type), amt, cur, parsed.Description, categoryDisplayName))
 			msg.ReplyMarkup = kb
 			_ = h.states.SetState(ctx, update.Message.From.ID, repository.StateConfirmingTransaction, map[string]any{
 				"type":         string(parsed.Type),
@@ -298,12 +316,43 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 		}
 	}
 	if strings.HasPrefix(data, "cat:") {
-		categoryID := strings.TrimPrefix(data, "cat:")
+		categoryName := strings.TrimPrefix(data, "cat:")
 		rec, _ := h.states.GetState(ctx, cb.From.ID)
 		if rec == nil || rec.Context == nil {
 			_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Нет контекста"))
 			return
 		}
+		
+		// Get session for tenant and access token
+		sess, err := h.auth.GetSession(ctx, cb.From.ID)
+		if err != nil || sess == nil {
+			_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Нет сессии"))
+			return
+		}
+		
+		// Get preferences for locale
+		pref, _ := h.prefs.GetPreferences(ctx, cb.From.ID)
+		locale := "ru"
+		if pref != nil && pref.Language != "" {
+			locale = pref.Language
+		}
+		
+		// Determine transaction type from context
+		typeStr, _ := rec.Context["type"].(string)
+		var transactionType domain.TransactionType
+		if typeStr == "income" {
+			transactionType = domain.TransactionIncome
+		} else {
+			transactionType = domain.TransactionExpense
+		}
+		
+		// Map category name to ID
+		categoryID, err := h.nameMapper.GetCategoryIDByName(ctx, sess.TenantID, sess.AccessToken, categoryName, transactionType, locale)
+		if err != nil || categoryID == "" {
+			_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Категория не найдена"))
+			return
+		}
+		
 		rec.Context["category_id"] = categoryID
 		// Ask confirmation now
 		var amountMinor int64
@@ -316,12 +365,11 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 			amountMinor = int64(v)
 		}
 		amt := float64(amountMinor) / 100.0
-		typeStr, _ := rec.Context["type"].(string)
 		currency, _ := rec.Context["currency"].(string)
 		desc, _ := rec.Context["desc"].(string)
 		kb := ui.CreateConfirmationKeyboard()
 		msg := tgbotapi.NewMessage(cb.Message.Chat.ID,
-			fmt.Sprintf("Сохранить: %s %.2f %s — %s (категория: %s)?", typeStr, amt, currency, desc, categoryID))
+			fmt.Sprintf("Сохранить: %s %.2f %s — %s (категория: %s)?", typeStr, amt, currency, desc, categoryName))
 		msg.ReplyMarkup = kb
 		_ = h.states.SetState(ctx, cb.From.ID, repository.StateConfirmingTransaction, rec.Context, nil)
 		_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Категория выбрана"))
@@ -585,9 +633,24 @@ func (h *Handler) handleMap(ctx context.Context, update tgbotapi.Update) {
 			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сопоставлений нет"))
 			return
 		}
+		
+		// Get preferences for locale
+		pref, _ := h.prefs.GetPreferences(ctx, update.Message.From.ID)
+		locale := "ru"
+		if pref != nil && pref.Language != "" {
+			locale = pref.Language
+		}
+		
 		var b strings.Builder
 		for _, m := range items {
-			b.WriteString(fmt.Sprintf("%s = %s\n", m.Keyword, m.CategoryID))
+			// Try to get category name by ID
+			categoryName, err := h.nameMapper.GetCategoryNameByID(ctx, sess.TenantID, sess.AccessToken, m.CategoryID, domain.TransactionExpense, locale)
+			if err != nil || categoryName == "" {
+				// Fallback to ID if name not found
+				b.WriteString(fmt.Sprintf("%s = %s\n", m.Keyword, m.CategoryID))
+			} else {
+				b.WriteString(fmt.Sprintf("%s = %s\n", m.Keyword, categoryName))
+			}
 		}
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
 		return
@@ -596,7 +659,7 @@ func (h *Handler) handleMap(ctx context.Context, update tgbotapi.Update) {
 		// show mapping for keyword
 		keyword := strings.TrimSpace(parts[0])
 		if keyword == "" {
-			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /map слово = category_id"))
+			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /map слово = название_категории"))
 			return
 		}
 		sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
@@ -609,14 +672,29 @@ func (h *Handler) handleMap(ctx context.Context, update tgbotapi.Update) {
 			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сопоставление не найдено"))
 			return
 		}
-		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("%s = %s", m.Keyword, m.CategoryID)))
+		
+		// Get preferences for locale
+		pref, _ := h.prefs.GetPreferences(ctx, update.Message.From.ID)
+		locale := "ru"
+		if pref != nil && pref.Language != "" {
+			locale = pref.Language
+		}
+		
+		// Try to get category name by ID
+		categoryName, err := h.nameMapper.GetCategoryNameByID(ctx, sess.TenantID, sess.AccessToken, m.CategoryID, domain.TransactionExpense, locale)
+		if err != nil || categoryName == "" {
+			// Fallback to ID if name not found
+			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("%s = %s", m.Keyword, m.CategoryID)))
+		} else {
+			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("%s = %s", m.Keyword, categoryName)))
+		}
 		return
 	}
 	if len(parts) == 2 {
 		keyword := strings.TrimSpace(parts[0])
-		categoryID := strings.TrimSpace(parts[1])
-		if keyword == "" || categoryID == "" {
-			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /map слово = category_id"))
+		categoryName := strings.TrimSpace(parts[1])
+		if keyword == "" || categoryName == "" {
+			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /map слово = название_категории"))
 			return
 		}
 		sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
@@ -624,6 +702,21 @@ func (h *Handler) handleMap(ctx context.Context, update tgbotapi.Update) {
 			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сначала выполните вход: /login"))
 			return
 		}
+		
+		// Get preferences for locale
+		pref, _ := h.prefs.GetPreferences(ctx, update.Message.From.ID)
+		locale := "ru"
+		if pref != nil && pref.Language != "" {
+			locale = pref.Language
+		}
+		
+		// Map category name to ID
+		categoryID, err := h.nameMapper.GetCategoryIDByName(ctx, sess.TenantID, sess.AccessToken, categoryName, domain.TransactionExpense, locale)
+		if err != nil || categoryID == "" {
+			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Категория не найдена"))
+			return
+		}
+		
 		id := uuid.NewString()
 		if err := h.mappings.AddMapping(ctx, &repository.CategoryMapping{ID: id, TenantID: sess.TenantID, Keyword: keyword, CategoryID: categoryID, Priority: 0}); err != nil {
 			_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось сохранить сопоставление"))
@@ -632,7 +725,7 @@ func (h *Handler) handleMap(ctx context.Context, update tgbotapi.Update) {
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Сопоставление сохранено"))
 		return
 	}
-	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /map слово = category_id"))
+	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Формат: /map слово = название_категории"))
 }
 
 func (h *Handler) handleUnmap(ctx context.Context, update tgbotapi.Update) {

@@ -51,7 +51,7 @@ func TestHandler_Parse_NoMapping_ChooseCategory_Confirm(t *testing.T) {
     h.HandleUpdate(ctx, updTx)
 
     // select category and confirm yes
-    cbCat := tgbotapi.Update{UpdateID: 5, CallbackQuery: &tgbotapi.CallbackQuery{ID: "cbc1", From: &tgbotapi.User{ID: userID}, Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{ID: chatID}}, Data: "cat:cat-food"}}
+    cbCat := tgbotapi.Update{UpdateID: 5, CallbackQuery: &tgbotapi.CallbackQuery{ID: "cbc1", From: &tgbotapi.User{ID: userID}, Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{ID: chatID}}, Data: "cat:Питание"}}
     h.HandleUpdate(ctx, cbCat)
     cbYes := tgbotapi.Update{UpdateID: 6, CallbackQuery: &tgbotapi.CallbackQuery{ID: "cbc2", From: &tgbotapi.User{ID: userID}, Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{ID: chatID}}, Data: "confirm:yes"}}
     h.HandleUpdate(ctx, cbYes)

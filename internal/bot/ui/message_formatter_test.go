@@ -16,6 +16,7 @@ func TestMessageFormatter_Formatters(t *testing.T) {
 	cats := []*domain.Category{{ID: "1", Name: "Food", Emoji: "🍽️"}}
 	list := mf.FormatCategoriesList(cats)
 	if list == "" { t.Fatalf("categories format empty") }
+	if !strings.Contains(list, "Food") { t.Fatalf("categories format should contain name: %s", list) }
 	line := mf.FormatTransactionLine("-", 100, "USD", "coffee")
 	if line == "" { t.Fatalf("line format empty") }
 }

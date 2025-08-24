@@ -54,7 +54,7 @@ func TestHandler_Cancel_And_ConfirmNo(t *testing.T) {
     updTx := updLogin; updTx.UpdateID = 5; updTx.Message.Text = "100 кофе"; updTx.Message.Entities = nil
     h.HandleUpdate(ctx, updTx)
     // choose category
-    cbCat := tgbotapi.Update{UpdateID: 6, CallbackQuery: &tgbotapi.CallbackQuery{ID:"cb", From:&tgbotapi.User{ID:userID}, Message:&tgbotapi.Message{Chat:&tgbotapi.Chat{ID:chatID}}, Data:"cat:cat-food"}}
+    cbCat := tgbotapi.Update{UpdateID: 6, CallbackQuery: &tgbotapi.CallbackQuery{ID:"cb", From:&tgbotapi.User{ID:userID}, Message:&tgbotapi.Message{Chat:&tgbotapi.Chat{ID:chatID}}, Data:"cat:Питание"}}
     h.HandleUpdate(ctx, cbCat)
     // press no
     cbNo := tgbotapi.Update{UpdateID: 7, CallbackQuery: &tgbotapi.CallbackQuery{ID:"cb2", From:&tgbotapi.User{ID:userID}, Message:&tgbotapi.Message{Chat:&tgbotapi.Chat{ID:chatID}}, Data:"confirm:no"}}

@@ -56,7 +56,7 @@ func TestHandler_Start_Login_TransactionFlow(t *testing.T) {
 	h.HandleUpdate(ctx, updTx)
 
 	// Choose category callback -> confirmation
-	updCat := tgbotapi.Update{UpdateID: 6, CallbackQuery: &tgbotapi.CallbackQuery{ID: "cb1", From: &tgbotapi.User{ID: userID}, Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{ID: chatID}}, Data: "cat:cat-food"}}
+	updCat := tgbotapi.Update{UpdateID: 6, CallbackQuery: &tgbotapi.CallbackQuery{ID: "cb1", From: &tgbotapi.User{ID: userID}, Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{ID: chatID}}, Data: "cat:Питание"}}
 	h.HandleUpdate(ctx, updCat)
 
 	// Confirm yes -> creates transaction

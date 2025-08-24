@@ -11,7 +11,7 @@ import (
 func CreateCategoryKeyboard(categories []*domain.Category) tgbotapi.InlineKeyboardMarkup {
     var rows [][]tgbotapi.InlineKeyboardButton
     for _, c := range categories {
-        btn := tgbotapi.NewInlineKeyboardButtonData(c.Emoji+" "+c.Name, "cat:"+c.ID)
+        btn := tgbotapi.NewInlineKeyboardButtonData(c.Emoji+" "+c.Name, "cat:"+c.Name)
         rows = append(rows, tgbotapi.NewInlineKeyboardRow(btn))
     }
     return tgbotapi.NewInlineKeyboardMarkup(rows...)

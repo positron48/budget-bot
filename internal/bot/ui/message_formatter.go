@@ -35,7 +35,7 @@ func (mf *MessageFormatter) FormatCategoriesList(categories []*domain.Category) 
 	}
 	result := "Категории:\n"
 	for _, c := range categories {
-		result += fmt.Sprintf("%s %s (%s)\n", c.Emoji, c.Name, c.ID)
+		result += fmt.Sprintf("%s %s\n", c.Emoji, c.Name)
 	}
 	return result
 }
