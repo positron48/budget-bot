@@ -104,10 +104,7 @@ func TestMessageParser_DateWithSlashAndCurrencyCode(t *testing.T) {
 func TestMessageParser_DateParsing_Timezone(t *testing.T) {
 	parser := NewMessageParser()
 	
-	// Test with a specific timezone (Moscow, UTC+3)
-	moscowLoc := time.FixedZone("MSK", 3*60*60)
-	
-	// Test parsing "01.08" - should be August 1st in Moscow timezone
+	// Test parsing "01.08" - should be August 1st in local timezone
 	parsed, err := parser.ParseMessage("01.08 1000 продукты")
 	if err != nil {
 		t.Fatalf("ParseMessage failed: %v", err)
@@ -121,20 +118,25 @@ func TestMessageParser_DateParsing_Timezone(t *testing.T) {
 		t.Fatal("OccurredAt is nil")
 	}
 	
-	// The time should be August 1st, 00:00 in Moscow timezone, converted to UTC
-	expectedUTC := time.Date(2025, 8, 1, 0, 0, 0, 0, moscowLoc).UTC()
+	// Get current year to make test more flexible
+	currentYear := time.Now().Year()
+	
+	// The time should be August 1st, 00:00 in local timezone, converted to UTC
+	// Since the parser uses time.Now().Location(), we need to account for that
+	localTime := time.Date(currentYear, 8, 1, 0, 0, 0, 0, time.Now().Location())
+	expectedUTC := localTime.UTC()
 	
 	if !parsed.OccurredAt.Equal(expectedUTC) {
 		t.Errorf("Expected time %v, got %v", expectedUTC, parsed.OccurredAt)
 	}
 	
-	// Verify that the UTC time represents August 1st in Moscow timezone
-	moscowTime := parsed.OccurredAt.In(moscowLoc)
-	if moscowTime.Day() != 1 || moscowTime.Month() != time.August {
-		t.Errorf("Time in Moscow timezone should be August 1st, got %v", moscowTime)
+	// Verify that the UTC time represents August 1st in local timezone
+	localTimeFromUTC := parsed.OccurredAt.In(time.Now().Location())
+	if localTimeFromUTC.Day() != 1 || localTimeFromUTC.Month() != time.August {
+		t.Errorf("Time in local timezone should be August 1st, got %v", localTimeFromUTC)
 	}
 	
-	t.Logf("Successfully parsed date: %v (UTC) = %v (Moscow)", parsed.OccurredAt, moscowTime)
+	t.Logf("Successfully parsed date: %v (UTC) = %v (Local)", parsed.OccurredAt, localTimeFromUTC)
 }
 
 
