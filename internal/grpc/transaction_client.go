@@ -2,6 +2,7 @@ package grpc
 
 import (
     "context"
+    "math"
     "time"
 
     pb "budget-bot/internal/pb/budget/v1"
@@ -68,7 +69,7 @@ func (g *TransactionGRPCClient) CreateTransaction(ctx context.Context, req *Crea
         zap.String("description", req.Description),
         zap.String("categoryID", req.CategoryID),
         zap.Time("occurredAt", req.OccurredAt),
-        zap.String("accessToken", accessToken[:10] + "..."))
+        zap.String("accessToken", accessToken[:int(math.Min(float64(len(accessToken)), 10))] + "..."))
     
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     pbReq := &pb.CreateTransactionRequest{
@@ -103,7 +104,7 @@ func (g *TransactionGRPCClient) ListRecent(ctx context.Context, tenantID string,
     g.logger.Debug("ListRecent request", 
         zap.String("tenantID", tenantID),
         zap.Int("limit", limit),
-        zap.String("accessToken", accessToken[:10] + "..."))
+        zap.String("accessToken", accessToken[:int(math.Min(float64(len(accessToken)), 10))] + "..."))
     
     _ = tenantID
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
@@ -138,7 +139,7 @@ func (g *TransactionGRPCClient) ListForExport(ctx context.Context, tenantID stri
         zap.Time("from", from),
         zap.Time("to", to),
         zap.Int("limit", limit),
-        zap.String("accessToken", accessToken[:10] + "..."))
+        zap.String("accessToken", accessToken[:int(math.Min(float64(len(accessToken)), 10))] + "..."))
     
     _ = tenantID
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }

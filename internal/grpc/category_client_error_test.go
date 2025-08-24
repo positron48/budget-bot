@@ -10,6 +10,7 @@ import (
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
     status "google.golang.org/grpc/status"
+    "go.uber.org/zap"
 )
 
 type errCategoryServer struct{ pb.UnimplementedCategoryServiceServer }
@@ -29,7 +30,7 @@ func TestGRPCCategoryClient_ListCategories_Error(t *testing.T) {
     conn, err := grpc.NewClient(lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
-    c := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn))
+    c := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn), zap.NewNop())
     	_, e := c.ListCategories(context.Background(), "tenant", "tok", domain.TransactionExpense)
     if e == nil { t.Fatalf("expected error") }
 }

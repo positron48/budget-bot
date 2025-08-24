@@ -50,6 +50,19 @@ func (m *mockOAuthServer) VerifyAuthCode(ctx context.Context, req *pb.VerifyAuth
 			TokenType:             "Bearer",
 		},
 		SessionId: "session_123",
+		User: &pb.User{
+			Id:    "user_123",
+			Email: "test@example.com",
+		},
+		Memberships: []*pb.TenantMembership{
+			{
+				Tenant: &pb.Tenant{
+					Id:   "tenant_123",
+					Name: "Test Tenant",
+				},
+				Role: pb.TenantRole_TENANT_ROLE_OWNER,
+			},
+		},
 	}, nil
 }
 
@@ -161,21 +174,24 @@ func TestOAuthClient_VerifyAuthCode(t *testing.T) {
 	client := pb.NewOAuthServiceClient(conn)
 	oauthClient := NewOAuthClient(client, zap.NewNop())
 
-	tokens, sessionID, err := oauthClient.VerifyAuthCode(ctx, "auth_token_123", "123456", 12345)
+	result, err := oauthClient.VerifyAuthCode(ctx, "auth_token_123", "123456", 12345)
 	if err != nil {
 		t.Fatalf("VerifyAuthCode failed: %v", err)
 	}
 
-	if tokens == nil {
+	if result == nil {
+		t.Error("Expected non-nil result")
+	}
+	if result.Tokens == nil {
 		t.Error("Expected non-nil tokens")
 	}
-	if sessionID == "" {
+	if result.SessionID == "" {
 		t.Error("Expected non-empty session ID")
 	}
-	if tokens.AccessToken == "" {
+	if result.Tokens.AccessToken == "" {
 		t.Error("Expected non-empty access token")
 	}
-	if tokens.RefreshToken == "" {
+	if result.Tokens.RefreshToken == "" {
 		t.Error("Expected non-empty refresh token")
 	}
 }
@@ -196,8 +212,8 @@ func TestOAuthClient_GetAuthStatus(t *testing.T) {
 		t.Fatalf("GetAuthStatus failed: %v", err)
 	}
 
-	if status != "pending" {
-		t.Errorf("Expected status 'pending', got '%s'", status)
+	if status != "STATUS_PENDING" {
+		t.Errorf("Expected status 'STATUS_PENDING', got '%s'", status)
 	}
 	if email != "test@example.com" {
 		t.Errorf("Expected email 'test@example.com', got '%s'", email)

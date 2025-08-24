@@ -10,6 +10,7 @@ import (
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
     "google.golang.org/grpc/metadata"
+    "go.uber.org/zap"
 )
 
 type fakeCategoryServer struct{ pb.UnimplementedCategoryServiceServer; sawAuth string }
@@ -43,7 +44,7 @@ func TestGRPCCategoryClient_ListCategories(t *testing.T) {
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
 
-    c := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn))
+    c := NewGRPCCategoryClient(pb.NewCategoryServiceClient(conn), zap.NewNop())
     	got, err := c.ListCategories(context.Background(), "tenant", "tok", domain.TransactionExpense, "ru")
     if err != nil { t.Fatalf("err: %v", err) }
     if len(got) != 2 { t.Fatalf("want 2, got %d", len(got)) }

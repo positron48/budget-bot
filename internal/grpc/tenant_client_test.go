@@ -8,6 +8,7 @@ import (
     pb "budget-bot/internal/pb/budget/v1"
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
+    "go.uber.org/zap"
 )
 
 type fakeTenantServer struct{ pb.UnimplementedTenantServiceServer }
@@ -32,7 +33,7 @@ func TestGRPCTenantClient_ListTenants(t *testing.T) {
     conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
-    c := NewGRPCTenantClient(pb.NewTenantServiceClient(conn))
+    c := NewGRPCTenantClient(pb.NewTenantServiceClient(conn), zap.NewNop())
     list, err := c.ListTenants(context.Background(), "tok")
     if err != nil || len(list) == 0 { t.Fatalf("tenants: %v n=%d", err, len(list)) }
 }

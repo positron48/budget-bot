@@ -4,6 +4,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"math"
 
 	pb "budget-bot/internal/pb/budget/v1"
 	"budget-bot/internal/domain"
@@ -72,7 +73,7 @@ func NewGRPCCategoryClient(c pb.CategoryServiceClient, logger *zap.Logger) *Cate
 func (g *CategoryGRPCClient) ListCategories(ctx context.Context, _ string, accessToken string, transactionType domain.TransactionType, locale ...string) ([]*domain.Category, error) {
     g.logger.Debug("ListCategories request", 
         zap.String("transactionType", string(transactionType)),
-        zap.String("accessToken", accessToken[:10] + "..."),
+        zap.String("accessToken", accessToken[:int(math.Min(float64(len(accessToken)), 10))] + "..."),
         zap.Strings("locale", locale))
     
     if accessToken != "" {
@@ -128,7 +129,7 @@ func (g *CategoryGRPCClient) CreateCategory(ctx context.Context, accessToken str
         zap.String("code", code),
         zap.String("name", name),
         zap.String("locale", locale),
-        zap.String("accessToken", accessToken[:10] + "..."))
+        zap.String("accessToken", accessToken[:int(math.Min(float64(len(accessToken)), 10))] + "..."))
     
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     if locale == "" { locale = "ru" }
@@ -169,7 +170,7 @@ func (g *CategoryGRPCClient) UpdateCategoryName(ctx context.Context, accessToken
         zap.String("id", id),
         zap.String("name", name),
         zap.String("locale", locale),
-        zap.String("accessToken", accessToken[:10] + "..."))
+        zap.String("accessToken", accessToken[:int(math.Min(float64(len(accessToken)), 10))] + "..."))
     
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     if locale == "" { locale = "ru" }
@@ -204,7 +205,7 @@ func (g *CategoryGRPCClient) UpdateCategoryName(ctx context.Context, accessToken
 func (g *CategoryGRPCClient) DeleteCategory(ctx context.Context, accessToken string, id string) error {
     g.logger.Debug("DeleteCategory request", 
         zap.String("id", id),
-        zap.String("accessToken", accessToken[:10] + "..."))
+        zap.String("accessToken", accessToken[:int(math.Min(float64(len(accessToken)), 10))] + "..."))
     
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     

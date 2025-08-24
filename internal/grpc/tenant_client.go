@@ -3,6 +3,7 @@ package grpc
 
 import (
     "context"
+    "math"
 
     pb "budget-bot/internal/pb/budget/v1"
     "google.golang.org/grpc/metadata"
@@ -43,7 +44,7 @@ func NewGRPCTenantClient(c pb.TenantServiceClient, logger *zap.Logger) *TenantGR
 // ListTenants returns a list of tenants for current user.
 func (g *TenantGRPCClient) ListTenants(ctx context.Context, accessToken string) ([]*Tenant, error) {
     g.logger.Debug("ListTenants request", 
-        zap.String("accessToken", accessToken[:10] + "..."))
+        zap.String("accessToken", accessToken[:int(math.Min(float64(len(accessToken)), 10))] + "..."))
     
     if accessToken != "" { ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) }
     

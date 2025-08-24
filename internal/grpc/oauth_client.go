@@ -56,10 +56,25 @@ func (o *OAuthGRPCClient) VerifyAuthCode(ctx context.Context, authToken, verific
 		return nil, err
 	}
 
+	accessTokenLog := ""
+	refreshTokenLog := ""
+	if res.Tokens != nil {
+		if len(res.Tokens.AccessToken) > 10 {
+			accessTokenLog = res.Tokens.AccessToken[:10] + "..."
+		} else {
+			accessTokenLog = res.Tokens.AccessToken
+		}
+		if len(res.Tokens.RefreshToken) > 10 {
+			refreshTokenLog = res.Tokens.RefreshToken[:10] + "..."
+		} else {
+			refreshTokenLog = res.Tokens.RefreshToken
+		}
+	}
+	
 	o.log.Info("gRPC VerifyAuthCode succeeded",
 		zap.String("sessionID", res.SessionId),
-		zap.String("accessToken", res.Tokens.AccessToken[:10]+"..."),
-		zap.String("refreshToken", res.Tokens.RefreshToken[:10]+"..."),
+		zap.String("accessToken", accessTokenLog),
+		zap.String("refreshToken", refreshTokenLog),
 		zap.String("userID", res.User.Id),
 		zap.Int("membershipsCount", len(res.Memberships)))
 

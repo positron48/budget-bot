@@ -10,6 +10,7 @@ import (
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
     "google.golang.org/protobuf/types/known/timestamppb"
+    "go.uber.org/zap"
 )
 
 type fakeTxListServer struct{ pb.UnimplementedTransactionServiceServer }
@@ -42,7 +43,7 @@ func TestGRPCTransactionClient_ListRecent_And_Export(t *testing.T) {
     conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
-    c := NewGRPCTransactionClient(pb.NewTransactionServiceClient(conn))
+    c := NewGRPCTransactionClient(pb.NewTransactionServiceClient(conn), zap.NewNop())
     ctx := context.Background()
 
     // ListRecent with <=0 uses default 10

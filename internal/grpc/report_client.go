@@ -3,6 +3,7 @@ package grpc
 
 import (
     "context"
+    "math"
     "time"
     "sort"
 
@@ -56,7 +57,7 @@ func (g *ReportGRPCClient) GetStats(ctx context.Context, tenantID string, from, 
     g.logger.Debug("GetStats request", 
         zap.String("tenantID", tenantID),
         zap.Time("from", from),
-        zap.String("accessToken", accessToken[:10] + "..."))
+        zap.String("accessToken", accessToken[:int(math.Min(float64(len(accessToken)), 10))] + "..."))
     
     if accessToken != "" { 
         ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) 
@@ -101,7 +102,7 @@ func (g *ReportGRPCClient) TopCategories(ctx context.Context, tenantID string, f
         zap.String("tenantID", tenantID),
         zap.Time("from", from),
         zap.Int("limit", limit),
-        zap.String("accessToken", accessToken[:10] + "..."))
+        zap.String("accessToken", accessToken[:int(math.Min(float64(len(accessToken)), 10))] + "..."))
     
     if accessToken != "" { 
         ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+accessToken) 

@@ -10,6 +10,7 @@ import (
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
     status "google.golang.org/grpc/status"
+    "go.uber.org/zap"
 )
 
 type errTxServer struct{ pb.UnimplementedTransactionServiceServer }
@@ -29,7 +30,7 @@ func TestGRPCTransactionClient_Create_Error(t *testing.T) {
     conn, err := grpc.NewClient(lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
-    c := NewGRPCTransactionClient(pb.NewTransactionServiceClient(conn))
+    c := NewGRPCTransactionClient(pb.NewTransactionServiceClient(conn), zap.NewNop())
     _, e := c.CreateTransaction(context.Background(), &CreateTransactionRequest{Description: "x", AmountMinor: 1, Currency: "RUB", Type: "expense", OccurredAt: time.Now()}, "tok")
     if e == nil { t.Fatalf("expected error") }
 }

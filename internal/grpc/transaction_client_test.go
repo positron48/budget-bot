@@ -11,6 +11,7 @@ import (
     "google.golang.org/grpc/credentials/insecure"
     "google.golang.org/grpc/metadata"
     "google.golang.org/protobuf/types/known/timestamppb"
+    "go.uber.org/zap"
 )
 
 type fakeTxServer struct{ pb.UnimplementedTransactionServiceServer; sawAuth string }
@@ -46,7 +47,7 @@ func TestGRPCTransactionClient_CreateAndList(t *testing.T) {
     conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil { t.Fatal(err) }
     defer func(){ _ = conn.Close() }()
-    c := NewGRPCTransactionClient(pb.NewTransactionServiceClient(conn))
+    c := NewGRPCTransactionClient(pb.NewTransactionServiceClient(conn), zap.NewNop())
     // Create
     _, err = c.CreateTransaction(context.Background(), &CreateTransactionRequest{Description: "такси", AmountMinor: 10000, Currency: "RUB", CategoryID: "cat", Type: "expense", OccurredAt: time.Now()}, "tok")
     if err != nil { t.Fatalf("create: %v", err) }
