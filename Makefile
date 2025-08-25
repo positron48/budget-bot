@@ -44,6 +44,10 @@ coverage:
 	@PKGS=$$(go list ./... | grep -v "/internal/pb/" | grep -v "/cmd/"); \
 	COVERPKG=$$(echo $$PKGS | tr ' ' ','); \
 	go test -coverpkg=$$COVERPKG $$PKGS -coverprofile=coverage.out; \
+	echo "=== Покрытие по файлам ==="; \
+	go tool cover -func=coverage.out | grep -v "total:" | sort -k3 -nr; \
+	echo ""; \
+	echo "=== Общее покрытие ==="; \
 	go tool cover -func=coverage.out | tail -n 1
 
 

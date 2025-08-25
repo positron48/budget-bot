@@ -274,3 +274,52 @@ func TestOAuthManager_GetAuthLogs(t *testing.T) {
 		t.Errorf("Expected action 'generate_link', got '%s'", logs[0].Action)
 	}
 }
+
+func TestOAuthManager_CancelAuth(t *testing.T) {
+	db := setupOAuthSessionDB(t)
+	defer func() { _ = db.Close() }()
+	sessions := repository.NewSQLiteSessionRepository(db)
+	om := NewOAuthManager(&fakeOAuthClient{}, sessions, zap.NewNop(), "http://localhost:3000")
+	ctx := context.Background()
+
+	err := om.CancelAuth(ctx, 12345, "auth_token_123")
+	if err != nil {
+		t.Fatalf("CancelAuth: %v", err)
+	}
+}
+
+func TestOAuthManager_GetAuthStatus(t *testing.T) {
+	db := setupOAuthSessionDB(t)
+	defer func() { _ = db.Close() }()
+	sessions := repository.NewSQLiteSessionRepository(db)
+	om := NewOAuthManager(&fakeOAuthClient{}, sessions, zap.NewNop(), "http://localhost:3000")
+	ctx := context.Background()
+
+	status, email, expiresAt, err := om.GetAuthStatus(ctx, "auth_token_123")
+	if err != nil {
+		t.Fatalf("GetAuthStatus: %v", err)
+	}
+
+	if status != "pending" {
+		t.Errorf("Expected status 'pending', got '%s'", status)
+	}
+	if email != "test@example.com" {
+		t.Errorf("Expected email 'test@example.com', got '%s'", email)
+	}
+	if expiresAt.IsZero() {
+		t.Error("Expected non-zero expiresAt")
+	}
+}
+
+func TestOAuthManager_RevokeSession(t *testing.T) {
+	db := setupOAuthSessionDB(t)
+	defer func() { _ = db.Close() }()
+	sessions := repository.NewSQLiteSessionRepository(db)
+	om := NewOAuthManager(&fakeOAuthClient{}, sessions, zap.NewNop(), "http://localhost:3000")
+	ctx := context.Background()
+
+	err := om.RevokeSession(ctx, 12345, "session_123")
+	if err != nil {
+		t.Fatalf("RevokeSession: %v", err)
+	}
+}
