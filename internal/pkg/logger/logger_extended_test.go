@@ -7,200 +7,103 @@ import (
 	"go.uber.org/zap"
 )
 
-func TestNew_WithDebugLevel(t *testing.T) {
-	// Test New function with debug level
+func TestNew_WithDifferentLevels(t *testing.T) {
+	tests := []struct {
+		name        string
+		level       string
+		expectError bool
+	}{
+		{
+			name:        "debug level",
+			level:       "debug",
+			expectError: false,
+		},
+		{
+			name:        "info level",
+			level:       "info",
+			expectError: false,
+		},
+		{
+			name:        "warn level",
+			level:       "warn",
+			expectError: false,
+		},
+		{
+			name:        "error level",
+			level:       "error",
+			expectError: false,
+		},
+		{
+			name:        "DEBUG uppercase",
+			level:       "DEBUG",
+			expectError: false,
+		},
+		{
+			name:        "INFO uppercase",
+			level:       "INFO",
+			expectError: false,
+		},
+		{
+			name:        "empty level",
+			level:       "",
+			expectError: false,
+		},
+		{
+			name:        "invalid level",
+			level:       "invalid",
+			expectError: false, // Function doesn't return error for invalid levels
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logger, err := New(tt.level)
+			
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, logger)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, logger)
+				
+				// Test that logger is functional
+				logger.Info("test message")
+				logger.Debug("test debug message")
+				logger.Warn("test warning message")
+				logger.Error("test error message")
+			}
+		})
+	}
+}
+
+func TestNew_LoggerFunctionality(t *testing.T) {
 	logger, err := New("debug")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, logger)
+
+	// Test basic logging functionality
+	logger.Info("info message")
+	logger.Debug("debug message")
+	logger.Warn("warning message")
+	logger.Error("error message")
+
+	// Test with fields
+	logger.Info("message with fields", zap.String("key", "value"))
+	logger.Error("error with fields", zap.Int("code", 500))
 }
 
-func TestNew_WithInfoLevel(t *testing.T) {
-	// Test New function with info level
-	logger, err := New("info")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
+func TestNew_DevelopmentVsProduction(t *testing.T) {
+	// Test development config
+	devLogger, err := New("debug")
+	assert.NoError(t, err)
+	assert.NotNil(t, devLogger)
 
-func TestNew_WithWarnLevel(t *testing.T) {
-	// Test New function with warn level
-	logger, err := New("warn")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
+	// Test production config
+	prodLogger, err := New("info")
+	assert.NoError(t, err)
+	assert.NotNil(t, prodLogger)
 
-func TestNew_WithErrorLevel(t *testing.T) {
-	// Test New function with error level
-	logger, err := New("error")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
-
-func TestNew_WithUpperCaseLevel(t *testing.T) {
-	// Test New function with uppercase level
-	logger, err := New("DEBUG")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
-
-func TestNew_WithMixedCaseLevel(t *testing.T) {
-	// Test New function with mixed case level
-	logger, err := New("Info")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
-
-func TestNew_WithEmptyLevel(t *testing.T) {
-	// Test New function with empty level
-	logger, err := New("")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
-
-func TestNew_WithInvalidLevel(t *testing.T) {
-	// Test New function with invalid level
-	logger, err := New("invalid_level")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
-
-func TestNew_WithSpecialCharacters(t *testing.T) {
-	// Test New function with special characters in level
-	logger, err := New("debug_level_with_special_chars_123")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
-
-func TestNew_WithVeryLongLevel(t *testing.T) {
-	// Test New function with very long level
-	longLevel := "very_long_log_level_that_might_be_used_in_some_edge_cases_123456789"
-	logger, err := New(longLevel)
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
-
-func TestNew_WithNumbersInLevel(t *testing.T) {
-	// Test New function with numbers in level
-	logger, err := New("debug123")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
-
-func TestNew_WithUnderscoresInLevel(t *testing.T) {
-	// Test New function with underscores in level
-	logger, err := New("debug_level")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
-
-func TestNew_WithDashesInLevel(t *testing.T) {
-	// Test New function with dashes in level
-	logger, err := New("debug-level")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
-
-func TestNew_WithDotsInLevel(t *testing.T) {
-	// Test New function with dots in level
-	logger, err := New("debug.level")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
-
-func TestNew_WithSpacesInLevel(t *testing.T) {
-	// Test New function with spaces in level
-	logger, err := New("debug level")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
-
-func TestNew_WithUnicodeInLevel(t *testing.T) {
-	// Test New function with unicode in level
-	logger, err := New("debug_уровень")
-	if err == nil {
-		assert.NotNil(t, logger)
-		assert.IsType(t, &zap.Logger{}, logger)
-	}
-}
-
-func TestNew_WithAllLevels(t *testing.T) {
-	// Test New function with all possible levels
-	levels := []string{"debug", "info", "warn", "error", "DEBUG", "INFO", "WARN", "ERROR"}
-	
-	for _, level := range levels {
-		logger, err := New(level)
-		if err == nil {
-			assert.NotNil(t, logger)
-			assert.IsType(t, &zap.Logger{}, logger)
-		}
-	}
-}
-
-func TestNew_WithEdgeCases(t *testing.T) {
-	// Test New function with edge cases
-	edgeCases := []string{
-		"d",           // Single character
-		"de",          // Two characters
-		"deb",         // Three characters
-		"debu",        // Four characters
-		"debug",       // Five characters
-		"debugg",      // Six characters
-		"debuggg",     // Seven characters
-		"debugggg",    // Eight characters
-	}
-	
-	for _, level := range edgeCases {
-		logger, err := New(level)
-		if err == nil {
-			assert.NotNil(t, logger)
-			assert.IsType(t, &zap.Logger{}, logger)
-		}
-	}
-}
-
-func TestNew_WithSpecialLevels(t *testing.T) {
-	// Test New function with special levels
-	specialLevels := []string{
-		"trace",       // Lower than debug
-		"fatal",       // Higher than error
-		"panic",       // Panic level
-		"DPANIC",      // DPanic level
-	}
-	
-	for _, level := range specialLevels {
-		logger, err := New(level)
-		if err == nil {
-			assert.NotNil(t, logger)
-			assert.IsType(t, &zap.Logger{}, logger)
-		}
-	}
+	// Both loggers should be functional
+	devLogger.Info("development logger test")
+	prodLogger.Info("production logger test")
 }
