@@ -11,11 +11,11 @@ import (
 // TestOAuthClient is a fake OAuth client for testing
 type TestOAuthClient struct{}
 
-func (f *TestOAuthClient) GenerateAuthLink(ctx context.Context, email string, telegramUserID int64, userAgent, ipAddress string) (string, string, time.Time, error) {
+func (f *TestOAuthClient) GenerateAuthLink(_ context.Context, _ string, _ int64, _, _ string) (string, string, time.Time, error) {
 	return "https://example.com/auth", "auth_token", time.Now().Add(5*time.Minute), nil
 }
 
-func (f *TestOAuthClient) VerifyAuthCode(ctx context.Context, authToken, verificationCode string, telegramUserID int64) (*grpcclient.VerifyAuthCodeResult, error) {
+func (f *TestOAuthClient) VerifyAuthCode(_ context.Context, _, _ string, _ int64) (*grpcclient.VerifyAuthCodeResult, error) {
 	return &grpcclient.VerifyAuthCodeResult{
 		Tokens: &pb.TokenPair{
 			AccessToken:           "access_token",
@@ -40,15 +40,15 @@ func (f *TestOAuthClient) VerifyAuthCode(ctx context.Context, authToken, verific
 	}, nil
 }
 
-func (f *TestOAuthClient) CancelAuth(ctx context.Context, authToken string, telegramUserID int64) error {
+func (f *TestOAuthClient) CancelAuth(_ context.Context, _ string, _ int64) error {
 	return nil
 }
 
-func (f *TestOAuthClient) GetAuthStatus(ctx context.Context, authToken string) (string, string, time.Time, error) {
+func (f *TestOAuthClient) GetAuthStatus(_ context.Context, _ string) (string, string, time.Time, error) {
 	return "completed", "test@example.com", time.Now().Add(5*time.Minute), nil
 }
 
-func (f *TestOAuthClient) GetTelegramSession(ctx context.Context, sessionID string) (*pb.GetTelegramSessionResponse, error) {
+func (f *TestOAuthClient) GetTelegramSession(_ context.Context, sessionID string) (*pb.GetTelegramSessionResponse, error) {
 	return &pb.GetTelegramSessionResponse{
 		Session: &pb.TelegramSession{
 			SessionId:        sessionID,
@@ -64,14 +64,14 @@ func (f *TestOAuthClient) GetTelegramSession(ctx context.Context, sessionID stri
 	}, nil
 }
 
-func (f *TestOAuthClient) RevokeTelegramSession(ctx context.Context, sessionID string, telegramUserID int64) error {
+func (f *TestOAuthClient) RevokeTelegramSession(_ context.Context, _ string, _ int64) error {
 	return nil
 }
 
-func (f *TestOAuthClient) ListTelegramSessions(ctx context.Context, telegramUserID int64) ([]*pb.TelegramSession, error) {
+func (f *TestOAuthClient) ListTelegramSessions(_ context.Context, _ int64) ([]*pb.TelegramSession, error) {
 	return []*pb.TelegramSession{}, nil
 }
 
-func (f *TestOAuthClient) GetAuthLogs(ctx context.Context, telegramUserID int64, limit, offset int32) ([]*pb.AuthLogEntry, int32, error) {
+func (f *TestOAuthClient) GetAuthLogs(_ context.Context, _ int64, _, _ int32) ([]*pb.AuthLogEntry, int32, error) {
 	return []*pb.AuthLogEntry{}, 0, nil
 }

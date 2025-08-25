@@ -12,7 +12,7 @@ import (
 // MockFXClient is a simple mock for testing
 type MockFXClient struct{}
 
-func (m *MockFXClient) GetRate(ctx context.Context, fromCurrency, toCurrency string, date time.Time, accessToken string) (float64, error) {
+func (m *MockFXClient) GetRate(_ context.Context, fromCurrency, toCurrency string, _ time.Time, _ string) (float64, error) {
 	// Simple mock implementation
 	if fromCurrency == "USD" && toCurrency == "RUB" {
 		return 75.5, nil

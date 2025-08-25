@@ -17,11 +17,11 @@ import (
 
 type fakeOAuthClient struct{}
 
-func (f *fakeOAuthClient) GenerateAuthLink(ctx context.Context, email string, telegramUserID int64, userAgent, ipAddress string) (string, string, time.Time, error) {
+func (f *fakeOAuthClient) GenerateAuthLink(_ context.Context, _ string, _ int64, _, _ string) (string, string, time.Time, error) {
 	return "https://example.com/auth?token=test", "auth_token_123", time.Now().Add(5*time.Minute), nil
 }
 
-func (f *fakeOAuthClient) VerifyAuthCode(ctx context.Context, authToken, verificationCode string, telegramUserID int64) (*grpcclient.VerifyAuthCodeResult, error) {
+func (f *fakeOAuthClient) VerifyAuthCode(_ context.Context, _, _ string, _ int64) (*grpcclient.VerifyAuthCodeResult, error) {
 	return &grpcclient.VerifyAuthCodeResult{
 		Tokens: &pb.TokenPair{
 			AccessToken:           "access_token_123",
@@ -46,15 +46,15 @@ func (f *fakeOAuthClient) VerifyAuthCode(ctx context.Context, authToken, verific
 	}, nil
 }
 
-func (f *fakeOAuthClient) CancelAuth(ctx context.Context, authToken string, telegramUserID int64) error {
+func (f *fakeOAuthClient) CancelAuth(_ context.Context, _ string, _ int64) error {
 	return nil
 }
 
-func (f *fakeOAuthClient) GetAuthStatus(ctx context.Context, authToken string) (string, string, time.Time, error) {
+func (f *fakeOAuthClient) GetAuthStatus(_ context.Context, _ string) (string, string, time.Time, error) {
 	return "pending", "test@example.com", time.Now().Add(5*time.Minute), nil
 }
 
-func (f *fakeOAuthClient) GetTelegramSession(ctx context.Context, sessionID string) (*pb.GetTelegramSessionResponse, error) {
+func (f *fakeOAuthClient) GetTelegramSession(_ context.Context, sessionID string) (*pb.GetTelegramSessionResponse, error) {
 	return &pb.GetTelegramSessionResponse{
 		Session: &pb.TelegramSession{
 			SessionId:        sessionID,
@@ -70,11 +70,11 @@ func (f *fakeOAuthClient) GetTelegramSession(ctx context.Context, sessionID stri
 	}, nil
 }
 
-func (f *fakeOAuthClient) RevokeTelegramSession(ctx context.Context, sessionID string, telegramUserID int64) error {
+func (f *fakeOAuthClient) RevokeTelegramSession(_ context.Context, _ string, _ int64) error {
 	return nil
 }
 
-func (f *fakeOAuthClient) ListTelegramSessions(ctx context.Context, telegramUserID int64) ([]*pb.TelegramSession, error) {
+func (f *fakeOAuthClient) ListTelegramSessions(_ context.Context, telegramUserID int64) ([]*pb.TelegramSession, error) {
 	return []*pb.TelegramSession{
 		{
 			SessionId:        "session_1",
@@ -88,7 +88,7 @@ func (f *fakeOAuthClient) ListTelegramSessions(ctx context.Context, telegramUser
 	}, nil
 }
 
-func (f *fakeOAuthClient) GetAuthLogs(ctx context.Context, telegramUserID int64, limit, offset int32) ([]*pb.AuthLogEntry, int32, error) {
+func (f *fakeOAuthClient) GetAuthLogs(_ context.Context, telegramUserID int64, _, _ int32) ([]*pb.AuthLogEntry, int32, error) {
 	return []*pb.AuthLogEntry{
 		{
 			Id:             "log_1",
@@ -200,6 +200,7 @@ func TestOAuthManager_GetSession(t *testing.T) {
 
 	if session == nil {
 		t.Error("Expected non-nil session")
+		return
 	}
 	if session.AccessToken != "access_token_123" {
 		t.Errorf("Expected access token 'access_token_123', got '%s'", session.AccessToken)

@@ -635,7 +635,7 @@ func (h *Handler) getSessionWithErrorHandling(ctx context.Context, chatID int64,
 }
 
 // Registration is not supported in OAuth flow - users should register through the web interface
-func (h *Handler) startRegister(ctx context.Context, update tgbotapi.Update) {
+func (h *Handler) startRegister(_ context.Context, update tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Регистрация через бота не поддерживается. Пожалуйста, зарегистрируйтесь через веб-интерфейс.")
 	_, _ = h.bot.Send(msg)
 }
@@ -1135,7 +1135,7 @@ func (h *Handler) handleHelp(ctx context.Context, update tgbotapi.Update) {
 	}
 }
 
-func (h *Handler) showMainHelp(ctx context.Context, update tgbotapi.Update) {
+func (h *Handler) showMainHelp(_ context.Context, update tgbotapi.Update) {
 	text := "🤖 *Справка по командам бота*\n\n" +
 		"Выберите раздел для получения подробной информации:\n\n" +
 		"🔐 *Аутентификация* - `/help auth`\n" +
@@ -1162,7 +1162,7 @@ func (h *Handler) showMainHelp(ctx context.Context, update tgbotapi.Update) {
 	_, _ = h.bot.Send(msg)
 }
 
-func (h *Handler) showAuthHelp(ctx context.Context, update tgbotapi.Update) {
+func (h *Handler) showAuthHelp(_ context.Context, update tgbotapi.Update) {
 	text := `🔐 *Аутентификация и профиль*
 
 /start - Начало работы
@@ -1195,7 +1195,7 @@ func (h *Handler) showAuthHelp(ctx context.Context, update tgbotapi.Update) {
 	_, _ = h.bot.Send(msg)
 }
 
-func (h *Handler) showTransactionsHelp(ctx context.Context, update tgbotapi.Update) {
+func (h *Handler) showTransactionsHelp(_ context.Context, update tgbotapi.Update) {
 	text := `💰 *Добавление транзакций*
 
 Бот автоматически распознает сообщения в формате транзакций.
@@ -1231,7 +1231,7 @@ func (h *Handler) showTransactionsHelp(ctx context.Context, update tgbotapi.Upda
 	_, _ = h.bot.Send(msg)
 }
 
-func (h *Handler) showCategoriesHelp(ctx context.Context, update tgbotapi.Update) {
+func (h *Handler) showCategoriesHelp(_ context.Context, update tgbotapi.Update) {
 	text := "🏷️ *Управление категориями*\n\n" +
 		"/categories - Список категорий\n" +
 		"Показывает доступные категории для выбора\n\n" +
@@ -1260,7 +1260,7 @@ func (h *Handler) showCategoriesHelp(ctx context.Context, update tgbotapi.Update
 	_, _ = h.bot.Send(msg)
 }
 
-func (h *Handler) showStatsHelp(ctx context.Context, update tgbotapi.Update) {
+func (h *Handler) showStatsHelp(_ context.Context, update tgbotapi.Update) {
 	text := "📊 *Статистика и отчеты*\n\n" +
 		"`/stats [период]` - Общая статистика\n" +
 		"Показывает доходы и расходы за период\n\n" +
@@ -1293,7 +1293,7 @@ func (h *Handler) showStatsHelp(ctx context.Context, update tgbotapi.Update) {
 	_, _ = h.bot.Send(msg)
 }
 
-func (h *Handler) showSettingsHelp(ctx context.Context, update tgbotapi.Update) {
+func (h *Handler) showSettingsHelp(_ context.Context, update tgbotapi.Update) {
 	text := `⚙️ *Настройки*
 
 /language - Выбор языка
@@ -1331,7 +1331,7 @@ func (h *Handler) showSettingsHelp(ctx context.Context, update tgbotapi.Update) 
 	_, _ = h.bot.Send(msg)
 }
 
-func (h *Handler) showAdminHelp(ctx context.Context, update tgbotapi.Update) {
+func (h *Handler) showAdminHelp(_ context.Context, update tgbotapi.Update) {
 	text := "👨‍💼 *Административные команды*\n\n" +
 		"*Доступно только в сборке withgrpc*\n\n" +
 		"`/create_category code название` - Создать категорию\n" +

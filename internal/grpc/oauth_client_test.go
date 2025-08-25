@@ -8,6 +8,7 @@ import (
 
 	pb "budget-bot/internal/pb/budget/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"go.uber.org/zap"
@@ -32,7 +33,7 @@ type mockOAuthServer struct {
 	pb.UnimplementedOAuthServiceServer
 }
 
-func (m *mockOAuthServer) GenerateAuthLink(ctx context.Context, req *pb.GenerateAuthLinkRequest) (*pb.GenerateAuthLinkResponse, error) {
+func (m *mockOAuthServer) GenerateAuthLink(_ context.Context, req *pb.GenerateAuthLinkRequest) (*pb.GenerateAuthLinkResponse, error) {
 	return &pb.GenerateAuthLinkResponse{
 		AuthUrl:   "https://example.com/auth?token=" + req.Email,
 		AuthToken: "auth_token_123",
@@ -40,7 +41,7 @@ func (m *mockOAuthServer) GenerateAuthLink(ctx context.Context, req *pb.Generate
 	}, nil
 }
 
-func (m *mockOAuthServer) VerifyAuthCode(ctx context.Context, req *pb.VerifyAuthCodeRequest) (*pb.VerifyAuthCodeResponse, error) {
+func (m *mockOAuthServer) VerifyAuthCode(_ context.Context, _ *pb.VerifyAuthCodeRequest) (*pb.VerifyAuthCodeResponse, error) {
 	return &pb.VerifyAuthCodeResponse{
 		Tokens: &pb.TokenPair{
 			AccessToken:           "access_token_123",
@@ -66,11 +67,11 @@ func (m *mockOAuthServer) VerifyAuthCode(ctx context.Context, req *pb.VerifyAuth
 	}, nil
 }
 
-func (m *mockOAuthServer) CancelAuth(ctx context.Context, req *pb.CancelAuthRequest) (*pb.CancelAuthResponse, error) {
+func (m *mockOAuthServer) CancelAuth(_ context.Context, _ *pb.CancelAuthRequest) (*pb.CancelAuthResponse, error) {
 	return &pb.CancelAuthResponse{}, nil
 }
 
-func (m *mockOAuthServer) GetAuthStatus(ctx context.Context, req *pb.GetAuthStatusRequest) (*pb.GetAuthStatusResponse, error) {
+func (m *mockOAuthServer) GetAuthStatus(_ context.Context, _ *pb.GetAuthStatusRequest) (*pb.GetAuthStatusResponse, error) {
 	return &pb.GetAuthStatusResponse{
 		Status:    pb.GetAuthStatusResponse_STATUS_PENDING,
 		Email:     "test@example.com",
@@ -78,7 +79,7 @@ func (m *mockOAuthServer) GetAuthStatus(ctx context.Context, req *pb.GetAuthStat
 	}, nil
 }
 
-func (m *mockOAuthServer) GetTelegramSession(ctx context.Context, req *pb.GetTelegramSessionRequest) (*pb.GetTelegramSessionResponse, error) {
+func (m *mockOAuthServer) GetTelegramSession(_ context.Context, req *pb.GetTelegramSessionRequest) (*pb.GetTelegramSessionResponse, error) {
 	return &pb.GetTelegramSessionResponse{
 		Session: &pb.TelegramSession{
 			SessionId:        req.SessionId,
@@ -94,11 +95,11 @@ func (m *mockOAuthServer) GetTelegramSession(ctx context.Context, req *pb.GetTel
 	}, nil
 }
 
-func (m *mockOAuthServer) RevokeTelegramSession(ctx context.Context, req *pb.RevokeTelegramSessionRequest) (*pb.RevokeTelegramSessionResponse, error) {
+func (m *mockOAuthServer) RevokeTelegramSession(_ context.Context, _ *pb.RevokeTelegramSessionRequest) (*pb.RevokeTelegramSessionResponse, error) {
 	return &pb.RevokeTelegramSessionResponse{}, nil
 }
 
-func (m *mockOAuthServer) ListTelegramSessions(ctx context.Context, req *pb.ListTelegramSessionsRequest) (*pb.ListTelegramSessionsResponse, error) {
+func (m *mockOAuthServer) ListTelegramSessions(_ context.Context, req *pb.ListTelegramSessionsRequest) (*pb.ListTelegramSessionsResponse, error) {
 	return &pb.ListTelegramSessionsResponse{
 		Sessions: []*pb.TelegramSession{
 			{
@@ -114,7 +115,7 @@ func (m *mockOAuthServer) ListTelegramSessions(ctx context.Context, req *pb.List
 	}, nil
 }
 
-func (m *mockOAuthServer) GetAuthLogs(ctx context.Context, req *pb.GetAuthLogsRequest) (*pb.GetAuthLogsResponse, error) {
+func (m *mockOAuthServer) GetAuthLogs(_ context.Context, req *pb.GetAuthLogsRequest) (*pb.GetAuthLogsResponse, error) {
 	return &pb.GetAuthLogsResponse{
 		Logs: []*pb.AuthLogEntry{
 			{
@@ -138,7 +139,7 @@ func bufDialer(context.Context, string) (net.Conn, error) {
 
 func TestOAuthClient_GenerateAuthLink(t *testing.T) {
 	ctx := context.Background()
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+	conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
@@ -165,7 +166,7 @@ func TestOAuthClient_GenerateAuthLink(t *testing.T) {
 
 func TestOAuthClient_VerifyAuthCode(t *testing.T) {
 	ctx := context.Background()
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+	conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
@@ -181,9 +182,11 @@ func TestOAuthClient_VerifyAuthCode(t *testing.T) {
 
 	if result == nil {
 		t.Error("Expected non-nil result")
+		return
 	}
 	if result.Tokens == nil {
 		t.Error("Expected non-nil tokens")
+		return
 	}
 	if result.SessionID == "" {
 		t.Error("Expected non-empty session ID")
@@ -198,7 +201,7 @@ func TestOAuthClient_VerifyAuthCode(t *testing.T) {
 
 func TestOAuthClient_GetAuthStatus(t *testing.T) {
 	ctx := context.Background()
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+	conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
@@ -225,7 +228,7 @@ func TestOAuthClient_GetAuthStatus(t *testing.T) {
 
 func TestOAuthClient_GetTelegramSession(t *testing.T) {
 	ctx := context.Background()
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+	conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
@@ -241,6 +244,7 @@ func TestOAuthClient_GetTelegramSession(t *testing.T) {
 
 	if session == nil {
 		t.Error("Expected non-nil session")
+		return
 	}
 	if session.Session.SessionId != "session_123" {
 		t.Errorf("Expected session ID 'session_123', got '%s'", session.Session.SessionId)
@@ -252,7 +256,7 @@ func TestOAuthClient_GetTelegramSession(t *testing.T) {
 
 func TestOAuthClient_ListTelegramSessions(t *testing.T) {
 	ctx := context.Background()
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+	conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
@@ -276,7 +280,7 @@ func TestOAuthClient_ListTelegramSessions(t *testing.T) {
 
 func TestOAuthClient_GetAuthLogs(t *testing.T) {
 	ctx := context.Background()
-	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+	conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}

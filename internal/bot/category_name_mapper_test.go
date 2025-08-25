@@ -12,19 +12,19 @@ type MockCategoryClient struct {
 	categories []*domain.Category
 }
 
-func (m *MockCategoryClient) ListCategories(ctx context.Context, tenantID string, accessToken string, transactionType domain.TransactionType, locale ...string) ([]*domain.Category, error) {
+func (m *MockCategoryClient) ListCategories(_ context.Context, _ string, _ string, _ domain.TransactionType, _ ...string) ([]*domain.Category, error) {
 	return m.categories, nil
 }
 
-func (m *MockCategoryClient) CreateCategory(ctx context.Context, accessToken string, code string, name string, locale string) (*domain.Category, error) {
+func (m *MockCategoryClient) CreateCategory(_ context.Context, _ string, _ string, _ string, _ string) (*domain.Category, error) {
 	return nil, nil
 }
 
-func (m *MockCategoryClient) UpdateCategoryName(ctx context.Context, accessToken string, id string, name string, locale string) (*domain.Category, error) {
+func (m *MockCategoryClient) UpdateCategoryName(_ context.Context, _ string, _ string, _ string, _ string) (*domain.Category, error) {
 	return nil, nil
 }
 
-func (m *MockCategoryClient) DeleteCategory(ctx context.Context, accessToken string, id string) error {
+func (m *MockCategoryClient) DeleteCategory(_ context.Context, _ string, _ string) error {
 	return nil
 }
 

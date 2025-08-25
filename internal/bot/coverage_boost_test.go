@@ -132,7 +132,7 @@ func TestHandlerDetailedCoverage(t *testing.T) {
 	h.fmt = ui.NewMessageFormatter()
 
 	// Test various callback scenarios
-	t.Run("handleCallback", func(t *testing.T) {
+	t.Run("handleCallback", func(_ *testing.T) {
 		callbacks := []string{
 			"cancel", "start", "login", "register", "logout",
 			"categories", "create_category", "rename_category", "delete_category",
@@ -155,7 +155,7 @@ func TestHandlerDetailedCoverage(t *testing.T) {
 	})
 
 	// Test various command scenarios
-	t.Run("handleCommand", func(t *testing.T) {
+	t.Run("handleCommand", func(_ *testing.T) {
 		commands := []string{
 			"/start", "/help", "/cancel", "/login", "/logout", "/register",
 			"/categories", "/stats", "/map", "/unmap", "/top", "/recent", "/export",
@@ -175,7 +175,7 @@ func TestHandlerDetailedCoverage(t *testing.T) {
 	})
 
 	// Test handleMap with different scenarios
-	t.Run("handleMapDetailed", func(t *testing.T) {
+	t.Run("handleMapDetailed", func(_ *testing.T) {
 		// Test with command
 		update := tgbotapi.Update{
 			Message: &tgbotapi.Message{
@@ -200,7 +200,7 @@ func TestHandlerDetailedCoverage(t *testing.T) {
 	})
 
 	// Test handleStats with different scenarios
-	t.Run("handleStatsDetailed", func(t *testing.T) {
+	t.Run("handleStatsDetailed", func(_ *testing.T) {
 		// Test with command
 		update := tgbotapi.Update{
 			Message: &tgbotapi.Message{
@@ -225,7 +225,7 @@ func TestHandlerDetailedCoverage(t *testing.T) {
 	})
 
 	// Test handleTopCategories with different scenarios
-	t.Run("handleTopCategoriesDetailed", func(t *testing.T) {
+	t.Run("handleTopCategoriesDetailed", func(_ *testing.T) {
 		// Test with command
 		update := tgbotapi.Update{
 			Message: &tgbotapi.Message{
@@ -250,7 +250,7 @@ func TestHandlerDetailedCoverage(t *testing.T) {
 	})
 
 	// Test handleRecent with different scenarios
-	t.Run("handleRecentDetailed", func(t *testing.T) {
+	t.Run("handleRecentDetailed", func(_ *testing.T) {
 		// Test with command
 		update := tgbotapi.Update{
 			Message: &tgbotapi.Message{
@@ -275,7 +275,7 @@ func TestHandlerDetailedCoverage(t *testing.T) {
 	})
 
 	// Test handleExport with different scenarios
-	t.Run("handleExportDetailed", func(t *testing.T) {
+	t.Run("handleExportDetailed", func(_ *testing.T) {
 		// Test with command
 		update := tgbotapi.Update{
 			Message: &tgbotapi.Message{
@@ -328,7 +328,7 @@ func TestHandlerDetailedCoverage(t *testing.T) {
 		}
 
 		// Test more scenarios for low coverage functions
-		t.Run("moreHandlerScenarios", func(t *testing.T) {
+						t.Run("moreHandlerScenarios", func(_ *testing.T) {
 			// Test handleMap with more scenarios
 			mapUpdates := []tgbotapi.Update{
 				{
@@ -435,7 +435,7 @@ func TestHandlerDetailedCoverage(t *testing.T) {
 		})
 
 		// Test OAuthManager functions with low coverage
-		t.Run("oauthManagerLowCoverage", func(t *testing.T) {
+		t.Run("oauthManagerLowCoverage", func(_ *testing.T) {
 			// Test GetAuthLogs (60% coverage)
 			_, _, _ = auth.GetAuthLogs(context.Background(), 123, 10, 0)
 			
@@ -510,7 +510,7 @@ func TestGRPCClientsCoverage(t *testing.T) {
 
 
 		// Test ReportGRPCClient Recent (line 154)
-		t.Run("ReportGRPCClient_Recent", func(t *testing.T) {
+		t.Run("ReportGRPCClient_Recent", func(_ *testing.T) {
 			// Create a logger for the client
 			logger, _ := zap.NewDevelopment()
 			// We can't create ReportGRPCClient directly due to unexported fields
@@ -520,7 +520,7 @@ func TestGRPCClientsCoverage(t *testing.T) {
 		})
 
 		// Test OAuthGRPCClient CancelAuth (line 92)
-		t.Run("OAuthGRPCClient_CancelAuth", func(t *testing.T) {
+		t.Run("OAuthGRPCClient_CancelAuth", func(_ *testing.T) {
 			// Create a logger for the client
 			logger, _ := zap.NewDevelopment()
 			// We can't create OAuthGRPCClient directly due to unexported fields
@@ -530,7 +530,7 @@ func TestGRPCClientsCoverage(t *testing.T) {
 		})
 
 		// Test OAuthGRPCClient RevokeTelegramSession (line 119)
-		t.Run("OAuthGRPCClient_RevokeTelegramSession", func(t *testing.T) {
+		t.Run("OAuthGRPCClient_RevokeTelegramSession", func(_ *testing.T) {
 			// Create a logger for the client
 			logger, _ := zap.NewDevelopment()
 			// We can't create OAuthGRPCClient directly due to unexported fields

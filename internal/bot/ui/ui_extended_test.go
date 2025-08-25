@@ -307,7 +307,7 @@ func TestCreateTenantKeyboard_WithEmptyNames(t *testing.T) {
 
 func TestCreateCategoryKeyboard_WithNilCategories(t *testing.T) {
 	// Test CreateCategoryKeyboard with nil categories
-	var categories []*domain.Category = nil
+	var categories []*domain.Category
 	
 	keyboard := CreateCategoryKeyboard(categories)
 	assert.NotNil(t, keyboard)
@@ -317,7 +317,7 @@ func TestCreateCategoryKeyboard_WithNilCategories(t *testing.T) {
 
 func TestCreateTenantKeyboard_WithNilTenants(t *testing.T) {
 	// Test CreateTenantKeyboard with nil tenants
-	var tenants []*grpcclient.Tenant = nil
+	var tenants []*grpcclient.Tenant
 	
 	keyboard := CreateTenantKeyboard(tenants)
 	assert.NotNil(t, keyboard)

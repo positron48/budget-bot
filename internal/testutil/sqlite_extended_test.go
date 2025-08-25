@@ -62,7 +62,11 @@ func TestFindRepoRoot(t *testing.T) {
 	
 	err = os.Chdir(subDir)
 	require.NoError(t, err)
-	defer os.Chdir(originalWd)
+	defer func() {
+		if err := os.Chdir(originalWd); err != nil {
+			t.Logf("Failed to change back to original directory: %v", err)
+		}
+	}()
 	
 	// Test that findRepoRoot can find the migrations directory
 	// This is tested indirectly through OpenMigratedSQLite
@@ -87,7 +91,11 @@ func TestOpenMigratedSQLite_WithInvalidMigrations(t *testing.T) {
 	
 	err = os.Chdir(tempDir)
 	require.NoError(t, err)
-	defer os.Chdir(originalWd)
+	defer func() {
+		if err := os.Chdir(originalWd); err != nil {
+			t.Logf("Failed to change back to original directory: %v", err)
+		}
+	}()
 	
 	// This should fail gracefully when migrations are not found
 	// The function should handle the error appropriately

@@ -35,7 +35,7 @@ func TestHandler_handleMap(t *testing.T) {
 	chatID := int64(1000)
 	userID := int64(42)
 
-	t.Run("no session", func(t *testing.T) {
+	t.Run("no session", func(_ *testing.T) {
 		upd := tgbotapi.Update{
 			UpdateID: 1,
 			Message: &tgbotapi.Message{
