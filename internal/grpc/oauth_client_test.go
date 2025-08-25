@@ -139,7 +139,7 @@ func bufDialer(context.Context, string) (net.Conn, error) {
 
 func TestOAuthClient_GenerateAuthLink(t *testing.T) {
 	ctx := context.Background()
-	conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("passthrough:///bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
@@ -166,7 +166,7 @@ func TestOAuthClient_GenerateAuthLink(t *testing.T) {
 
 func TestOAuthClient_VerifyAuthCode(t *testing.T) {
 	ctx := context.Background()
-	conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("passthrough:///bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestOAuthClient_VerifyAuthCode(t *testing.T) {
 
 func TestOAuthClient_GetAuthStatus(t *testing.T) {
 	ctx := context.Background()
-	conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("passthrough:///bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
@@ -228,7 +228,7 @@ func TestOAuthClient_GetAuthStatus(t *testing.T) {
 
 func TestOAuthClient_GetTelegramSession(t *testing.T) {
 	ctx := context.Background()
-	conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("passthrough:///bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
@@ -256,7 +256,7 @@ func TestOAuthClient_GetTelegramSession(t *testing.T) {
 
 func TestOAuthClient_ListTelegramSessions(t *testing.T) {
 	ctx := context.Background()
-	conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("passthrough:///bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
@@ -280,7 +280,7 @@ func TestOAuthClient_ListTelegramSessions(t *testing.T) {
 
 func TestOAuthClient_GetAuthLogs(t *testing.T) {
 	ctx := context.Background()
-	conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("passthrough:///bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
