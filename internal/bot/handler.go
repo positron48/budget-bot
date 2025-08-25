@@ -1176,6 +1176,10 @@ func (h *Handler) showMainHelp(_ context.Context, update tgbotapi.Update) {
 }
 
 func (h *Handler) showAuthHelp(_ context.Context, update tgbotapi.Update) {
+	h.logger.Debug("showAuthHelp called", 
+		zap.Int64("chatID", update.Message.Chat.ID),
+		zap.Int64("userID", update.Message.From.ID))
+	
 	text := `🔐 *Аутентификация и профиль*
 
 /start - Начало работы
@@ -1205,7 +1209,16 @@ func (h *Handler) showAuthHelp(_ context.Context, update tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
 	msg.ParseMode = "Markdown"
 	msg.ReplyMarkup = kb
-	_, _ = h.bot.Send(msg)
+	
+	_, err := h.bot.Send(msg)
+	if err != nil {
+		h.logger.Error("failed to send auth help message", 
+			zap.Int64("chatID", update.Message.Chat.ID),
+			zap.Error(err))
+	} else {
+		h.logger.Debug("auth help message sent successfully", 
+			zap.Int64("chatID", update.Message.Chat.ID))
+	}
 }
 
 func (h *Handler) showTransactionsHelp(_ context.Context, update tgbotapi.Update) {
@@ -1274,6 +1287,10 @@ func (h *Handler) showCategoriesHelp(_ context.Context, update tgbotapi.Update) 
 }
 
 func (h *Handler) showStatsHelp(_ context.Context, update tgbotapi.Update) {
+	h.logger.Debug("showStatsHelp called", 
+		zap.Int64("chatID", update.Message.Chat.ID),
+		zap.Int64("userID", update.Message.From.ID))
+	
 	text := "📊 *Статистика и отчеты*\n\n" +
 		"`/stats [период]` - Общая статистика\n" +
 		"Показывает доходы и расходы за период\n\n" +
@@ -1303,7 +1320,16 @@ func (h *Handler) showStatsHelp(_ context.Context, update tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
 	msg.ParseMode = "Markdown"
 	msg.ReplyMarkup = kb
-	_, _ = h.bot.Send(msg)
+	
+	_, err := h.bot.Send(msg)
+	if err != nil {
+		h.logger.Error("failed to send stats help message", 
+			zap.Int64("chatID", update.Message.Chat.ID),
+			zap.Error(err))
+	} else {
+		h.logger.Debug("stats help message sent successfully", 
+			zap.Int64("chatID", update.Message.Chat.ID))
+	}
 }
 
 func (h *Handler) showSettingsHelp(_ context.Context, update tgbotapi.Update) {
