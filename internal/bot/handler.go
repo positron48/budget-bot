@@ -118,8 +118,21 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 	if strings.HasPrefix(update.Message.Text, "/") {
 		h.logger.Warn("command not recognized by IsCommand()", 
 			zap.String("text", update.Message.Text))
-		// Try to handle as command anyway
-		h.handleCommand(ctx, update)
+		// Try to handle as command anyway - create a modified update with proper entities
+		modifiedUpdate := update
+		parts := strings.Fields(update.Message.Text)
+		if len(parts) > 0 {
+			// Create proper entities for the command
+			commandLength := len(parts[0])
+			modifiedUpdate.Message.Entities = []tgbotapi.MessageEntity{
+				{
+					Type:   "bot_command",
+					Offset: 0,
+					Length: commandLength,
+				},
+			}
+		}
+		h.handleCommand(ctx, modifiedUpdate)
 		return
 	}
 

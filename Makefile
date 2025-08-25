@@ -174,4 +174,11 @@ docker-deps:
 docker-clean-deps:
 	rm -rf vendor/
 
+# Деплой на продакшен с обновлением vendor
+deploy:
+	docker-compose down
+	docker run --rm -v $(PWD):/app -w /app golang:1.23.1-alpine sh -c "go mod tidy && go mod vendor"
+	docker-compose build --no-cache
+	docker-compose up -d
+
 
