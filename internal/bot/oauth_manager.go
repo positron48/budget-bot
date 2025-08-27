@@ -158,7 +158,15 @@ func (om *OAuthManager) GetSession(ctx context.Context, telegramID int64) (*repo
 		return nil, err
 	}
 	
-
+	// Логируем время токенов из базы данных
+	now := time.Now()
+	om.logger.Debug("OAuthManager.GetSession: tokens from database", 
+		zap.Int64("telegramID", telegramID),
+		zap.Time("accessTokenExpiresAt", session.AccessTokenExpiresAt),
+		zap.Time("refreshTokenExpiresAt", session.RefreshTokenExpiresAt),
+		zap.Time("now", now),
+		zap.Duration("accessTokenTTL", session.AccessTokenExpiresAt.Sub(now)),
+		zap.Duration("refreshTokenTTL", session.RefreshTokenExpiresAt.Sub(now)))
 	
 	return session, nil
 }
