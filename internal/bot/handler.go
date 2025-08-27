@@ -168,7 +168,12 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 			h.logger.Debug("Got valid session for user", 
 				zap.Int64("telegramID", update.Message.From.ID),
 				zap.String("accessToken", sess.AccessToken[:int(math.Min(float64(len(sess.AccessToken)), 10))] + "..."),
-				zap.Time("accessTokenExpiresAt", sess.AccessTokenExpiresAt))
+				zap.String("refreshToken", sess.RefreshToken[:int(math.Min(float64(len(sess.RefreshToken)), 10))] + "..."),
+				zap.Time("accessTokenExpiresAt", sess.AccessTokenExpiresAt),
+				zap.Time("refreshTokenExpiresAt", sess.RefreshTokenExpiresAt),
+				zap.Time("now", time.Now()),
+				zap.Bool("accessTokenExpired", time.Now().After(sess.AccessTokenExpiresAt)),
+				zap.Bool("refreshTokenExpired", time.Now().After(sess.RefreshTokenExpiresAt)))
 			var catID string
 			if h.matcher != nil {
 				if m, err := h.matcher.FindCategory(ctx, sess.TenantID, parsed.Description); err == nil && m != nil {

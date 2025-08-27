@@ -86,18 +86,35 @@ func (am *AuthManager) GetSession(ctx context.Context, telegramID int64) (*repos
 		zap.Time("now", time.Now()))
 	
 	// Проверяем, не истек ли access token
-	if time.Now().After(session.AccessTokenExpiresAt) {
+	now := time.Now()
+	am.logger.Debug("Checking token expiration", 
+		zap.Int64("telegramID", telegramID),
+		zap.Time("now", now),
+		zap.Time("accessTokenExpiresAt", session.AccessTokenExpiresAt),
+		zap.Time("refreshTokenExpiresAt", session.RefreshTokenExpiresAt),
+		zap.Bool("accessTokenExpired", now.After(session.AccessTokenExpiresAt)),
+		zap.Bool("refreshTokenExpired", now.After(session.RefreshTokenExpiresAt)),
+		zap.Duration("accessTokenTimeUntilExpiry", session.AccessTokenExpiresAt.Sub(now)),
+		zap.Duration("refreshTokenTimeUntilExpiry", session.RefreshTokenExpiresAt.Sub(now)))
+	
+	if now.After(session.AccessTokenExpiresAt) {
 		am.logger.Info("Access token expired, attempting refresh", 
 			zap.Int64("telegramID", telegramID),
 			zap.Time("expiresAt", session.AccessTokenExpiresAt))
 		
 		// Проверяем, не истек ли refresh token
-		if time.Now().After(session.RefreshTokenExpiresAt) {
+		if now.After(session.RefreshTokenExpiresAt) {
 			am.logger.Error("Refresh token also expired, cannot refresh access token", 
 				zap.Int64("telegramID", telegramID),
-				zap.Time("refreshExpiresAt", session.RefreshTokenExpiresAt))
+				zap.Time("refreshExpiresAt", session.RefreshTokenExpiresAt),
+				zap.Duration("refreshTokenTimeUntilExpiry", session.RefreshTokenExpiresAt.Sub(now)))
 			return nil, fmt.Errorf("refresh token expired")
 		}
+		
+		am.logger.Info("Refresh token is still valid, proceeding with token refresh", 
+			zap.Int64("telegramID", telegramID),
+			zap.Time("refreshExpiresAt", session.RefreshTokenExpiresAt),
+			zap.Duration("refreshTokenTimeUntilExpiry", session.RefreshTokenExpiresAt.Sub(now)))
 		
 		// Пытаемся обновить токены, передавая текущую сессию
 		err := am.RefreshTokensWithSession(ctx, session)
@@ -123,7 +140,8 @@ func (am *AuthManager) GetSession(ctx context.Context, telegramID int64) (*repos
 	} else {
 		am.logger.Debug("Access token is still valid", 
 			zap.Int64("telegramID", telegramID),
-			zap.Time("expiresAt", session.AccessTokenExpiresAt))
+			zap.Time("expiresAt", session.AccessTokenExpiresAt),
+			zap.Duration("timeUntilExpiry", session.AccessTokenExpiresAt.Sub(now)))
 	}
 	
 	return session, nil

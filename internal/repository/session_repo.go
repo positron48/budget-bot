@@ -75,6 +75,11 @@ func (r *SQLiteSessionRepository) GetSession(ctx context.Context, telegramID int
 	if err := row.Scan(&s.TelegramID, &s.UserID, &s.TenantID, &s.AccessToken, &s.RefreshToken, &s.AccessTokenExpiresAt, &s.RefreshTokenExpiresAt, &s.CreatedAt, &s.UpdatedAt); err != nil {
 		return nil, err
 	}
+	
+	// Временное логирование для диагностики - убрать в продакшене
+	// fmt.Printf("DEBUG: GetSession for telegramID %d: accessTokenExpiresAt=%v (type: %T), now=%v\n", 
+	// 	telegramID, s.AccessTokenExpiresAt, s.AccessTokenExpiresAt, time.Now())
+	
 	return &s, nil
 }
 
@@ -86,6 +91,10 @@ func (r *SQLiteSessionRepository) DeleteSession(ctx context.Context, telegramID 
 
 // UpdateTokens updates token pair.
 func (r *SQLiteSessionRepository) UpdateTokens(ctx context.Context, telegramID int64, t *TokenPair) error {
+	// Временное логирование для диагностики - убрать в продакшене
+	// fmt.Printf("DEBUG: UpdateTokens for telegramID %d: accessTokenExpiresAt=%v, refreshTokenExpiresAt=%v\n", 
+	// 	telegramID, t.AccessTokenExpiresAt, t.RefreshTokenExpiresAt)
+	
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE user_sessions SET
 			access_token = ?,
