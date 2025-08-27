@@ -56,6 +56,20 @@ func (o *OAuthGRPCClient) VerifyAuthCode(ctx context.Context, authToken, verific
 		return nil, err
 	}
 
+	// Логируем весь gRPC ответ, скрывая только сами токены
+	o.log.Info("Full gRPC VerifyAuthCode response",
+		zap.String("sessionID", res.SessionId),
+		zap.String("userID", res.User.Id),
+		zap.String("userEmail", res.User.Email),
+		zap.String("userName", res.User.Name),
+		zap.Int("membershipsCount", len(res.Memberships)),
+		zap.Any("memberships", res.Memberships),
+		zap.String("tokens.accessToken", "[HIDDEN]"),
+		zap.String("tokens.refreshToken", "[HIDDEN]"),
+		zap.String("tokens.tokenType", res.Tokens.TokenType),
+		zap.Any("tokens.accessTokenExpiresAt", res.Tokens.AccessTokenExpiresAt),
+		zap.Any("tokens.refreshTokenExpiresAt", res.Tokens.RefreshTokenExpiresAt))
+
 	accessTokenLog := ""
 	refreshTokenLog := ""
 	if res.Tokens != nil {
