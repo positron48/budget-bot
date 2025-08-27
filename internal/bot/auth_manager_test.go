@@ -326,19 +326,37 @@ func TestAuthManager_GetSession_ExpiredToken(t *testing.T) {
 		RefreshTokenExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 
-	sessionRepo.On("GetSession", ctx, telegramID).Return(expiredSession, nil)
+	refreshedSession := &repository.UserSession{
+		TelegramID:            telegramID,
+		UserID:                "user123",
+		TenantID:              "tenant123",
+		AccessToken:           "new_access123",
+		RefreshToken:          "new_refresh123",
+		AccessTokenExpiresAt:  time.Now().Add(time.Hour),
+		RefreshTokenExpiresAt: time.Now().Add(24 * time.Hour),
+	}
 
-	authClient.On("RefreshToken", ctx, "refresh123").Return(
+	// First call returns expired session
+	sessionRepo.On("GetSession", ctx, telegramID).Return(expiredSession, nil).Once()
+
+	// Refresh token call - should be called with the old refresh token
+	authClient.On("RefreshToken", ctx, expiredSession.RefreshToken).Return(
 		"new_access123", "new_refresh123",
 		time.Now().Add(time.Hour), time.Now().Add(24 * time.Hour), nil)
 
+	// Update tokens call
 	sessionRepo.On("UpdateTokens", ctx, telegramID, mock.AnythingOfType("*repository.TokenPair")).Return(nil)
 
-	// This will fail because the logic tries to get session again after refresh
-	// Let's just test that RefreshTokens is called
-	err := am.RefreshTokens(ctx, telegramID)
+	// Second call returns refreshed session (with valid tokens)
+	sessionRepo.On("GetSession", ctx, telegramID).Return(refreshedSession, nil).Once()
+
+	// Test GetSession with automatic refresh
+	session, err := am.GetSession(ctx, telegramID)
 
 	assert.NoError(t, err)
+	assert.NotNil(t, session)
+	assert.Equal(t, "new_access123", session.AccessToken)
+	assert.Equal(t, "new_refresh123", session.RefreshToken)
 	authClient.AssertExpectations(t)
 	sessionRepo.AssertExpectations(t)
 }
@@ -497,6 +515,96 @@ func TestAuthManager_RefreshTokens_UpdateTokensError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
+	authClient.AssertExpectations(t)
+	sessionRepo.AssertExpectations(t)
+}
+
+func TestAuthManager_GetSession_RefreshTokenExpired(t *testing.T) {
+	ctx := context.Background()
+	logger := zap.NewNop()
+	authClient := &MockAuthClient{}
+	sessionRepo := &MockSessionRepository{}
+
+	am := NewAuthManager(authClient, sessionRepo, logger)
+
+	telegramID := int64(123)
+	expiredSession := &repository.UserSession{
+		TelegramID:            telegramID,
+		UserID:                "user123",
+		TenantID:              "tenant123",
+		AccessToken:           "access123",
+		RefreshToken:          "refresh123",
+		AccessTokenExpiresAt:  time.Now().Add(-time.Hour), // Expired
+		RefreshTokenExpiresAt: time.Now().Add(-time.Hour), // Also expired
+	}
+
+	// Mock the session repository to return expired session
+	sessionRepo.On("GetSession", ctx, telegramID).Return(expiredSession, nil)
+
+	// Test GetSession with expired refresh token
+	session, err := am.GetSession(ctx, telegramID)
+
+	assert.Error(t, err)
+	assert.Nil(t, session)
+	assert.Contains(t, err.Error(), "refresh token expired")
+	authClient.AssertNotCalled(t, "RefreshToken")
+	sessionRepo.AssertExpectations(t)
+}
+
+func TestAuthManager_GetSession_RealWorldScenario(t *testing.T) {
+	ctx := context.Background()
+	logger := zap.NewNop()
+	authClient := &MockAuthClient{}
+	sessionRepo := &MockSessionRepository{}
+
+	am := NewAuthManager(authClient, sessionRepo, logger)
+
+	telegramID := int64(123)
+	
+	// Scenario: User has a session with expired access token but valid refresh token
+	expiredSession := &repository.UserSession{
+		TelegramID:            telegramID,
+		UserID:                "user123",
+		TenantID:              "tenant123",
+		AccessToken:           "old_access_token",
+		RefreshToken:          "valid_refresh_token",
+		AccessTokenExpiresAt:  time.Now().Add(-time.Minute), // Just expired
+		RefreshTokenExpiresAt: time.Now().Add(24 * time.Hour), // Still valid
+	}
+
+	refreshedSession := &repository.UserSession{
+		TelegramID:            telegramID,
+		UserID:                "user123",
+		TenantID:              "tenant123",
+		AccessToken:           "new_access_token",
+		RefreshToken:          "new_refresh_token",
+		AccessTokenExpiresAt:  time.Now().Add(time.Hour), // Valid for 1 hour
+		RefreshTokenExpiresAt: time.Now().Add(24 * time.Hour),
+	}
+
+	// First call returns expired session
+	sessionRepo.On("GetSession", ctx, telegramID).Return(expiredSession, nil).Once()
+
+	// Refresh token call succeeds
+	authClient.On("RefreshToken", ctx, expiredSession.RefreshToken).Return(
+		"new_access_token", "new_refresh_token",
+		time.Now().Add(time.Hour), time.Now().Add(24 * time.Hour), nil)
+
+	// Update tokens call succeeds
+	sessionRepo.On("UpdateTokens", ctx, telegramID, mock.AnythingOfType("*repository.TokenPair")).Return(nil)
+
+	// Second call returns refreshed session
+	sessionRepo.On("GetSession", ctx, telegramID).Return(refreshedSession, nil).Once()
+
+	// Test GetSession - should automatically refresh and return valid session
+	session, err := am.GetSession(ctx, telegramID)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, session)
+	assert.Equal(t, "new_access_token", session.AccessToken)
+	assert.Equal(t, "new_refresh_token", session.RefreshToken)
+	assert.True(t, session.AccessTokenExpiresAt.After(time.Now()))
+	
 	authClient.AssertExpectations(t)
 	sessionRepo.AssertExpectations(t)
 }

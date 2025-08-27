@@ -4,6 +4,7 @@ package bot
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -164,6 +165,10 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 		amt := float64(parsed.Amount.AmountMinor) / 100.0
 		// Try suggest category if session present
 		if sess, err := h.auth.GetSession(ctx, update.Message.From.ID); err == nil && sess != nil {
+			h.logger.Debug("Got valid session for user", 
+				zap.Int64("telegramID", update.Message.From.ID),
+				zap.String("accessToken", sess.AccessToken[:int(math.Min(float64(len(sess.AccessToken)), 10))] + "..."),
+				zap.Time("accessTokenExpiresAt", sess.AccessTokenExpiresAt))
 			var catID string
 			if h.matcher != nil {
 				if m, err := h.matcher.FindCategory(ctx, sess.TenantID, parsed.Description); err == nil && m != nil {
@@ -175,8 +180,16 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 				pref, _ := h.prefs.GetPreferences(ctx, update.Message.From.ID)
 				locale := ""
 				if pref != nil && pref.Language != "" { locale = pref.Language }
+				h.logger.Debug("Calling ListCategories with access token", 
+					zap.Int64("telegramID", update.Message.From.ID),
+					zap.String("accessToken", sess.AccessToken[:int(math.Min(float64(len(sess.AccessToken)), 10))] + "..."),
+					zap.String("transactionType", string(parsed.Type)),
+					zap.String("locale", locale))
 				list, err := h.categories.ListCategories(ctx, sess.TenantID, sess.AccessToken, parsed.Type, locale)
 				if err != nil || len(list) == 0 {
+					h.logger.Error("Failed to get categories", 
+						zap.Int64("telegramID", update.Message.From.ID),
+						zap.Error(err))
 					_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось получить категории"))
 					return
 				}
