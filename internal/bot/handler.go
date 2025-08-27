@@ -164,7 +164,26 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 		}
 		amt := float64(parsed.Amount.AmountMinor) / 100.0
 		// Try suggest category if session present
-		if sess, err := h.auth.GetSession(ctx, update.Message.From.ID); err == nil && sess != nil {
+		sess, err := h.auth.GetSession(ctx, update.Message.From.ID)
+		if err == nil && sess != nil {
+			// Проверяем, что сессия действительно валидна (токены не истекли)
+			if time.Now().After(sess.AccessTokenExpiresAt) {
+				h.logger.Warn("Session has expired tokens, user needs to re-authenticate", 
+					zap.Int64("telegramID", update.Message.From.ID),
+					zap.Time("accessTokenExpiresAt", sess.AccessTokenExpiresAt),
+					zap.Time("refreshTokenExpiresAt", sess.RefreshTokenExpiresAt))
+				// Удаляем невалидную сессию
+				if err := h.auth.Logout(ctx, update.Message.From.ID); err != nil {
+					h.logger.Error("Failed to logout user with expired tokens", 
+						zap.Int64("telegramID", update.Message.From.ID),
+						zap.Error(err))
+				}
+				// Продолжаем как будто сессии нет
+				sess = nil
+			}
+		}
+		
+		if sess != nil {
 			h.logger.Debug("Got valid session for user", 
 				zap.Int64("telegramID", update.Message.From.ID),
 				zap.String("accessToken", sess.AccessToken[:int(math.Min(float64(len(sess.AccessToken)), 10))] + "..."),
@@ -251,9 +270,9 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 		// No session; just echo parse
 		msgText := fmt.Sprintf("Распознано: %s %.2f %s — %s", string(parsed.Type), amt, cur, parsed.Description)
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, msgText)
-		_, err := h.bot.Send(msg)
-		if err != nil {
-			h.logger.Error("failed to send parse result", zap.Error(err), zap.String("text", msgText))
+		_, sendErr := h.bot.Send(msg)
+		if sendErr != nil {
+			h.logger.Error("failed to send parse result", zap.Error(sendErr), zap.String("text", msgText))
 		}
 		return
 	}
@@ -266,9 +285,9 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 			msgText = "Ошибка: " + parsed.Errors[0]
 		}
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, msgText)
-		_, err := h.bot.Send(msg)
-		if err != nil {
-			h.logger.Error("failed to send validation error", zap.Error(err), zap.String("text", msgText))
+		_, sendErr := h.bot.Send(msg)
+		if sendErr != nil {
+			h.logger.Error("failed to send validation error", zap.Error(sendErr), zap.String("text", msgText))
 		}
 		return
 	}
