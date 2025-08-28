@@ -27,3 +27,10 @@ type OAuthClient interface {
 	ListTelegramSessions(ctx context.Context, telegramUserID int64) ([]*pb.TelegramSession, error)
 	GetAuthLogs(ctx context.Context, telegramUserID int64, limit, offset int32) ([]*pb.AuthLogEntry, int32, error)
 }
+
+// AuthClientInterface defines auth server operations used by the bot.
+type AuthClientInterface interface {
+	Register(ctx context.Context, email, password, name string) (userID string, tenantID string, accessToken string, refreshToken string, accessExp time.Time, refreshExp time.Time, err error)
+	Login(ctx context.Context, email, password string) (userID string, tenantID string, accessToken string, refreshToken string, accessExp time.Time, refreshExp time.Time, err error)
+	RefreshToken(ctx context.Context, refreshToken string) (accessToken string, refreshTokenNew string, accessExp time.Time, refreshExp time.Time, err error)
+}

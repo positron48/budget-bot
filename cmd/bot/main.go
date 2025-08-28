@@ -75,10 +75,10 @@ func main() {
 	draftRepo := repository.NewSQLiteDraftRepository(dbConn)
 	
 	// Wire OAuth clients
-	catClient, reportClient, tenantClient, txClient, oauthClient := grpcwire.WireClients(log)
+	catClient, reportClient, tenantClient, txClient, oauthClient, authClient := grpcwire.WireClients(log)
 	
 	// Create OAuth manager
-	oauthManager := botpkg.NewOAuthManager(oauthClient, sessionRepo, log, cfg.OAuth.WebBaseURL)
+	oauthManager := botpkg.NewOAuthManagerWithAuthClient(oauthClient, authClient, sessionRepo, log, cfg.OAuth.WebBaseURL)
 	
 	h := botpkg.NewHandler(bot, stateRepo, oauthManager, mappingRepo, catClient, log).
 		WithPreferences(prefsRepo).

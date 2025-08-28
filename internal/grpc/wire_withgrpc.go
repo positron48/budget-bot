@@ -18,7 +18,7 @@ import (
 
 // We will wire actual pb clients to our adapters
 
-func WireClients(log *zap.Logger) (CategoryClient, ReportClient, TenantClient, TransactionClient, OAuthClient) {
+func WireClients(log *zap.Logger) (CategoryClient, ReportClient, TenantClient, TransactionClient, OAuthClient, AuthClientInterface) {
     ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
     defer cancel()
     
@@ -48,7 +48,8 @@ func WireClients(log *zap.Logger) (CategoryClient, ReportClient, TenantClient, T
     ten := NewGRPCTenantClient(pb.NewTenantServiceClient(conn), log)
     tx := NewGRPCTransactionClient(pb.NewTransactionServiceClient(conn), log)
     oauth := NewOAuthClient(pb.NewOAuthServiceClient(conn), log)
-    return cat, rep, ten, tx, oauth
+    auth := NewAuthClient(pb.NewAuthServiceClient(conn), log)
+    return cat, rep, ten, tx, oauth, auth
 }
 
 // WireFxClient dials gRPC and returns a real FxClient when available; otherwise a fake.

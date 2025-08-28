@@ -15,6 +15,21 @@ import (
 // FakeOAuthClient implements OAuthClient for testing
 type FakeOAuthClient struct{}
 
+// FakeAuthClient implements AuthClient for testing
+type FakeAuthClient struct{}
+
+func (f *FakeAuthClient) Register(_ context.Context, _, _, _ string) (string, string, string, string, time.Time, time.Time, error) {
+	return "user_123", "tenant_123", "access_token_123", "refresh_token_123", time.Now().Add(15*time.Minute), time.Now().Add(720*time.Hour), nil
+}
+
+func (f *FakeAuthClient) Login(_ context.Context, _, _ string) (string, string, string, string, time.Time, time.Time, error) {
+	return "user_123", "tenant_123", "access_token_123", "refresh_token_123", time.Now().Add(15*time.Minute), time.Now().Add(720*time.Hour), nil
+}
+
+func (f *FakeAuthClient) RefreshToken(_ context.Context, _ string) (string, string, time.Time, time.Time, error) {
+	return "new_access_token_123", "new_refresh_token_123", time.Now().Add(15*time.Minute), time.Now().Add(720*time.Hour), nil
+}
+
 func (f *FakeOAuthClient) GenerateAuthLink(_ context.Context, _ string, _ int64, _, _ string) (string, string, time.Time, error) {
 	return "https://example.com/auth?token=test", "auth_token_123", time.Now().Add(5*time.Minute), nil
 }
@@ -106,8 +121,8 @@ func (f *FakeOAuthClient) GetAuthLogs(_ context.Context, telegramUserID int64, _
 
 // WireClients (default build) returns nil clients so the app uses fakes.
 // To enable real clients, build with -tags withgrpc and ensure proto is generated.
-func WireClients(_ *zap.Logger) (CategoryClient, ReportClient, TenantClient, TransactionClient, OAuthClient) {
-    return nil, nil, nil, nil, &FakeOAuthClient{}
+func WireClients(_ *zap.Logger) (CategoryClient, ReportClient, TenantClient, TransactionClient, OAuthClient, AuthClientInterface) {
+    return nil, nil, nil, nil, &FakeOAuthClient{}, &FakeAuthClient{}
 }
 
 

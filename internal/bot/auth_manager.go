@@ -4,29 +4,24 @@ package bot
 import (
 	"context"
 	"fmt"
-	"math"
 	"time"
 
 	"budget-bot/internal/repository"
+	grpcclient "budget-bot/internal/grpc"
 	"go.uber.org/zap"
 )
 
-// AuthClient defines auth server operations used by the bot.
-type AuthClient interface {
-	Register(ctx context.Context, email, password, name string) (userID string, tenantID string, accessToken string, refreshToken string, accessExp time.Time, refreshExp time.Time, err error)
-	Login(ctx context.Context, email, password string) (userID string, tenantID string, accessToken string, refreshToken string, accessExp time.Time, refreshExp time.Time, err error)
-	RefreshToken(ctx context.Context, refreshToken string) (accessToken string, refreshTokenNew string, accessExp time.Time, refreshExp time.Time, err error)
-}
+
 
 // AuthManager coordinates auth flows and session persistence.
 type AuthManager struct {
-	authClient  AuthClient
+	authClient  grpcclient.AuthClientInterface
 	sessionRepo repository.SessionRepository
 	logger     *zap.Logger
 }
 
 // NewAuthManager constructs an AuthManager.
-func NewAuthManager(authClient AuthClient, sessionRepo repository.SessionRepository, logger *zap.Logger) *AuthManager {
+func NewAuthManager(authClient grpcclient.AuthClientInterface, sessionRepo repository.SessionRepository, logger *zap.Logger) *AuthManager {
 	return &AuthManager{authClient: authClient, sessionRepo: sessionRepo, logger: logger}
 }
 
@@ -87,16 +82,6 @@ func (am *AuthManager) GetSession(ctx context.Context, telegramID int64) (*repos
 	
 	// Проверяем, не истек ли access token
 	now := time.Now()
-	am.logger.Debug("Checking token expiration", 
-		zap.Int64("telegramID", telegramID),
-		zap.Time("now", now),
-		zap.Time("accessTokenExpiresAt", session.AccessTokenExpiresAt),
-		zap.Time("refreshTokenExpiresAt", session.RefreshTokenExpiresAt),
-		zap.Bool("accessTokenExpired", now.After(session.AccessTokenExpiresAt)),
-		zap.Bool("refreshTokenExpired", now.After(session.RefreshTokenExpiresAt)),
-		zap.Duration("accessTokenTimeUntilExpiry", session.AccessTokenExpiresAt.Sub(now)),
-		zap.Duration("refreshTokenTimeUntilExpiry", session.RefreshTokenExpiresAt.Sub(now)))
-	
 	if now.After(session.AccessTokenExpiresAt) {
 		am.logger.Info("Access token expired, attempting refresh", 
 			zap.Int64("telegramID", telegramID),
@@ -106,17 +91,11 @@ func (am *AuthManager) GetSession(ctx context.Context, telegramID int64) (*repos
 		if now.After(session.RefreshTokenExpiresAt) {
 			am.logger.Error("Refresh token also expired, cannot refresh access token", 
 				zap.Int64("telegramID", telegramID),
-				zap.Time("refreshExpiresAt", session.RefreshTokenExpiresAt),
-				zap.Duration("refreshTokenTimeUntilExpiry", session.RefreshTokenExpiresAt.Sub(now)))
+				zap.Time("refreshExpiresAt", session.RefreshTokenExpiresAt))
 			return nil, fmt.Errorf("refresh token expired")
 		}
 		
-		am.logger.Info("Refresh token is still valid, proceeding with token refresh", 
-			zap.Int64("telegramID", telegramID),
-			zap.Time("refreshExpiresAt", session.RefreshTokenExpiresAt),
-			zap.Duration("refreshTokenTimeUntilExpiry", session.RefreshTokenExpiresAt.Sub(now)))
-		
-		// Пытаемся обновить токены, передавая текущую сессию
+		// Пытаемся обновить токены
 		err := am.RefreshTokensWithSession(ctx, session)
 		if err != nil {
 			am.logger.Error("Failed to refresh tokens", 
@@ -158,12 +137,6 @@ func (am *AuthManager) RefreshTokens(ctx context.Context, telegramID int64) erro
 
 // RefreshTokensWithSession refreshes auth tokens using the provided session.
 func (am *AuthManager) RefreshTokensWithSession(ctx context.Context, session *repository.UserSession) error {
-	am.logger.Debug("Starting token refresh", zap.Int64("telegramID", session.TelegramID))
-	
-	am.logger.Debug("Calling auth client RefreshToken", 
-		zap.Int64("telegramID", session.TelegramID),
-		zap.String("refreshToken", session.RefreshToken[:int(math.Min(float64(len(session.RefreshToken)), 10))] + "..."))
-	
 	access, refresh, accessExp, refreshExp, err := am.authClient.RefreshToken(ctx, session.RefreshToken)
 	if err != nil {
 		am.logger.Error("Auth client RefreshToken failed", 
@@ -171,13 +144,6 @@ func (am *AuthManager) RefreshTokensWithSession(ctx context.Context, session *re
 			zap.Error(err))
 		return err
 	}
-	
-	am.logger.Debug("Auth client RefreshToken succeeded", 
-		zap.Int64("telegramID", session.TelegramID),
-		zap.String("newAccessToken", access[:int(math.Min(float64(len(access)), 10))] + "..."),
-		zap.String("newRefreshToken", refresh[:int(math.Min(float64(len(refresh)), 10))] + "..."),
-		zap.Time("newAccessExp", accessExp),
-		zap.Time("newRefreshExp", refreshExp))
 	
 	err = am.sessionRepo.UpdateTokens(ctx, session.TelegramID, &repository.TokenPair{
 		AccessToken:           access,

@@ -46,16 +46,6 @@ func (a *AuthClient) Login(ctx context.Context, email, password string) (string,
 	}
 	tokens := res.Tokens
 	
-	// Логируем весь gRPC ответ, скрывая только сами токены
-	a.log.Info("Full gRPC Login response",
-		zap.Int("membershipsCount", len(res.Memberships)),
-		zap.Any("memberships", res.Memberships),
-		zap.String("tokens.accessToken", "[HIDDEN]"),
-		zap.String("tokens.refreshToken", "[HIDDEN]"),
-		zap.String("tokens.tokenType", tokens.TokenType),
-		zap.Any("tokens.accessTokenExpiresAt", tokens.AccessTokenExpiresAt),
-		zap.Any("tokens.refreshTokenExpiresAt", tokens.RefreshTokenExpiresAt))
-	
 	// Логируем время токенов от auth сервиса
 	accessExp := tokens.AccessTokenExpiresAt.AsTime()
 	refreshExp := tokens.RefreshTokenExpiresAt.AsTime()
@@ -88,14 +78,6 @@ func (a *AuthClient) RefreshToken(ctx context.Context, refreshToken string) (str
 		return "", "", time.Time{}, time.Time{}, err
 	}
 	tokens := res.Tokens
-	
-	// Логируем весь gRPC ответ, скрывая только сами токены
-	a.log.Info("Full gRPC RefreshToken response",
-		zap.String("tokens.accessToken", "[HIDDEN]"),
-		zap.String("tokens.refreshToken", "[HIDDEN]"),
-		zap.String("tokens.tokenType", tokens.TokenType),
-		zap.Any("tokens.accessTokenExpiresAt", tokens.AccessTokenExpiresAt),
-		zap.Any("tokens.refreshTokenExpiresAt", tokens.RefreshTokenExpiresAt))
 	
 	// Логируем время токенов от auth сервиса
 	accessExp := tokens.AccessTokenExpiresAt.AsTime()

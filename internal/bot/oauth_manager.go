@@ -17,6 +17,7 @@ import (
 // OAuthManager coordinates OAuth flows and session persistence.
 type OAuthManager struct {
 	oauthClient  grpcclient.OAuthClient
+	authClient   grpcclient.AuthClientInterface // Added for token refresh
 	sessionRepo  repository.SessionRepository
 	logger       *zap.Logger
 	webBaseURL   string
@@ -26,6 +27,18 @@ type OAuthManager struct {
 func NewOAuthManager(oauthClient grpcclient.OAuthClient, sessionRepo repository.SessionRepository, logger *zap.Logger, webBaseURL string) *OAuthManager {
 	return &OAuthManager{
 		oauthClient: oauthClient,
+		authClient:  nil, // Для обратной совместимости
+		sessionRepo: sessionRepo,
+		logger:      logger,
+		webBaseURL:  webBaseURL,
+	}
+}
+
+// NewOAuthManagerWithAuthClient constructs an OAuthManager with auth client for token refresh.
+func NewOAuthManagerWithAuthClient(oauthClient grpcclient.OAuthClient, authClient grpcclient.AuthClientInterface, sessionRepo repository.SessionRepository, logger *zap.Logger, webBaseURL string) *OAuthManager {
+	return &OAuthManager{
+		oauthClient: oauthClient,
+		authClient:  authClient,
 		sessionRepo: sessionRepo,
 		logger:      logger,
 		webBaseURL:  webBaseURL,
@@ -168,7 +181,93 @@ func (om *OAuthManager) GetSession(ctx context.Context, telegramID int64) (*repo
 		zap.Duration("accessTokenTTL", session.AccessTokenExpiresAt.Sub(now)),
 		zap.Duration("refreshTokenTTL", session.RefreshTokenExpiresAt.Sub(now)))
 	
+	// Проверяем, не истек ли access token и есть ли authClient для обновления
+	if now.After(session.AccessTokenExpiresAt) && om.authClient != nil {
+		om.logger.Info("Access token expired, attempting refresh", 
+			zap.Int64("telegramID", telegramID),
+			zap.Time("expiresAt", session.AccessTokenExpiresAt))
+		
+		// Проверяем, не истек ли refresh token
+		if now.After(session.RefreshTokenExpiresAt) {
+			om.logger.Error("Refresh token also expired, cannot refresh access token", 
+				zap.Int64("telegramID", telegramID),
+				zap.Time("refreshExpiresAt", session.RefreshTokenExpiresAt))
+			return nil, fmt.Errorf("refresh token expired")
+		}
+		
+		// Пытаемся обновить токены
+		err := om.RefreshTokensWithSession(ctx, session)
+		if err != nil {
+			om.logger.Error("Failed to refresh tokens", 
+				zap.Int64("telegramID", telegramID),
+				zap.Error(err))
+			return nil, err
+		}
+		
+		// Получаем обновленную сессию
+		session, err = om.sessionRepo.GetSession(ctx, telegramID)
+		if err != nil {
+			om.logger.Error("Failed to get updated session after refresh", 
+				zap.Int64("telegramID", telegramID),
+				zap.Error(err))
+			return nil, err
+		}
+		
+		om.logger.Info("Tokens refreshed successfully", 
+			zap.Int64("telegramID", telegramID),
+			zap.Time("newExpiresAt", session.AccessTokenExpiresAt))
+	} else if now.After(session.AccessTokenExpiresAt) {
+		om.logger.Warn("Access token expired but no authClient available for refresh", 
+			zap.Int64("telegramID", telegramID),
+			zap.Time("expiresAt", session.AccessTokenExpiresAt))
+	} else {
+		om.logger.Debug("Access token is still valid", 
+			zap.Int64("telegramID", telegramID),
+			zap.Time("expiresAt", session.AccessTokenExpiresAt),
+			zap.Duration("timeUntilExpiry", session.AccessTokenExpiresAt.Sub(now)))
+	}
+	
 	return session, nil
+}
+
+// RefreshTokens refreshes auth tokens and stores them.
+func (om *OAuthManager) RefreshTokens(ctx context.Context, telegramID int64) error {
+	s, err := om.sessionRepo.GetSession(ctx, telegramID)
+	if err != nil {
+		return err
+	}
+	return om.RefreshTokensWithSession(ctx, s)
+}
+
+// RefreshTokensWithSession refreshes auth tokens using the provided session.
+func (om *OAuthManager) RefreshTokensWithSession(ctx context.Context, session *repository.UserSession) error {
+	access, refresh, accessExp, refreshExp, err := om.authClient.RefreshToken(ctx, session.RefreshToken)
+	if err != nil {
+		om.logger.Error("Auth client RefreshToken failed", 
+			zap.Int64("telegramID", session.TelegramID),
+			zap.Error(err))
+		return err
+	}
+	
+	err = om.sessionRepo.UpdateTokens(ctx, session.TelegramID, &repository.TokenPair{
+		AccessToken:           access,
+		RefreshToken:          refresh,
+		AccessTokenExpiresAt:  accessExp,
+		RefreshTokenExpiresAt: refreshExp,
+	})
+	if err != nil {
+		om.logger.Error("Failed to update tokens in repository", 
+			zap.Int64("telegramID", session.TelegramID),
+			zap.Error(err))
+		return err
+	}
+	
+	om.logger.Info("Token refresh completed successfully", 
+		zap.Int64("telegramID", session.TelegramID),
+		zap.Time("newAccessExp", accessExp),
+		zap.Time("newRefreshExp", refreshExp))
+	
+	return nil
 }
 
 
