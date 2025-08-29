@@ -25,7 +25,7 @@ func WireClients(log *zap.Logger) (CategoryClient, ReportClient, TenantClient, T
     cfg, err := botcfg.Load()
     if err != nil {
         log.Fatal("failed to load config", zap.Error(err))
-        return nil, nil, nil, nil, nil
+        return nil, nil, nil, nil, nil, nil
     }
     
     var creds credentials.TransportCredentials
@@ -39,7 +39,7 @@ func WireClients(log *zap.Logger) (CategoryClient, ReportClient, TenantClient, T
     conn, err := grpc.DialContext(ctx, cfg.GRPC.Address, grpc.WithTransportCredentials(creds))
     if err != nil {
         log.Warn("grpc dial failed, falling back to fakes", zap.Error(err))
-        return nil, nil, nil, nil, nil
+        return nil, nil, nil, nil, nil, nil
     }
     log.Info("successfully connected to gRPC server", zap.String("address", cfg.GRPC.Address))
     
