@@ -324,3 +324,155 @@ func TestOAuthManager_RevokeSession(t *testing.T) {
 		t.Fatalf("RevokeSession: %v", err)
 	}
 }
+
+// Fake auth client for testing RefreshToken functionality
+type fakeAuthClient struct{}
+
+func (f *fakeAuthClient) Register(_ context.Context, _, _, _ string) (string, string, string, string, time.Time, time.Time, error) {
+	return "user_123", "tenant_123", "access_token_123", "refresh_token_123", time.Now().Add(15*time.Minute), time.Now().Add(720*time.Hour), nil
+}
+
+func (f *fakeAuthClient) Login(_ context.Context, _, _ string) (string, string, string, string, time.Time, time.Time, error) {
+	return "user_123", "tenant_123", "access_token_123", "refresh_token_123", time.Now().Add(15*time.Minute), time.Now().Add(720*time.Hour), nil
+}
+
+func (f *fakeAuthClient) RefreshToken(_ context.Context, _ string) (string, string, time.Time, time.Time, error) {
+	return "new_access_token_456", "new_refresh_token_456", time.Now().Add(15*time.Minute), time.Now().Add(720*time.Hour), nil
+}
+
+func TestOAuthManager_NewOAuthManagerWithAuthClient(t *testing.T) {
+	db := setupOAuthSessionDB(t)
+	defer func() { _ = db.Close() }()
+	sessions := repository.NewSQLiteSessionRepository(db)
+	
+	om := NewOAuthManagerWithAuthClient(&fakeOAuthClient{}, &fakeAuthClient{}, sessions, zap.NewNop(), "http://localhost:3000")
+	
+	if om == nil {
+		t.Fatal("Expected non-nil OAuthManager")
+	}
+	
+	// Verify that the manager has both oauth and auth clients
+	if om.oauthClient == nil {
+		t.Error("Expected non-nil oauthClient")
+	}
+	if om.authClient == nil {
+		t.Error("Expected non-nil authClient")
+	}
+}
+
+func TestOAuthManager_RefreshTokens(t *testing.T) {
+	db := setupOAuthSessionDB(t)
+	defer func() { _ = db.Close() }()
+	sessions := repository.NewSQLiteSessionRepository(db)
+	
+	om := NewOAuthManagerWithAuthClient(&fakeOAuthClient{}, &fakeAuthClient{}, sessions, zap.NewNop(), "http://localhost:3000")
+	ctx := context.Background()
+
+	// First create a session
+	err := om.VerifyAuthCode(ctx, 12345, "auth_token_123", "123456")
+	if err != nil {
+		t.Fatalf("VerifyAuthCode: %v", err)
+	}
+
+	// Then refresh tokens
+	err = om.RefreshTokens(ctx, 12345)
+	if err != nil {
+		t.Fatalf("RefreshTokens: %v", err)
+	}
+
+	// Verify that tokens were updated
+	session, err := sessions.GetSession(ctx, 12345)
+	if err != nil {
+		t.Fatalf("GetSession: %v", err)
+	}
+	
+	if session.AccessToken != "new_access_token_456" {
+		t.Errorf("Expected new access token 'new_access_token_456', got '%s'", session.AccessToken)
+	}
+	if session.RefreshToken != "new_refresh_token_456" {
+		t.Errorf("Expected new refresh token 'new_refresh_token_456', got '%s'", session.RefreshToken)
+	}
+}
+
+func TestOAuthManager_RefreshTokensWithSession(t *testing.T) {
+	db := setupOAuthSessionDB(t)
+	defer func() { _ = db.Close() }()
+	sessions := repository.NewSQLiteSessionRepository(db)
+	
+	om := NewOAuthManagerWithAuthClient(&fakeOAuthClient{}, &fakeAuthClient{}, sessions, zap.NewNop(), "http://localhost:3000")
+	ctx := context.Background()
+
+	// First create a session
+	err := om.VerifyAuthCode(ctx, 12345, "auth_token_123", "123456")
+	if err != nil {
+		t.Fatalf("VerifyAuthCode: %v", err)
+	}
+
+	// Get the session
+	session, err := sessions.GetSession(ctx, 12345)
+	if err != nil {
+		t.Fatalf("GetSession: %v", err)
+	}
+
+	// Then refresh tokens using the session directly
+	err = om.RefreshTokensWithSession(ctx, session)
+	if err != nil {
+		t.Fatalf("RefreshTokensWithSession: %v", err)
+	}
+
+	// Verify that tokens were updated
+	updatedSession, err := sessions.GetSession(ctx, 12345)
+	if err != nil {
+		t.Fatalf("GetSession after refresh: %v", err)
+	}
+	
+	if updatedSession.AccessToken != "new_access_token_456" {
+		t.Errorf("Expected new access token 'new_access_token_456', got '%s'", updatedSession.AccessToken)
+	}
+	if updatedSession.RefreshToken != "new_refresh_token_456" {
+		t.Errorf("Expected new refresh token 'new_refresh_token_456', got '%s'", updatedSession.RefreshToken)
+	}
+}
+
+func TestOAuthManager_RefreshTokens_NoSession(t *testing.T) {
+	db := setupOAuthSessionDB(t)
+	defer func() { _ = db.Close() }()
+	sessions := repository.NewSQLiteSessionRepository(db)
+	
+	om := NewOAuthManagerWithAuthClient(&fakeOAuthClient{}, &fakeAuthClient{}, sessions, zap.NewNop(), "http://localhost:3000")
+	ctx := context.Background()
+
+	// Try to refresh tokens without creating a session first
+	err := om.RefreshTokens(ctx, 12345)
+	if err == nil {
+		t.Error("Expected error when refreshing tokens without session")
+	}
+}
+
+func TestOAuthManager_RefreshTokens_NoAuthClient(t *testing.T) {
+	db := setupOAuthSessionDB(t)
+	defer func() { _ = db.Close() }()
+	sessions := repository.NewSQLiteSessionRepository(db)
+	
+	// Create manager without auth client
+	om := NewOAuthManager(&fakeOAuthClient{}, sessions, zap.NewNop(), "http://localhost:3000")
+	ctx := context.Background()
+
+	// First create a session
+	err := om.VerifyAuthCode(ctx, 12345, "auth_token_123", "123456")
+	if err != nil {
+		t.Fatalf("VerifyAuthCode: %v", err)
+	}
+
+	// Try to refresh tokens - should panic because no auth client
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Expected panic when refreshing tokens without auth client")
+		}
+	}()
+	
+	err = om.RefreshTokens(ctx, 12345)
+	if err != nil {
+		t.Logf("Got error as expected: %v", err)
+	}
+}

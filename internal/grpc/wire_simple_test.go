@@ -111,3 +111,54 @@ func TestWireClients(t *testing.T) {
 	assert.NotNil(t, authClient)
 	assert.IsType(t, &FakeAuthClient{}, authClient)
 }
+
+func TestFakeAuthClient_Register(t *testing.T) {
+	client := &FakeAuthClient{}
+	ctx := context.Background()
+	
+	userID, tenantID, accessToken, refreshToken, accessExp, refreshExp, err := client.Register(ctx, "test@example.com", "password123", "Test User")
+	
+	assert.NoError(t, err)
+	assert.Equal(t, "user_123", userID)
+	assert.Equal(t, "tenant_123", tenantID)
+	assert.Equal(t, "access_token_123", accessToken)
+	assert.Equal(t, "refresh_token_123", refreshToken)
+	assert.True(t, accessExp.After(time.Now()))
+	assert.True(t, refreshExp.After(time.Now()))
+	
+	// Проверяем, что время истечения access token примерно 15 минут
+	expectedAccessExp := time.Now().Add(15 * time.Minute)
+	assert.WithinDuration(t, expectedAccessExp, accessExp, 2*time.Second)
+	
+	// Проверяем, что время истечения refresh token примерно 720 часов (30 дней)
+	expectedRefreshExp := time.Now().Add(720 * time.Hour)
+	assert.WithinDuration(t, expectedRefreshExp, refreshExp, 2*time.Second)
+}
+
+func TestFakeAuthClient_Login(t *testing.T) {
+	client := &FakeAuthClient{}
+	ctx := context.Background()
+	
+	userID, tenantID, accessToken, refreshToken, accessExp, refreshExp, err := client.Login(ctx, "test@example.com", "password123")
+	
+	assert.NoError(t, err)
+	assert.Equal(t, "user_123", userID)
+	assert.Equal(t, "tenant_123", tenantID)
+	assert.Equal(t, "access_token_123", accessToken)
+	assert.Equal(t, "refresh_token_123", refreshToken)
+	assert.True(t, accessExp.After(time.Now()))
+	assert.True(t, refreshExp.After(time.Now()))
+}
+
+func TestFakeAuthClient_RefreshToken(t *testing.T) {
+	client := &FakeAuthClient{}
+	ctx := context.Background()
+	
+	accessToken, refreshTokenNew, accessExp, refreshExp, err := client.RefreshToken(ctx, "old_refresh_token")
+	
+	assert.NoError(t, err)
+	assert.Equal(t, "new_access_token_123", accessToken)
+	assert.Equal(t, "new_refresh_token_123", refreshTokenNew)
+	assert.True(t, accessExp.After(time.Now()))
+	assert.True(t, refreshExp.After(time.Now()))
+}
