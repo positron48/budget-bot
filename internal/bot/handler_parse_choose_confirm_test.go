@@ -13,7 +13,7 @@ import (
     "go.uber.org/zap"
 )
 
-func TestHandler_Parse_NoMapping_ChooseCategory_Confirm(t *testing.T) {
+func TestHandler_Parse_NoMapping_ChooseCategory_ImmediateSave(t *testing.T) {
     log := zap.NewNop()
     db := testutil.OpenMigratedSQLite(t)
     sessions := repository.NewSQLiteSessionRepository(db)
@@ -50,11 +50,9 @@ func TestHandler_Parse_NoMapping_ChooseCategory_Confirm(t *testing.T) {
     updTx := updStart; updTx.UpdateID = 4; updTx.Message.Text = "100 кофе"; updTx.Message.Entities = nil
     h.HandleUpdate(ctx, updTx)
 
-    // select category and confirm yes
+    // select category - transaction should be created immediately
     cbCat := tgbotapi.Update{UpdateID: 5, CallbackQuery: &tgbotapi.CallbackQuery{ID: "cbc1", From: &tgbotapi.User{ID: userID}, Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{ID: chatID}}, Data: "cat:Питание"}}
     h.HandleUpdate(ctx, cbCat)
-    cbYes := tgbotapi.Update{UpdateID: 6, CallbackQuery: &tgbotapi.CallbackQuery{ID: "cbc2", From: &tgbotapi.User{ID: userID}, Message: &tgbotapi.Message{Chat: &tgbotapi.Chat{ID: chatID}}, Data: "confirm:yes"}}
-    h.HandleUpdate(ctx, cbYes)
     _ = time.Second
 }
 

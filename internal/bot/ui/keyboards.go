@@ -17,14 +17,7 @@ func CreateCategoryKeyboard(categories []*domain.Category) tgbotapi.InlineKeyboa
     return tgbotapi.NewInlineKeyboardMarkup(rows...)
 }
 
-// CreateConfirmationKeyboard builds Yes/No inline keyboard.
-func CreateConfirmationKeyboard() tgbotapi.InlineKeyboardMarkup {
-    yes := tgbotapi.NewInlineKeyboardButtonData("✅ Подтвердить", "confirm:yes")
-    no := tgbotapi.NewInlineKeyboardButtonData("❌ Отмена", "confirm:no")
-    return tgbotapi.NewInlineKeyboardMarkup(
-        tgbotapi.NewInlineKeyboardRow(yes, no),
-    )
-}
+
 
 // CreateLanguageKeyboard builds language selection keyboard.
 func CreateLanguageKeyboard() tgbotapi.InlineKeyboardMarkup {

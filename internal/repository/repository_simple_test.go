@@ -96,7 +96,7 @@ func TestDialogState_Constants(t *testing.T) {
 	assert.Equal(t, DialogState("waiting_for_register_email"), StateWaitingForRegisterEmail)
 	assert.Equal(t, DialogState("waiting_for_register_password"), StateWaitingForRegisterPassword)
 	assert.Equal(t, DialogState("waiting_for_register_name"), StateWaitingForRegisterName)
-	assert.Equal(t, DialogState("confirming_transaction"), StateConfirmingTransaction)
+
 	assert.Equal(t, DialogState("waiting_for_category"), StateWaitingForCategory)
 	assert.Equal(t, DialogState("waiting_for_oauth_email"), StateWaitingForOAuthEmail)
 	assert.Equal(t, DialogState("waiting_for_oauth_code"), StateWaitingForOAuthCode)

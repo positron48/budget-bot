@@ -234,7 +234,7 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 				_, _ = h.bot.Send(msg)
 				return
 			}
-			// Have category -> ask to confirm
+			// Have category -> create transaction immediately
 			// Get category name by ID for display
 			var categoryDisplayName string
 			if h.nameMapper != nil {
@@ -252,19 +252,35 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 				categoryDisplayName = catID // fallback to ID if nameMapper not available
 			}
 			
-			kb := ui.CreateConfirmationKeyboard()
+			// Create transaction immediately
+			_, err = h.txClient.CreateTransaction(ctx, &grpcclient.CreateTransactionRequest{
+				TenantID:    sess.TenantID,
+				Type:        string(parsed.Type),
+				AmountMinor: parsed.Amount.AmountMinor,
+				Currency:    cur,
+				Description: parsed.Description,
+				CategoryID:  catID,
+				OccurredAt:  func() time.Time {
+					if parsed.OccurredAt != nil {
+						return *parsed.OccurredAt
+					}
+					return time.Now()
+				}(),
+			}, sess.AccessToken)
+			
+			if err != nil {
+				h.logger.Error("Failed to create transaction", 
+					zap.Int64("telegramID", update.Message.From.ID),
+					zap.Error(err))
+				_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Не удалось сохранить транзакцию"))
+				return
+			}
+			
+			// Send success message
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID,
-				fmt.Sprintf("Сохранить: %s %.2f %s — %s (категория: %s)?", string(parsed.Type), amt, cur, parsed.Description, categoryDisplayName))
-			msg.ReplyMarkup = kb
-			_ = h.states.SetState(ctx, update.Message.From.ID, repository.StateConfirmingTransaction, map[string]any{
-				"type":         string(parsed.Type),
-				"amount_minor": parsed.Amount.AmountMinor,
-				"currency":     cur,
-				"desc":         parsed.Description,
-				"category_id":  catID,
-				"occurred_at":  occurredUnix(parsed.OccurredAt),
-			}, nil)
+				fmt.Sprintf("✅ Сохранено: %s %.2f %s — %s (категория: %s)", string(parsed.Type), amt, cur, parsed.Description, categoryDisplayName))
 			_, _ = h.bot.Send(msg)
+			metrics.IncTransactionsSaved("ok")
 			return
 		}
 		// No session; just echo parse
@@ -307,64 +323,7 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 		return
 	}
 	data := cb.Data
-	if strings.HasPrefix(data, "confirm:") {
-		choice := strings.TrimPrefix(data, "confirm:")
-		if choice == "yes" {
-			// create transaction via txClient using stored state
-			rec, _ := h.states.GetState(ctx, cb.From.ID)
-			if rec != nil && rec.Context != nil {
-				typeStr, _ := rec.Context["type"].(string)
-				var amountMinor int64
-				switch v := rec.Context["amount_minor"].(type) {
-				case float64:
-					amountMinor = int64(v)
-				case int64:
-					amountMinor = v
-				case int:
-					amountMinor = int64(v)
-				}
-				currency, _ := rec.Context["currency"].(string)
-				desc, _ := rec.Context["desc"].(string)
-				catID, _ := rec.Context["category_id"].(string)
-				var occurred time.Time
-				if ts, ok := rec.Context["occurred_at"].(float64); ok && ts > 0 {
-					// Time is already in UTC, just restore from Unix timestamp
-					occurred = time.Unix(int64(ts), 0)
-				} else {
-					occurred = time.Now()
-				}
-				sess, err := h.auth.GetSession(ctx, cb.From.ID)
-				if err == nil {
-					_, _ = h.txClient.CreateTransaction(ctx, &grpcclient.CreateTransactionRequest{
-						TenantID:    sess.TenantID,
-						Type:        typeStr,
-						AmountMinor: amountMinor,
-						Currency:    currency,
-						Description: desc,
-						CategoryID:  catID,
-						OccurredAt:  occurred,
-					}, sess.AccessToken)
-					metrics.IncTransactionsSaved("ok")
-				}
-				// Cleanup draft if present
-				if h.drafts != nil {
-					if dID, ok := rec.Context["draft_id"].(string); ok && dID != "" {
-						_ = h.drafts.Delete(ctx, dID)
-					}
-				}
-			}
-			_ = h.states.ClearState(ctx, cb.From.ID)
-			_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Сохранено"))
-			_, _ = h.bot.Send(tgbotapi.NewMessage(cb.Message.Chat.ID, "Транзакция сохранена"))
-			return
-		}
-		if choice == "no" {
-			_ = h.states.ClearState(ctx, cb.From.ID)
-			_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Отменено"))
-			_, _ = h.bot.Send(tgbotapi.NewMessage(cb.Message.Chat.ID, "Отменено"))
-			return
-		}
-	}
+
 	if strings.HasPrefix(data, "cat:") {
 		categoryName := strings.TrimPrefix(data, "cat:")
 		rec, _ := h.states.GetState(ctx, cb.From.ID)
@@ -404,7 +363,7 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 		}
 		
 		rec.Context["category_id"] = categoryID
-		// Ask confirmation now
+		// Create transaction immediately
 		var amountMinor int64
 		switch v := rec.Context["amount_minor"].(type) {
 		case float64:
@@ -414,16 +373,42 @@ func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {
 		case int:
 			amountMinor = int64(v)
 		}
-		amt := float64(amountMinor) / 100.0
 		currency, _ := rec.Context["currency"].(string)
 		desc, _ := rec.Context["desc"].(string)
-		kb := ui.CreateConfirmationKeyboard()
-		msg := tgbotapi.NewMessage(cb.Message.Chat.ID,
-			fmt.Sprintf("Сохранить: %s %.2f %s — %s (категория: %s)?", typeStr, amt, currency, desc, categoryName))
-		msg.ReplyMarkup = kb
-		_ = h.states.SetState(ctx, cb.From.ID, repository.StateConfirmingTransaction, rec.Context, nil)
-		_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Категория выбрана"))
-		_, _ = h.bot.Send(msg)
+		
+		// Create transaction immediately
+		_, err = h.txClient.CreateTransaction(ctx, &grpcclient.CreateTransactionRequest{
+			TenantID:    sess.TenantID,
+			Type:        typeStr,
+			AmountMinor: amountMinor,
+			Currency:    currency,
+			Description: desc,
+			CategoryID:  categoryID,
+			OccurredAt:  time.Now(), // Use current time as fallback
+		}, sess.AccessToken)
+		
+		if err != nil {
+			h.logger.Error("Failed to create transaction", 
+				zap.Int64("telegramID", cb.From.ID),
+				zap.Error(err))
+			_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Ошибка"))
+			_, _ = h.bot.Send(tgbotapi.NewMessage(cb.Message.Chat.ID, "Не удалось сохранить транзакцию"))
+			_ = h.states.ClearState(ctx, cb.From.ID)
+			return
+		}
+		
+		// Cleanup draft if present
+		if h.drafts != nil {
+			if dID, ok := rec.Context["draft_id"].(string); ok && dID != "" {
+				_ = h.drafts.Delete(ctx, dID)
+			}
+		}
+		
+		// Clear state and send success message
+		_ = h.states.ClearState(ctx, cb.From.ID)
+		_, _ = h.bot.Request(tgbotapi.NewCallback(cb.ID, "Сохранено"))
+		_, _ = h.bot.Send(tgbotapi.NewMessage(cb.Message.Chat.ID, fmt.Sprintf("✅ Сохранено: %s %.2f %s — %s (категория: %s)", typeStr, float64(amountMinor)/100.0, currency, desc, categoryName)))
+		metrics.IncTransactionsSaved("ok")
 		return
 	}
 	if strings.HasPrefix(data, "lang:") {
@@ -1285,7 +1270,7 @@ func (h *Handler) showTransactionsHelp(_ context.Context, update tgbotapi.Update
 *Процесс добавления:*
 1. Отправьте транзакцию в нужном формате
 2. Если категория не найдена автоматически, выберите из списка
-3. Подтвердите сохранение`
+3. Транзакция сохраняется автоматически`
 
 	kb := ui.CreateBackToHelpKeyboard()
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)

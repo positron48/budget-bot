@@ -100,18 +100,7 @@ func TestCreateTenantKeyboard_WithSingleTenant(t *testing.T) {
 	assert.Len(t, keyboard.InlineKeyboard, 1)
 }
 
-func TestCreateConfirmationKeyboard_Structure(t *testing.T) {
-	// Test CreateConfirmationKeyboard structure
-	keyboard := CreateConfirmationKeyboard()
-	assert.NotNil(t, keyboard)
-	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
-	assert.Len(t, keyboard.InlineKeyboard, 1)
-	assert.Len(t, keyboard.InlineKeyboard[0], 2)
-	
-	// Check button texts
-	assert.Contains(t, keyboard.InlineKeyboard[0][0].Text, "Подтвердить")
-	assert.Contains(t, keyboard.InlineKeyboard[0][1].Text, "Отмена")
-}
+
 
 func TestCreateLanguageKeyboard_Structure(t *testing.T) {
 	// Test CreateLanguageKeyboard structure

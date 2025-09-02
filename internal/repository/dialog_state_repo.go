@@ -23,8 +23,7 @@ const (
 	StateWaitingForRegisterPassword DialogState = "waiting_for_register_password"
 	// StateWaitingForRegisterName when registering name
 	StateWaitingForRegisterName DialogState = "waiting_for_register_name"
-	// StateConfirmingTransaction when user confirms parsed transaction
-	StateConfirmingTransaction DialogState = "confirming_transaction"
+
 	// StateWaitingForCategory when user chooses a category
 	StateWaitingForCategory DialogState = "waiting_for_category"
 	// OAuth States

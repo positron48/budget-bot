@@ -106,10 +106,7 @@ func TestDialogStateRecord_Extended(t *testing.T) {
 		State:      StateWaitingForPassword,
 	}
 	
-	state3 := &DialogStateRecord{
-		TelegramID: 345678,
-		State:      StateConfirmingTransaction,
-	}
+
 	
 	assert.Equal(t, int64(123456), state1.TelegramID)
 	assert.Equal(t, StateWaitingForEmail, state1.State)
@@ -117,8 +114,7 @@ func TestDialogStateRecord_Extended(t *testing.T) {
 	assert.Equal(t, int64(789012), state2.TelegramID)
 	assert.Equal(t, StateWaitingForPassword, state2.State)
 	
-	assert.Equal(t, int64(345678), state3.TelegramID)
-	assert.Equal(t, StateConfirmingTransaction, state3.State)
+
 }
 
 func TestTransactionDraft_Extended(t *testing.T) {
@@ -251,7 +247,6 @@ func TestDialogStateRecord_WithAllStates(t *testing.T) {
 	states := []DialogState{
 		StateWaitingForEmail,
 		StateWaitingForPassword,
-		StateConfirmingTransaction,
 	}
 	
 	for i, state := range states {

@@ -14,9 +14,7 @@ func TestCreateCategoryKeyboard(t *testing.T) {
 	if len(kb.InlineKeyboard) != 2 { t.Fatalf("rows: %d", len(kb.InlineKeyboard)) }
 }
 
-func TestCreateConfirmationAndLanguageAndCurrency(t *testing.T) {
-	c := CreateConfirmationKeyboard()
-	if len(c.InlineKeyboard) == 0 { t.Fatalf("confirm empty") }
+func TestCreateLanguageAndCurrency(t *testing.T) {
 	l := CreateLanguageKeyboard()
 	if len(l.InlineKeyboard) == 0 { t.Fatalf("lang empty") }
 	cur := CreateCurrencyKeyboard()

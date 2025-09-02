@@ -12,10 +12,7 @@ func TestCreateCategoryKeyboard_Exists(t *testing.T) {
 	assert.NotNil(t, CreateCategoryKeyboard)
 }
 
-func TestCreateConfirmationKeyboard_Exists(t *testing.T) {
-	// Test that the function exists and can be called
-	assert.NotNil(t, CreateConfirmationKeyboard)
-}
+
 
 func TestCreateLanguageKeyboard_Exists(t *testing.T) {
 	// Test that the function exists and can be called
@@ -47,12 +44,7 @@ func TestCreateBackToHelpKeyboard_Exists(t *testing.T) {
 	assert.NotNil(t, CreateBackToHelpKeyboard)
 }
 
-func TestCreateConfirmationKeyboard_ReturnsKeyboard(t *testing.T) {
-	// Test that CreateConfirmationKeyboard returns a keyboard
-	keyboard := CreateConfirmationKeyboard()
-	assert.NotNil(t, keyboard)
-	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
-}
+
 
 func TestCreateLanguageKeyboard_ReturnsKeyboard(t *testing.T) {
 	// Test that CreateLanguageKeyboard returns a keyboard

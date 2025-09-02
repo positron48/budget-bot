@@ -15,7 +15,7 @@ import (
 
 
 
-func TestHandler_Cancel_And_ConfirmNo(t *testing.T) {
+func TestHandler_Cancel_And_CategorySelection(t *testing.T) {
     log := zap.NewNop()
     db := testutil.OpenMigratedSQLite(t)
     sessions := repository.NewSQLiteSessionRepository(db)
@@ -43,7 +43,7 @@ func TestHandler_Cancel_And_ConfirmNo(t *testing.T) {
     updCancel.Message.Entities = []tgbotapi.MessageEntity{{Type:"bot_command", Offset:0, Length:7}}
     h.HandleUpdate(ctx, updCancel)
 
-    // simulate pending confirmation and then press no
+    // simulate category selection
     updLogin := tgbotapi.Update{UpdateID: 2, Message: &tgbotapi.Message{Chat:&tgbotapi.Chat{ID:chatID}, From:&tgbotapi.User{ID:userID}, Text:"/login"}}
     updLogin.Message.Entities = []tgbotapi.MessageEntity{{Type:"bot_command", Offset:0, Length:6}}
     h.HandleUpdate(ctx, updLogin)
@@ -53,12 +53,9 @@ func TestHandler_Cancel_And_ConfirmNo(t *testing.T) {
     h.HandleUpdate(ctx, updPass)
     updTx := updLogin; updTx.UpdateID = 5; updTx.Message.Text = "100 кофе"; updTx.Message.Entities = nil
     h.HandleUpdate(ctx, updTx)
-    // choose category
+    // choose category - transaction should be created immediately
     cbCat := tgbotapi.Update{UpdateID: 6, CallbackQuery: &tgbotapi.CallbackQuery{ID:"cb", From:&tgbotapi.User{ID:userID}, Message:&tgbotapi.Message{Chat:&tgbotapi.Chat{ID:chatID}}, Data:"cat:Питание"}}
     h.HandleUpdate(ctx, cbCat)
-    // press no
-    cbNo := tgbotapi.Update{UpdateID: 7, CallbackQuery: &tgbotapi.CallbackQuery{ID:"cb2", From:&tgbotapi.User{ID:userID}, Message:&tgbotapi.Message{Chat:&tgbotapi.Chat{ID:chatID}}, Data:"confirm:no"}}
-    h.HandleUpdate(ctx, cbNo)
     _ = time.Second
 }
 
