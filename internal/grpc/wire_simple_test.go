@@ -100,7 +100,7 @@ func TestFakeOAuthClient_GetAuthLogs(t *testing.T) {
 func TestWireClients(t *testing.T) {
 	logger := zap.NewNop()
 	
-	categoryClient, reportClient, tenantClient, transactionClient, oauthClient := WireClients(logger)
+	categoryClient, reportClient, tenantClient, transactionClient, oauthClient, authClient := WireClients(logger)
 	
 	assert.Nil(t, categoryClient)
 	assert.Nil(t, reportClient)
@@ -108,4 +108,6 @@ func TestWireClients(t *testing.T) {
 	assert.Nil(t, transactionClient)
 	assert.NotNil(t, oauthClient)
 	assert.IsType(t, &FakeOAuthClient{}, oauthClient)
+	assert.NotNil(t, authClient)
+	assert.IsType(t, &FakeAuthClient{}, authClient)
 }
