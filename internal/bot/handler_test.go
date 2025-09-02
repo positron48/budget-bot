@@ -45,3 +45,27 @@ func TestHandler_ExpiredTokensLogic(t *testing.T) {
 		assert.True(t, true, "User should need to re-authenticate when both tokens are expired")
 	}
 }
+
+func TestOccurredUnix(t *testing.T) {
+	// Test occurredUnix function with nil time
+	result := occurredUnix(nil)
+	assert.Equal(t, int64(0), result, "Should return 0 for nil time")
+	
+	// Test occurredUnix function with valid time
+	testTime := time.Date(2025, 9, 2, 12, 0, 0, 0, time.UTC)
+	expectedUnix := testTime.Unix()
+	result = occurredUnix(&testTime)
+	assert.Equal(t, expectedUnix, result, "Should return correct Unix timestamp for valid time")
+	
+	// Test occurredUnix function with time in different timezone
+	moscowTime := time.Date(2025, 9, 2, 15, 0, 0, 0, time.FixedZone("MSK", 3*60*60))
+	expectedUnixMoscow := moscowTime.Unix()
+	result = occurredUnix(&moscowTime)
+	assert.Equal(t, expectedUnixMoscow, result, "Should return correct Unix timestamp for time in different timezone")
+	
+	// Test occurredUnix function with zero time
+	zeroTime := time.Time{}
+	expectedUnixZero := zeroTime.Unix()
+	result = occurredUnix(&zeroTime)
+	assert.Equal(t, expectedUnixZero, result, "Should return correct Unix timestamp for zero time")
+}
