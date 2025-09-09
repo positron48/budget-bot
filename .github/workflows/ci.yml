@@ -23,7 +23,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: ${{ env.GO_VERSION }}
+        go-version-file: go.mod
 
     - name: Cache Go modules
       uses: actions/cache@v4
@@ -49,6 +49,8 @@ jobs:
       with:
         version: v1.61.0
         args: --timeout=3m
+      env:
+        GOTOOLCHAIN: go1.23.1
 
   build:
     name: Build
@@ -81,7 +83,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: ${{ env.GO_VERSION }}
+        go-version-file: go.mod
 
     - name: Cache Go modules
       uses: actions/cache@v4
