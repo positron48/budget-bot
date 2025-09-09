@@ -19,3 +19,6 @@ data/
 vendor/
 
 DEPLOYMENT.md
+
+scripts/deploy.sh
+scripts/Makefile
