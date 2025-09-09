@@ -137,11 +137,10 @@ jobs:
           if [ -d "$dir" ]; then
             binary_name=$(ls "$dir" | head -1)
             target_name=$(basename "$dir")
-            if [ "$binary_name" != "$target_name" ]; then
-              mv "$dir/$binary_name" "$target_name"
-            else
-              mv "$dir/$binary_name" .
-            fi
+            # Удалить существующий файл/директорию если есть
+            rm -rf "$target_name"
+            # Переместить бинарник
+            mv "$dir/$binary_name" "$target_name"
             chmod +x "$target_name"
             rmdir "$dir"
           fi
