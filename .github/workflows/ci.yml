@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches: [ main, master ]
-    tags: [ 'v*' ]
+    tags: [ '*' ]
   pull_request:
     branches: [ main, master ]
 
@@ -137,8 +137,13 @@ jobs:
           if [ -d "$dir" ]; then
             binary_name=$(ls "$dir" | head -1)
             target_name=$(basename "$dir")
-            mv "$dir/$binary_name" "$target_name"
+            if [ "$binary_name" != "$target_name" ]; then
+              mv "$dir/$binary_name" "$target_name"
+            else
+              mv "$dir/$binary_name" .
+            fi
             chmod +x "$target_name"
+            rmdir "$dir"
           fi
         done
         ls -la
