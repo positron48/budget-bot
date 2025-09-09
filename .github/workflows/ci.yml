@@ -51,29 +51,13 @@ jobs:
       env:
         GOTOOLCHAIN: go1.23.1
 
-  build:
-    name: Build
+  release:
+    name: Build and Release
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name == 'push' && github.ref_type == 'tag'
-    strategy:
-      matrix:
-        include:
-          - os: linux
-            arch: amd64
-            target: linux_amd64
-          - os: linux
-            arch: arm64
-            target: linux_arm64
-          - os: windows
-            arch: amd64
-            target: windows_amd64
-          - os: darwin
-            arch: amd64
-            target: darwin_amd64
-          - os: darwin
-            arch: arm64
-            target: darwin_arm64
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout code
@@ -97,55 +81,21 @@ jobs:
     - name: Download dependencies
       run: go mod download
 
-    - name: Build binary
-      env:
-        GOOS: ${{ matrix.os }}
-        GOARCH: ${{ matrix.arch }}
-        CGO_ENABLED: 0
+    - name: Build all binaries
       run: |
         mkdir -p dist
-        go build -tags withgrpc -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/${{ env.APP_NAME }}-${{ matrix.target }} ./cmd/bot
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.APP_NAME }}-${{ matrix.target }}
-        path: dist/${{ env.APP_NAME }}-${{ matrix.target }}
-        retention-days: 30
-
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'push' && github.ref_type == 'tag'
-    permissions:
-      contents: write
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: dist
-
-    - name: Prepare release assets
-      run: |
-        cd dist
-        for dir in */; do
-          if [ -d "$dir" ]; then
-            binary_name=$(ls "$dir" | head -1)
-            target_name=$(basename "$dir")
-            # Удалить существующий файл/директорию если есть
-            rm -rf "$target_name"
-            # Переместить бинарник
-            mv "$dir/$binary_name" "$target_name"
-            chmod +x "$target_name"
-            rmdir "$dir"
-          fi
-        done
-        ls -la
+        # Linux amd64
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags withgrpc -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budget-bot-linux_amd64 ./cmd/bot
+        # Linux arm64
+        GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -tags withgrpc -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budget-bot-linux_arm64 ./cmd/bot
+        # Windows amd64
+        GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -tags withgrpc -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budget-bot-windows_amd64.exe ./cmd/bot
+        # macOS amd64
+        GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -tags withgrpc -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budget-bot-darwin_amd64 ./cmd/bot
+        # macOS arm64
+        GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -tags withgrpc -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budget-bot-darwin_arm64 ./cmd/bot
+        chmod +x dist/budget-bot-*
+        ls -la dist/
 
     - name: Create checksums
       run: |
