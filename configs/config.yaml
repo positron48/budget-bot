@@ -9,7 +9,7 @@ telegram:
   webhook_path: "/tg"
 
 grpc:
-  address: "127.0.0.1:8081"
+  address: "127.0.0.1:8080"
   insecure: true
 
 database:
