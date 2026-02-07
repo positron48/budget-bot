@@ -1,39 +1,26 @@
-# Базовый образ с Go и необходимыми инструментами
-FROM golang:1.23.1-alpine
+FROM golang:1.23.1-alpine AS builder
+WORKDIR /src
 
-# Установка необходимых пакетов
-RUN apk add --no-cache \
-    git \
-    make \
-    ca-certificates \
-    sqlite \
-    tzdata \
-    wget \
-    && rm -rf /var/cache/apk/*
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Создание пользователя для безопасности
-RUN addgroup -g 1001 -S budgetbot && \
-    adduser -u 1001 -S budgetbot -G budgetbot
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags withgrpc -o /out/budget-bot ./cmd/bot
 
-# Создание необходимых директорий
-RUN mkdir -p /app/bin /app/data /app/configs /app/logs /app/migrations && \
-    chown -R budgetbot:budgetbot /app && \
-    chmod 755 /app/data
+FROM alpine:3.20
+RUN apk add --no-cache ca-certificates tzdata wget
 
-
-
-# Установка рабочей директории
+RUN addgroup -g 1001 -S budgetbot && adduser -u 1001 -S budgetbot -G budgetbot
 WORKDIR /app
 
-# Переключение на пользователя budgetbot
+COPY --from=builder /out/budget-bot /app/budget-bot
+COPY --from=builder /src/migrations /app/migrations
+
+RUN mkdir -p /app/data /app/logs /app/configs && chown -R budgetbot:budgetbot /app
 USER budgetbot
 
-# Экспорт портов
 EXPOSE 8088 9090
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8088/healthz || exit 1
 
-# Проверка здоровья
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8088/health || exit 1
-
-# Запуск приложения
-CMD ["sh", "-c", "touch /app/data/bot.sqlite && chmod 666 /app/data/bot.sqlite && go build -mod=vendor -tags withgrpc -o bin/budget-bot ./cmd/bot && ./bin/budget-bot"]
+ENTRYPOINT ["/app/budget-bot"]
