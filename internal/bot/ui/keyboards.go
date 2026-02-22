@@ -18,13 +18,21 @@ func CreateCategoryKeyboard(categories []*domain.Category) tgbotapi.InlineKeyboa
 }
 
 // CreatePostSelectionKeyboard builds actions after category is selected.
-func CreatePostSelectionKeyboard(source, opID string) tgbotapi.InlineKeyboardMarkup {
-	change := tgbotapi.NewInlineKeyboardButtonData("Сменить категорию", "v1:change:"+opID)
+func CreatePostSelectionKeyboard(source, opID, locale string) tgbotapi.InlineKeyboardMarkup {
+	changeLabel := "Сменить категорию"
+	forgetLabel := "Забыть выбор"
+	rememberLabel := "Запомнить выбор"
+	if locale == "en" {
+		changeLabel = "Change category"
+		forgetLabel = "Forget choice"
+		rememberLabel = "Remember choice"
+	}
+	change := tgbotapi.NewInlineKeyboardButtonData(changeLabel, "v1:change:"+opID)
 	if source == "mapping" {
-		forget := tgbotapi.NewInlineKeyboardButtonData("Забыть выбор", "v1:forget:"+opID)
+		forget := tgbotapi.NewInlineKeyboardButtonData(forgetLabel, "v1:forget:"+opID)
 		return tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(forget, change))
 	}
-	remember := tgbotapi.NewInlineKeyboardButtonData("Запомнить выбор", "v1:remember:"+opID)
+	remember := tgbotapi.NewInlineKeyboardButtonData(rememberLabel, "v1:remember:"+opID)
 	return tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(remember, change))
 }
 
@@ -88,13 +96,27 @@ func CreateMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
 }
 
 // CreateHelpKeyboard builds the main help menu keyboard.
-func CreateHelpKeyboard() tgbotapi.InlineKeyboardMarkup {
-	auth := tgbotapi.NewInlineKeyboardButtonData("🔐 Аутентификация", "help:auth")
-	transactions := tgbotapi.NewInlineKeyboardButtonData("💰 Транзакции", "help:transactions")
-	categories := tgbotapi.NewInlineKeyboardButtonData("🏷️ Категории", "help:categories")
-	stats := tgbotapi.NewInlineKeyboardButtonData("📊 Статистика", "help:stats")
-	settings := tgbotapi.NewInlineKeyboardButtonData("⚙️ Настройки", "help:settings")
-	admin := tgbotapi.NewInlineKeyboardButtonData("👨‍💼 Админ", "help:admin")
+func CreateHelpKeyboard(locale string) tgbotapi.InlineKeyboardMarkup {
+	authLabel := "🔐 Аутентификация"
+	txLabel := "💰 Транзакции"
+	catLabel := "🏷️ Категории"
+	statsLabel := "📊 Статистика"
+	settingsLabel := "⚙️ Настройки"
+	adminLabel := "👨‍💼 Админ"
+	if locale == "en" {
+		authLabel = "🔐 Auth"
+		txLabel = "💰 Transactions"
+		catLabel = "🏷️ Categories"
+		statsLabel = "📊 Stats"
+		settingsLabel = "⚙️ Settings"
+		adminLabel = "👨‍💼 Admin"
+	}
+	auth := tgbotapi.NewInlineKeyboardButtonData(authLabel, "help:auth")
+	transactions := tgbotapi.NewInlineKeyboardButtonData(txLabel, "help:transactions")
+	categories := tgbotapi.NewInlineKeyboardButtonData(catLabel, "help:categories")
+	stats := tgbotapi.NewInlineKeyboardButtonData(statsLabel, "help:stats")
+	settings := tgbotapi.NewInlineKeyboardButtonData(settingsLabel, "help:settings")
+	admin := tgbotapi.NewInlineKeyboardButtonData(adminLabel, "help:admin")
 
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(auth, transactions),
@@ -104,8 +126,12 @@ func CreateHelpKeyboard() tgbotapi.InlineKeyboardMarkup {
 }
 
 // CreateBackToHelpKeyboard builds a keyboard with back button.
-func CreateBackToHelpKeyboard() tgbotapi.InlineKeyboardMarkup {
-	back := tgbotapi.NewInlineKeyboardButtonData("🔙 Назад к справке", "help:")
+func CreateBackToHelpKeyboard(locale string) tgbotapi.InlineKeyboardMarkup {
+	label := "🔙 Назад к справке"
+	if locale == "en" {
+		label = "🔙 Back to help"
+	}
+	back := tgbotapi.NewInlineKeyboardButtonData(label, "help:")
 
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(back),

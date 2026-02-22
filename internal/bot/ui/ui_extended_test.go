@@ -3,10 +3,10 @@ package ui
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"budget-bot/internal/domain"
 	grpcclient "budget-bot/internal/grpc"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateCategoryKeyboard_WithCategories(t *testing.T) {
@@ -23,7 +23,7 @@ func TestCreateCategoryKeyboard_WithCategories(t *testing.T) {
 			Emoji: "🚗",
 		},
 	}
-	
+
 	keyboard := CreateCategoryKeyboard(categories)
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
@@ -33,7 +33,7 @@ func TestCreateCategoryKeyboard_WithCategories(t *testing.T) {
 func TestCreateCategoryKeyboard_WithEmptyCategories(t *testing.T) {
 	// Test CreateCategoryKeyboard with empty categories
 	categories := []*domain.Category{}
-	
+
 	keyboard := CreateCategoryKeyboard(categories)
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
@@ -49,7 +49,7 @@ func TestCreateCategoryKeyboard_WithSingleCategory(t *testing.T) {
 			Emoji: "🛒",
 		},
 	}
-	
+
 	keyboard := CreateCategoryKeyboard(categories)
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
@@ -68,7 +68,7 @@ func TestCreateTenantKeyboard_WithTenants(t *testing.T) {
 			Name: "Work",
 		},
 	}
-	
+
 	keyboard := CreateTenantKeyboard(tenants)
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
@@ -78,7 +78,7 @@ func TestCreateTenantKeyboard_WithTenants(t *testing.T) {
 func TestCreateTenantKeyboard_WithEmptyTenants(t *testing.T) {
 	// Test CreateTenantKeyboard with empty tenants
 	tenants := []*grpcclient.Tenant{}
-	
+
 	keyboard := CreateTenantKeyboard(tenants)
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
@@ -93,14 +93,12 @@ func TestCreateTenantKeyboard_WithSingleTenant(t *testing.T) {
 			Name: "Personal",
 		},
 	}
-	
+
 	keyboard := CreateTenantKeyboard(tenants)
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
 	assert.Len(t, keyboard.InlineKeyboard, 1)
 }
-
-
 
 func TestCreateLanguageKeyboard_Structure(t *testing.T) {
 	// Test CreateLanguageKeyboard structure
@@ -109,7 +107,7 @@ func TestCreateLanguageKeyboard_Structure(t *testing.T) {
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
 	assert.Len(t, keyboard.InlineKeyboard, 1)
 	assert.Len(t, keyboard.InlineKeyboard[0], 2)
-	
+
 	// Check button texts
 	assert.Contains(t, keyboard.InlineKeyboard[0][0].Text, "Русский")
 	assert.Contains(t, keyboard.InlineKeyboard[0][1].Text, "English")
@@ -123,7 +121,7 @@ func TestCreateCurrencyKeyboard_Structure(t *testing.T) {
 	assert.Len(t, keyboard.InlineKeyboard, 2)
 	assert.Len(t, keyboard.InlineKeyboard[0], 3)
 	assert.Len(t, keyboard.InlineKeyboard[1], 2)
-	
+
 	// Check button texts
 	assert.Contains(t, keyboard.InlineKeyboard[0][0].Text, "RUB")
 	assert.Contains(t, keyboard.InlineKeyboard[0][1].Text, "USD")
@@ -140,7 +138,7 @@ func TestCreateMainMenuKeyboard_Structure(t *testing.T) {
 	assert.Len(t, keyboard.Keyboard, 2)
 	assert.Len(t, keyboard.Keyboard[0], 3)
 	assert.Len(t, keyboard.Keyboard[1], 3)
-	
+
 	// Check button texts
 	assert.Equal(t, "/stats", keyboard.Keyboard[0][0].Text)
 	assert.Equal(t, "/recent", keyboard.Keyboard[0][1].Text)
@@ -152,14 +150,14 @@ func TestCreateMainMenuKeyboard_Structure(t *testing.T) {
 
 func TestCreateHelpKeyboard_Structure(t *testing.T) {
 	// Test CreateHelpKeyboard structure
-	keyboard := CreateHelpKeyboard()
+	keyboard := CreateHelpKeyboard("ru")
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
 	assert.Len(t, keyboard.InlineKeyboard, 3)
 	assert.Len(t, keyboard.InlineKeyboard[0], 2)
 	assert.Len(t, keyboard.InlineKeyboard[1], 2)
 	assert.Len(t, keyboard.InlineKeyboard[2], 2)
-	
+
 	// Check button texts
 	assert.Contains(t, keyboard.InlineKeyboard[0][0].Text, "Аутентификация")
 	assert.Contains(t, keyboard.InlineKeyboard[0][1].Text, "Транзакции")
@@ -171,12 +169,12 @@ func TestCreateHelpKeyboard_Structure(t *testing.T) {
 
 func TestCreateBackToHelpKeyboard_Structure(t *testing.T) {
 	// Test CreateBackToHelpKeyboard structure
-	keyboard := CreateBackToHelpKeyboard()
+	keyboard := CreateBackToHelpKeyboard("ru")
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
 	assert.Len(t, keyboard.InlineKeyboard, 1)
 	assert.Len(t, keyboard.InlineKeyboard[0], 1)
-	
+
 	// Check button text
 	assert.Contains(t, keyboard.InlineKeyboard[0][0].Text, "Назад к справке")
 }
@@ -191,7 +189,7 @@ func TestCreateCategoryKeyboard_WithManyCategories(t *testing.T) {
 		{ID: "cat5", Name: "Education", Emoji: "📚"},
 		{ID: "cat6", Name: "Shopping", Emoji: "🛍️"},
 	}
-	
+
 	keyboard := CreateCategoryKeyboard(categories)
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
@@ -212,7 +210,7 @@ func TestCreateCategoryKeyboard_WithSpecialCharacters(t *testing.T) {
 			Emoji: "🧪",
 		},
 	}
-	
+
 	keyboard := CreateCategoryKeyboard(categories)
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
@@ -228,7 +226,7 @@ func TestCreateTenantKeyboard_WithManyTenants(t *testing.T) {
 		{ID: "tenant4", Name: "Business"},
 		{ID: "tenant5", Name: "Side Project"},
 	}
-	
+
 	keyboard := CreateTenantKeyboard(tenants)
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
@@ -247,7 +245,7 @@ func TestCreateTenantKeyboard_WithSpecialCharacters(t *testing.T) {
 			Name: "Тестовый тенант",
 		},
 	}
-	
+
 	keyboard := CreateTenantKeyboard(tenants)
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
@@ -268,7 +266,7 @@ func TestCreateCategoryKeyboard_WithEmptyNames(t *testing.T) {
 			Emoji: "",
 		},
 	}
-	
+
 	keyboard := CreateCategoryKeyboard(categories)
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
@@ -287,7 +285,7 @@ func TestCreateTenantKeyboard_WithEmptyNames(t *testing.T) {
 			Name: "Work",
 		},
 	}
-	
+
 	keyboard := CreateTenantKeyboard(tenants)
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
@@ -297,7 +295,7 @@ func TestCreateTenantKeyboard_WithEmptyNames(t *testing.T) {
 func TestCreateCategoryKeyboard_WithNilCategories(t *testing.T) {
 	// Test CreateCategoryKeyboard with nil categories
 	var categories []*domain.Category
-	
+
 	keyboard := CreateCategoryKeyboard(categories)
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
@@ -307,7 +305,7 @@ func TestCreateCategoryKeyboard_WithNilCategories(t *testing.T) {
 func TestCreateTenantKeyboard_WithNilTenants(t *testing.T) {
 	// Test CreateTenantKeyboard with nil tenants
 	var tenants []*grpcclient.Tenant
-	
+
 	keyboard := CreateTenantKeyboard(tenants)
 	assert.NotNil(t, keyboard)
 	assert.IsType(t, tgbotapi.InlineKeyboardMarkup{}, keyboard)
