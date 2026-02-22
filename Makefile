@@ -4,7 +4,7 @@ GO := go
 -include .env
 .EXPORT_ALL_VARIABLES:
 
-.PHONY: all tidy build run test lint setup up coverage
+.PHONY: all tidy build run test lint check setup up coverage
 
 all: build
 
@@ -28,6 +28,8 @@ LINT_TOOLCHAIN ?= go1.23.1
 
 lint:
 	GOTOOLCHAIN=$(LINT_TOOLCHAIN) $(GOLANGCI) run --timeout=3m
+
+check: lint test build
 
 .PHONY: lint-install
 lint-install:

@@ -864,7 +864,7 @@ func (h *Handler) handleCategorySelectV1(ctx context.Context, cb *tgbotapi.Callb
 		}
 	}
 
-	txt := tr(locale, "Категория обновлена: ", "Category updated: ") + categoryName
+	var txt string
 	if op.TransactionID == nil || *op.TransactionID == "" {
 		txt = fmt.Sprintf(
 			"%s %s %.2f %s — %s\n%s: %s",

@@ -8,7 +8,7 @@ import (
 )
 
 func TestOpenRouterClientSuggestCategory(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"{\"category_id\":\"cat-1\",\"probability\":0.8,\"reason\":\"coffee\"}"}}]}`))
 	}))
 	defer ts.Close()
@@ -29,7 +29,7 @@ func TestOpenRouterClientSuggestCategory(t *testing.T) {
 }
 
 func TestOpenRouterClientSuggestCategoryInvalid(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"{\"category_id\":\"cat-2\",\"probability\":1.5}"}}]}`))
 	}))
 	defer ts.Close()
