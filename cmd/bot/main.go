@@ -11,13 +11,14 @@ import (
 	"syscall"
 
 	botpkg "budget-bot/internal/bot"
+	"budget-bot/internal/llm"
 	"budget-bot/internal/pkg/config"
 	"budget-bot/internal/pkg/db"
 	botlogger "budget-bot/internal/pkg/logger"
 
-	"budget-bot/internal/repository"
 	grpcwire "budget-bot/internal/grpc"
 	"budget-bot/internal/metrics"
+	"budget-bot/internal/repository"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
 	"net/url"
@@ -73,20 +74,29 @@ func main() {
 	mappingRepo := repository.NewSQLiteCategoryMappingRepository(dbConn)
 	prefsRepo := repository.NewSQLitePreferencesRepository(dbConn)
 	draftRepo := repository.NewSQLiteDraftRepository(dbConn)
-	
+	opCtxRepo := repository.NewSQLiteOperationContextRepository(dbConn)
+
 	// Wire OAuth clients
 	catClient, reportClient, tenantClient, txClient, oauthClient, authClient := grpcwire.WireClients(log)
-	
+
 	// Create OAuth manager
 	oauthManager := botpkg.NewOAuthManagerWithAuthClient(oauthClient, authClient, sessionRepo, log, cfg.OAuth.WebBaseURL)
-	
+
 	h := botpkg.NewHandler(bot, stateRepo, oauthManager, mappingRepo, catClient, log).
 		WithPreferences(prefsRepo).
 		WithDrafts(draftRepo).
+		WithOperationContexts(opCtxRepo).
 		WithCategoryClient(catClient).
 		WithReportClient(reportClient).
 		WithTransactionClient(txClient).
 		WithTenantClient(tenantClient)
+	if cfg.OpenRouter.Enable {
+		if cfg.OpenRouter.APIKey == "" || cfg.OpenRouter.Model == "" {
+			log.Warn("openrouter enabled but API key/model is not configured; llm fallback disabled")
+		} else {
+			h.WithLLM(llm.NewOpenRouterClient(cfg.OpenRouter.BaseURL, cfg.OpenRouter.APIKey, cfg.OpenRouter.Model, cfg.OpenRouter.Timeout), true)
+		}
+	}
 
 	// Webhook mode vs long polling
 	if cfg.Telegram.WebhookEnable {
@@ -101,17 +111,17 @@ func main() {
 		} else {
 			log.Fatal("webhook enabled but neither webhook_url nor webhook_domain is configured")
 		}
-		
+
 		log.Info("setting webhook", zap.String("url", webhookURL))
-		
+
 		// Set webhook using the configured API base URL
 		whCfg, _ := tgbotapi.NewWebhook(webhookURL)
 		if _, err := bot.Request(whCfg); err != nil {
 			log.Fatal("failed to set webhook", zap.Error(err))
 		}
-		
+
 		log.Info("webhook set successfully")
-		
+
 		// Serve webhook on configured path
 		http.HandleFunc(cfg.Telegram.WebhookPath, func(w http.ResponseWriter, r *http.Request) {
 			update, err := bot.HandleUpdate(r)
@@ -130,13 +140,13 @@ func main() {
 		if cfg.Metrics.Enabled {
 			http.Handle("/metrics", metrics.Handler())
 		}
-		
+
 		log.Info("starting HTTP server for webhook", zap.String("address", cfg.Server.Address))
 		go func() { _ = http.ListenAndServe(cfg.Server.Address, nil) }()
-		
+
 		// Wait for shutdown signal
 		<-ctx.Done()
-		
+
 		// Clean up webhook on shutdown using the configured API base URL
 		log.Info("cleaning up webhook")
 		if _, err := bot.Request(tgbotapi.DeleteWebhookConfig{}); err != nil {
@@ -144,7 +154,7 @@ func main() {
 		} else {
 			log.Info("webhook deleted successfully")
 		}
-		
+
 		log.Info("shutting down")
 		return
 	}
@@ -195,7 +205,3 @@ func normalizeAPIEndpoint(base string) string {
 	}
 	return s + "/bot%s/%s"
 }
-
-
-
-

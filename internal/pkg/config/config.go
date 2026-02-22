@@ -4,6 +4,7 @@ package config
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
@@ -11,13 +12,14 @@ import (
 
 // Config is the root application configuration loaded from YAML/env.
 type Config struct {
-	Telegram TelegramConfig `mapstructure:"telegram"`
-	GRPC     GRPCConfig     `mapstructure:"grpc"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Logging  LoggingConfig  `mapstructure:"logging"`
-	Metrics  MetricsConfig  `mapstructure:"metrics"`
-	Server   ServerConfig   `mapstructure:"server"`
-	OAuth    OAuthConfig    `mapstructure:"oauth"`
+	Telegram   TelegramConfig   `mapstructure:"telegram"`
+	GRPC       GRPCConfig       `mapstructure:"grpc"`
+	Database   DatabaseConfig   `mapstructure:"database"`
+	Logging    LoggingConfig    `mapstructure:"logging"`
+	Metrics    MetricsConfig    `mapstructure:"metrics"`
+	Server     ServerConfig     `mapstructure:"server"`
+	OAuth      OAuthConfig      `mapstructure:"oauth"`
+	OpenRouter OpenRouterConfig `mapstructure:"openrouter"`
 }
 
 // TelegramConfig holds Telegram Bot API settings.
@@ -82,6 +84,15 @@ type OAuthConfig struct {
 	WebBaseURL string `mapstructure:"web_base_url"`
 }
 
+// OpenRouterConfig holds LLM category suggestion settings.
+type OpenRouterConfig struct {
+	Enable  bool          `mapstructure:"enable"`
+	APIKey  string        `mapstructure:"api_key"`
+	Model   string        `mapstructure:"model"`
+	BaseURL string        `mapstructure:"base_url"`
+	Timeout time.Duration `mapstructure:"timeout"`
+}
+
 // Load loads configuration from configs/config.yaml and environment variables.
 func Load() (*Config, error) {
 	v := viper.New()
@@ -103,6 +114,9 @@ func Load() (*Config, error) {
 	v.SetDefault("metrics.address", ":9090")
 	v.SetDefault("server.address", ":8088")
 	v.SetDefault("oauth.web_base_url", "http://localhost:3000")
+	v.SetDefault("openrouter.enable", false)
+	v.SetDefault("openrouter.base_url", "https://openrouter.ai/api/v1")
+	v.SetDefault("openrouter.timeout", "10s")
 
 	// Files
 	v.SetConfigName("config")
@@ -135,6 +149,11 @@ func Load() (*Config, error) {
 	_ = v.BindEnv("metrics.enabled", "METRICS_ENABLED")
 	_ = v.BindEnv("metrics.address", "METRICS_ADDRESS")
 	_ = v.BindEnv("server.address", "SERVER_ADDRESS")
+	_ = v.BindEnv("openrouter.enable", "OPENROUTER_ENABLE")
+	_ = v.BindEnv("openrouter.api_key", "OPENROUTER_API_KEY")
+	_ = v.BindEnv("openrouter.model", "OPENROUTER_MODEL")
+	_ = v.BindEnv("openrouter.base_url", "OPENROUTER_BASE_URL")
+	_ = v.BindEnv("openrouter.timeout", "OPENROUTER_TIMEOUT")
 
 	// Read file if present
 	if err := v.ReadInConfig(); err != nil {
@@ -152,5 +171,3 @@ func Load() (*Config, error) {
 
 	return &cfg, nil
 }
-
-

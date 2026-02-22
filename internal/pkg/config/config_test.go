@@ -20,9 +20,19 @@ func TestLoad_DefaultsAndEnvOverride(t *testing.T) {
 	}
 	// Override via env
 	_ = os.Setenv("GRPC_SERVER_ADDRESS", "1.2.3.4:5555")
+	_ = os.Setenv("OPENROUTER_ENABLE", "true")
+	_ = os.Setenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
 	cfg, err = Load()
-	if err != nil { t.Fatalf("reload: %v", err) }
+	if err != nil {
+		t.Fatalf("reload: %v", err)
+	}
 	if cfg.GRPC.Address != "1.2.3.4:5555" {
 		t.Fatalf("env override not applied: %s", cfg.GRPC.Address)
+	}
+	if !cfg.OpenRouter.Enable {
+		t.Fatalf("openrouter enable env override not applied")
+	}
+	if cfg.OpenRouter.Model != "openai/gpt-4o-mini" {
+		t.Fatalf("openrouter model env override not applied: %s", cfg.OpenRouter.Model)
 	}
 }

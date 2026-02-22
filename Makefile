@@ -17,7 +17,7 @@ build:
 build-fake:
 	$(GO) build -o bin/$(APP_NAME) ./cmd/bot
 
-run: tidy build
+up: tidy build
 	./bin/$(APP_NAME)
 
 test:
