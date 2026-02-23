@@ -45,3 +45,24 @@ func TestOpenRouterClientSuggestCategoryInvalid(t *testing.T) {
 		t.Fatalf("expected err")
 	}
 }
+
+func TestOpenRouterClientSuggestCategoryCodeFence(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("{\"choices\":[{\"message\":{\"content\":\"```json\\n{\\\"category_id\\\":\\\"cat-1\\\",\\\"probability\\\":0.9,\\\"reason\\\":\\\"coffee\\\"}\\n```\"}}]}"))
+	}))
+	defer ts.Close()
+
+	c := NewOpenRouterClient(ts.URL, "k", "m", 0)
+	resp, err := c.SuggestCategory(context.Background(), SuggestCategoryRequest{
+		Description:     "кофе",
+		TransactionType: "expense",
+		Locale:          "ru",
+		Categories:      []CategoryOption{{ID: "cat-1", Name: "Еда"}},
+	})
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if resp.CategoryID != "cat-1" {
+		t.Fatalf("unexpected category: %s", resp.CategoryID)
+	}
+}

@@ -240,6 +240,7 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 					return
 				}
 
+				llmFallbackHint := ""
 				if h.llmEnabled && h.llm != nil {
 					_, _ = h.bot.Request(tgbotapi.NewChatAction(update.Message.Chat.ID, tgbotapi.ChatTyping))
 					choices := make([]llm.CategoryOption, 0, len(list))
@@ -255,6 +256,7 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 					if llmErr != nil {
 						h.logger.Warn("llm suggestion failed", zap.Error(llmErr))
 						metrics.IncLLMSuggestion("error")
+						llmFallbackHint = llmFailureHint(locale, llmErr, 0)
 					} else if s.Probability >= 0.5 {
 						catID = s.CategoryID
 						source = "llm"
@@ -263,9 +265,9 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 						h.logger.Info("llm category selected", zap.Float64("probability", s.Probability), zap.String("category_id", s.CategoryID))
 					} else {
 						metrics.IncLLMSuggestion("rejected")
+						llmFallbackHint = llmFailureHint(locale, nil, s.Probability)
 					}
 				}
-
 				if catID == "" {
 					kb := ui.CreateCategoryKeyboard(list)
 					opID := uuid.NewString()
@@ -290,7 +292,11 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 						"occurred_at":  occurredUnix(parsed.OccurredAt),
 						"op_id":        opID,
 					}, nil)
-					msg := tgbotapi.NewMessage(update.Message.Chat.ID, tr(locale, "Категорию автоматически определить не получилось. Выберите вручную:", "Could not determine category automatically. Choose manually:"))
+					text := tr(locale, "Категорию автоматически определить не получилось. Выберите вручную:", "Could not determine category automatically. Choose manually:")
+					if llmFallbackHint != "" {
+						text += "\n\n" + llmFallbackHint
+					}
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
 					msg.ReplyMarkup = kb
 					sent, _ := h.bot.Send(msg)
 					if h.opCtxs != nil && sent.MessageID != 0 {
@@ -442,6 +448,36 @@ func tr(locale, ru, en string) string {
 		return en
 	}
 	return ru
+}
+
+func llmFailureHint(locale string, err error, probability float64) string {
+	if err == nil {
+		return fmt.Sprintf(
+			tr(
+				locale,
+				"Причина: LLM не уверен в автоподборе (уверенность %.0f%%).",
+				"Reason: LLM confidence is too low for auto-selection (%.0f%%).",
+			),
+			probability*100,
+		)
+	}
+	msg := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(msg, "not configured"):
+		return tr(locale, "Причина: LLM не настроен (ключ/API модель).", "Reason: LLM is not configured (API key/model).")
+	case strings.Contains(msg, "bad status 401"), strings.Contains(msg, "bad status 403"):
+		return tr(locale, "Причина: LLM отклонил авторизацию (проверьте API ключ).", "Reason: LLM authorization failed (check API key).")
+	case strings.Contains(msg, "bad status 429"):
+		return tr(locale, "Причина: LLM временно перегружен (лимит запросов).", "Reason: LLM is rate-limited at the moment.")
+	case strings.Contains(msg, "request failed"), strings.Contains(msg, "context deadline exceeded"):
+		return tr(locale, "Причина: LLM временно недоступен по сети или таймаут.", "Reason: LLM is temporarily unavailable due to network/timeout.")
+	case strings.Contains(msg, "response decode failed"), strings.Contains(msg, "content json decode failed"), strings.Contains(msg, "empty llm response"):
+		return tr(locale, "Причина: LLM вернул ответ в неподдерживаемом формате.", "Reason: LLM returned an unsupported response format.")
+	case strings.Contains(msg, "invalid probability"), strings.Contains(msg, "out of allowed list"):
+		return tr(locale, "Причина: LLM вернул некорректный результат подбора.", "Reason: LLM returned an invalid category suggestion.")
+	default:
+		return tr(locale, "Причина: ошибка LLM, выберите категорию вручную.", "Reason: LLM error, please choose category manually.")
+	}
 }
 
 func (h *Handler) handleCallback(ctx context.Context, update tgbotapi.Update) {

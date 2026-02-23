@@ -94,12 +94,13 @@ func (c *OpenRouterClient) SuggestCategory(ctx context.Context, req SuggestCateg
 		return nil, fmt.Errorf("empty llm response")
 	}
 
+	content := extractJSONContent(parsed.Choices[0].Message.Content)
 	var out struct {
 		CategoryID  string  `json:"category_id"`
 		Probability float64 `json:"probability"`
 		Reason      string  `json:"reason"`
 	}
-	if err := json.Unmarshal([]byte(strings.TrimSpace(parsed.Choices[0].Message.Content)), &out); err != nil {
+	if err := json.Unmarshal([]byte(content), &out); err != nil {
 		return nil, fmt.Errorf("openrouter content json decode failed: %w", err)
 	}
 	if out.Probability < 0 || out.Probability > 1 {
@@ -113,4 +114,25 @@ func (c *OpenRouterClient) SuggestCategory(ctx context.Context, req SuggestCateg
 		return nil, fmt.Errorf("category is out of allowed list")
 	}
 	return &SuggestCategoryResponse{CategoryID: out.CategoryID, Probability: out.Probability, Reason: out.Reason}, nil
+}
+
+// extractJSONContent normalizes LLM output and tries to isolate JSON object payload.
+func extractJSONContent(content string) string {
+	s := strings.TrimSpace(content)
+	if strings.HasPrefix(s, "```") {
+		s = strings.TrimPrefix(s, "```json")
+		s = strings.TrimPrefix(s, "```JSON")
+		s = strings.TrimPrefix(s, "```")
+		s = strings.TrimSpace(s)
+		if strings.HasSuffix(s, "```") {
+			s = strings.TrimSuffix(s, "```")
+			s = strings.TrimSpace(s)
+		}
+	}
+	start := strings.Index(s, "{")
+	end := strings.LastIndex(s, "}")
+	if start >= 0 && end >= start {
+		return strings.TrimSpace(s[start : end+1])
+	}
+	return s
 }
