@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	botpkg "budget-bot/internal/bot"
 	"budget-bot/internal/llm"
@@ -221,7 +222,15 @@ func buildTelegramSocks5Transport(raw string) (*http.Transport, error) {
 	if err != nil {
 		return nil, err
 	}
-	dialer, err := proxy.SOCKS5("tcp", hostPort, auth, proxy.Direct)
+
+	// Some SOCKS providers are slow to establish TCP/TLS handshakes.
+	// We keep dial timeout relatively small for the SOCKS handshake itself,
+	// but give TLS handshake more time to avoid failing startup.
+	baseDialer := &net.Dialer{
+		Timeout:   10 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	dialer, err := proxy.SOCKS5("tcp", hostPort, auth, baseDialer)
 	if err != nil {
 		return nil, fmt.Errorf("socks5 dialer init: %w", err)
 	}
@@ -236,6 +245,9 @@ func buildTelegramSocks5Transport(raw string) (*http.Transport, error) {
 	tr.DialContext = func(_ context.Context, network, addr string) (net.Conn, error) {
 		return dialer.Dial(network, addr)
 	}
+	// Allow slower SOCKS5/TLS handshake paths; default Go value is small enough
+	// to cause CrashLoopBackOff during startup for some proxies.
+	tr.TLSHandshakeTimeout = 30 * time.Second
 	return tr, nil
 }
 
