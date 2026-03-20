@@ -43,26 +43,28 @@ func main() {
 
 	log.Info("starting bot")
 
-	// Telegram bot init with optional BaseURL for emulator
-	var bot *tgbotapi.BotAPI
+	// Telegram bot init with optional BaseURL for emulator.
+	// Important: we must build and pass HTTP client to constructor, because
+	// the library does an initial `getMe()` call inside `NewBotAPIWithClient`.
+	apiEndpoint := tgbotapi.APIEndpoint
 	if cfg.Telegram.APIBaseURL != "" {
-		endpoint := normalizeAPIEndpoint(cfg.Telegram.APIBaseURL)
-		bot, err = tgbotapi.NewBotAPIWithAPIEndpoint(cfg.Telegram.Token, endpoint)
-	} else {
-		bot, err = tgbotapi.NewBotAPI(cfg.Telegram.Token)
+		apiEndpoint = normalizeAPIEndpoint(cfg.Telegram.APIBaseURL)
 	}
+
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+	if cfg.Telegram.Socks5Proxy != "" {
+		tr, err := buildTelegramSocks5Transport(cfg.Telegram.Socks5Proxy, log)
+		if err != nil {
+			log.Fatal("failed to build socks5 transport", zap.Error(err))
+		}
+		httpClient.Transport = tr
+	}
+
+	bot, err := tgbotapi.NewBotAPIWithClient(cfg.Telegram.Token, apiEndpoint, httpClient)
 	if err != nil {
 		log.Fatal("failed to init bot", zap.Error(err))
 	}
 	bot.Debug = cfg.Telegram.Debug
-	if cfg.Telegram.Socks5Proxy != "" {
-		tr, err := buildTelegramSocks5Transport(cfg.Telegram.Socks5Proxy)
-		if err != nil {
-			log.Fatal("failed to build socks5 transport", zap.Error(err))
-		}
-		bot.Client = &http.Client{Transport: tr}
-		log.Info("telegram socks5 proxy enabled", zap.String("socks5_proxy", cfg.Telegram.Socks5Proxy))
-	}
 
 	log.Info("authorized on account", zap.String("username", bot.Self.UserName))
 
@@ -217,38 +219,33 @@ func normalizeAPIEndpoint(base string) string {
 	return s + "/bot%s/%s"
 }
 
-func buildTelegramSocks5Transport(raw string) (*http.Transport, error) {
-	hostPort, auth, err := normalizeSocks5Proxy(raw)
+func buildTelegramSocks5Transport(raw string, log *zap.Logger) (*http.Transport, error) {
+	proxyAddr, auth, err := normalizeSocks5Proxy(raw)
 	if err != nil {
 		return nil, err
 	}
 
-	// Some SOCKS providers are slow to establish TCP/TLS handshakes.
-	// We keep dial timeout relatively small for the SOCKS handshake itself,
-	// but give TLS handshake more time to avoid failing startup.
-	baseDialer := &net.Dialer{
-		Timeout:   10 * time.Second,
-		KeepAlive: 30 * time.Second,
-	}
-	dialer, err := proxy.SOCKS5("tcp", hostPort, auth, baseDialer)
+	dialer, err := proxy.SOCKS5("tcp", proxyAddr, auth, proxy.Direct)
 	if err != nil {
-		return nil, fmt.Errorf("socks5 dialer init: %w", err)
+		return nil, fmt.Errorf("init socks5 dialer for Telegram: %w", err)
 	}
 
-	baseTransport, ok := http.DefaultTransport.(*http.Transport)
-	if !ok {
-		return nil, fmt.Errorf("unexpected http.DefaultTransport type %T", http.DefaultTransport)
+	// Match the approach used in `english-ai-bot`:
+	// explicitly configure timeouts and disable proxy env vars.
+	transport := &http.Transport{
+		Proxy: nil, // ensure we don't use HTTP_PROXY env vars for Telegram
+		DialContext: func(_ context.Context, network, addr string) (net.Conn, error) {
+			return dialer.Dial(network, addr)
+		},
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 20 * time.Second,
+		ExpectContinueTimeout:  1 * time.Second,
+		IdleConnTimeout:       30 * time.Second,
+		MaxIdleConns:          10,
 	}
-	tr := baseTransport.Clone()
-	// Important: do not use HTTP proxy env vars for Telegram; SOCKS5 transport is explicit.
-	tr.Proxy = nil
-	tr.DialContext = func(_ context.Context, network, addr string) (net.Conn, error) {
-		return dialer.Dial(network, addr)
-	}
-	// Allow slower SOCKS5/TLS handshake paths; default Go value is small enough
-	// to cause CrashLoopBackOff during startup for some proxies.
-	tr.TLSHandshakeTimeout = 30 * time.Second
-	return tr, nil
+
+	log.Info("telegram socks5 proxy enabled", zap.String("addr", proxyAddr))
+	return transport, nil
 }
 
 func normalizeSocks5Proxy(raw string) (hostPort string, auth *proxy.Auth, err error) {
