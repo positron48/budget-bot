@@ -1,5 +1,6 @@
 telegram:
   token: "${TELEGRAM_BOT_TOKEN}"
+  socks5_proxy: ""
   api_base_url: "http://127.0.0.1:3001/bot%s/%s"
   debug: true
   updates_timeout: 30

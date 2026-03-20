@@ -172,6 +172,7 @@ nohup ./budget-bot > bot.log 2>&1 &
 TELEGRAM_BOT_TOKEN=your_bot_token_here
 TELEGRAM_API_BASE_URL=https://api.telegram.org/
 TELEGRAM_DEBUG=false
+TELEGRAM_SOCKS5_PROXY=
 
 # Webhook (опционально)
 TELEGRAM_WEBHOOK_ENABLE=false

@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -20,6 +21,7 @@ import (
 	"budget-bot/internal/metrics"
 	"budget-bot/internal/repository"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"golang.org/x/net/proxy"
 	"go.uber.org/zap"
 	"net/url"
 )
@@ -52,6 +54,14 @@ func main() {
 		log.Fatal("failed to init bot", zap.Error(err))
 	}
 	bot.Debug = cfg.Telegram.Debug
+	if cfg.Telegram.Socks5Proxy != "" {
+		tr, err := buildTelegramSocks5Transport(cfg.Telegram.Socks5Proxy)
+		if err != nil {
+			log.Fatal("failed to build socks5 transport", zap.Error(err))
+		}
+		bot.Client = &http.Client{Transport: tr}
+		log.Info("telegram socks5 proxy enabled", zap.String("socks5_proxy", cfg.Telegram.Socks5Proxy))
+	}
 
 	log.Info("authorized on account", zap.String("username", bot.Self.UserName))
 
@@ -204,4 +214,51 @@ func normalizeAPIEndpoint(base string) string {
 		return s + "bot%s/%s"
 	}
 	return s + "/bot%s/%s"
+}
+
+func buildTelegramSocks5Transport(raw string) (*http.Transport, error) {
+	hostPort, auth, err := normalizeSocks5Proxy(raw)
+	if err != nil {
+		return nil, err
+	}
+	dialer, err := proxy.SOCKS5("tcp", hostPort, auth, proxy.Direct)
+	if err != nil {
+		return nil, fmt.Errorf("socks5 dialer init: %w", err)
+	}
+
+	baseTransport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return nil, fmt.Errorf("unexpected http.DefaultTransport type %T", http.DefaultTransport)
+	}
+	tr := baseTransport.Clone()
+	// Important: do not use HTTP proxy env vars for Telegram; SOCKS5 transport is explicit.
+	tr.Proxy = nil
+	tr.DialContext = func(_ context.Context, network, addr string) (net.Conn, error) {
+		return dialer.Dial(network, addr)
+	}
+	return tr, nil
+}
+
+func normalizeSocks5Proxy(raw string) (hostPort string, auth *proxy.Auth, err error) {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return "", nil, fmt.Errorf("empty socks5 proxy")
+	}
+	// Accept "ip:port" shorthand.
+	if !strings.Contains(s, "://") {
+		s = "socks5://" + s
+	}
+	u, err := url.Parse(s)
+	if err != nil {
+		return "", nil, fmt.Errorf("parse socks5 proxy: %w", err)
+	}
+	if u.Host == "" {
+		return "", nil, fmt.Errorf("parse socks5 proxy: missing host:port in %q", raw)
+	}
+	var a *proxy.Auth
+	if u.User != nil {
+		pass, _ := u.User.Password()
+		a = &proxy.Auth{User: u.User.Username(), Password: pass}
+	}
+	return u.Host, a, nil
 }

@@ -28,6 +28,12 @@ type TelegramConfig struct {
 	Token string `mapstructure:"token"`
 	// APIBaseURL allows pointing to a local Telegram emulator
 	APIBaseURL string `mapstructure:"api_base_url"`
+	// Socks5Proxy optionally routes all Telegram Bot API HTTP requests through a SOCKS5 proxy.
+	// Expected formats:
+	// - "ip:port"
+	// - "socks5://ip:port"
+	// - "socks5://user:pass@ip:port"
+	Socks5Proxy string `mapstructure:"socks5_proxy"`
 	// Debug enables verbose logging for bot API
 	Debug bool `mapstructure:"debug"`
 	// UpdatesTimeout long polling timeout in seconds
@@ -103,6 +109,7 @@ func Load() (*Config, error) {
 	// Defaults
 	v.SetDefault("telegram.debug", true)
 	v.SetDefault("telegram.updates_timeout", 30)
+	v.SetDefault("telegram.socks5_proxy", "")
 	v.SetDefault("telegram.webhook_enable", false)
 	v.SetDefault("telegram.webhook_path", "/tg")
 	v.SetDefault("grpc.address", "127.0.0.1:8081")
@@ -131,6 +138,7 @@ func Load() (*Config, error) {
 	// Map some convenient env names
 	_ = v.BindEnv("telegram.token", "TELEGRAM_BOT_TOKEN")
 	_ = v.BindEnv("telegram.api_base_url", "TELEGRAM_API_BASE_URL")
+	_ = v.BindEnv("telegram.socks5_proxy", "TELEGRAM_SOCKS5_PROXY")
 	_ = v.BindEnv("telegram.debug", "TELEGRAM_DEBUG")
 	_ = v.BindEnv("telegram.updates_timeout", "TELEGRAM_UPDATES_TIMEOUT")
 	_ = v.BindEnv("telegram.webhook_enable", "TELEGRAM_WEBHOOK_ENABLE")
