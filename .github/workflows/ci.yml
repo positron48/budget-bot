@@ -10,6 +10,9 @@ on:
 env:
   GO_VERSION: '1.23.1'
   APP_NAME: 'budget-bot'
+  # Temporary compatibility switch for golangci/golangci-lint-action@v6 while it still runs on Node 20.
+  # Remove after upgrading the linter action/runtime.
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
 
 permissions:
   contents: read
