@@ -38,6 +38,10 @@ Telegram‑бот для быстрого добавления транзакц�
 - Команды: `/start`, `/register`, `/login`, `/stats`, `/recent`, `/export`, `/categories`, `/map` и др.
 - gRPC адрес: `GRPC_SERVER_ADDRESS` в `.env`.
 - БД по умолчанию: SQLite (`DATABASE_DSN`).
+- OpenRouter category suggestion can use a dedicated SOCKS5 proxy via `OPENROUTER_SOCKS5_PROXY`
+  (`ip:port`, `socks5://ip:port`, or `socks5://user:pass@ip:port`). In k3s this is set from
+  `devops-time-host/apps/budget-bot/base/configmap.yaml` and applies only to the OpenRouter HTTP
+  client, not Telegram or Kubernetes-internal gRPC.
 
 ## Правило фиксации знаний
 - Любые важные договоренности, архитектурные решения, нестандартные флоу и найденные подводные камни нужно фиксировать в файловой документации (`AGENTS.md`, `docs/*`, `plans/*`) в том же PR/изменении, где они появились.

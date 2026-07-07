@@ -92,11 +92,12 @@ type OAuthConfig struct {
 
 // OpenRouterConfig holds LLM category suggestion settings.
 type OpenRouterConfig struct {
-	Enable  bool          `mapstructure:"enable"`
-	APIKey  string        `mapstructure:"api_key"`
-	Model   string        `mapstructure:"model"`
-	BaseURL string        `mapstructure:"base_url"`
-	Timeout time.Duration `mapstructure:"timeout"`
+	Enable      bool          `mapstructure:"enable"`
+	APIKey      string        `mapstructure:"api_key"`
+	Model       string        `mapstructure:"model"`
+	BaseURL     string        `mapstructure:"base_url"`
+	Timeout     time.Duration `mapstructure:"timeout"`
+	Socks5Proxy string        `mapstructure:"socks5_proxy"`
 }
 
 // Load loads configuration from configs/config.yaml and environment variables.
@@ -124,6 +125,7 @@ func Load() (*Config, error) {
 	v.SetDefault("openrouter.enable", false)
 	v.SetDefault("openrouter.base_url", "https://openrouter.ai/api/v1")
 	v.SetDefault("openrouter.timeout", "10s")
+	v.SetDefault("openrouter.socks5_proxy", "")
 
 	// Files
 	v.SetConfigName("config")
@@ -162,6 +164,7 @@ func Load() (*Config, error) {
 	_ = v.BindEnv("openrouter.model", "OPENROUTER_MODEL")
 	_ = v.BindEnv("openrouter.base_url", "OPENROUTER_BASE_URL")
 	_ = v.BindEnv("openrouter.timeout", "OPENROUTER_TIMEOUT")
+	_ = v.BindEnv("openrouter.socks5_proxy", "OPENROUTER_SOCKS5_PROXY")
 
 	// Read file if present
 	if err := v.ReadInConfig(); err != nil {

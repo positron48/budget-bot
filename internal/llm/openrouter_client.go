@@ -6,9 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
+
+	"golang.org/x/net/proxy"
 )
 
 // OpenRouterClient implements CategorySuggester via OpenRouter chat/completions API.
@@ -17,10 +21,20 @@ type OpenRouterClient struct {
 	apiKey  string
 	model   string
 	http    *http.Client
+	initErr error
 }
 
 // NewOpenRouterClient creates a configured client.
 func NewOpenRouterClient(baseURL, apiKey, model string, timeout time.Duration) *OpenRouterClient {
+	return NewOpenRouterClientWithSocks5Proxy(baseURL, apiKey, model, timeout, "")
+}
+
+// NewOpenRouterClientWithSocks5Proxy creates a configured client and optionally routes
+// OpenRouter requests through a SOCKS5 proxy. Expected proxy formats:
+// - "ip:port"
+// - "socks5://ip:port"
+// - "socks5://user:pass@ip:port"
+func NewOpenRouterClientWithSocks5Proxy(baseURL, apiKey, model string, timeout time.Duration, socks5Proxy string) *OpenRouterClient {
 	if timeout <= 0 {
 		timeout = 10 * time.Second
 	}
@@ -28,15 +42,79 @@ func NewOpenRouterClient(baseURL, apiKey, model string, timeout time.Duration) *
 	if baseURL == "" {
 		baseURL = "https://openrouter.ai/api/v1"
 	}
+	httpClient := &http.Client{Timeout: timeout}
+	if strings.TrimSpace(socks5Proxy) != "" {
+		if transport, err := newSocks5Transport(socks5Proxy); err == nil {
+			httpClient.Transport = transport
+		} else {
+			return &OpenRouterClient{
+				baseURL: baseURL,
+				apiKey:  apiKey,
+				model:   model,
+				http:    httpClient,
+				initErr: fmt.Errorf("openrouter socks5 proxy is invalid: %w", err),
+			}
+		}
+	}
 	return &OpenRouterClient{
 		baseURL: baseURL,
 		apiKey:  apiKey,
 		model:   model,
-		http:    &http.Client{Timeout: timeout},
+		http:    httpClient,
 	}
 }
 
+func newSocks5Transport(raw string) (*http.Transport, error) {
+	hostPort, auth, err := normalizeSocks5Proxy(raw)
+	if err != nil {
+		return nil, err
+	}
+	dialer, err := proxy.SOCKS5("tcp", hostPort, auth, proxy.Direct)
+	if err != nil {
+		return nil, err
+	}
+	return &http.Transport{
+		Proxy: nil,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return dialer.Dial(network, addr)
+		},
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 30 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		IdleConnTimeout:       90 * time.Second,
+		MaxIdleConns:          10,
+	}, nil
+}
+
+func normalizeSocks5Proxy(raw string) (hostPort string, auth *proxy.Auth, err error) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return "", nil, fmt.Errorf("empty socks5 proxy")
+	}
+	if !strings.Contains(value, "://") {
+		return value, nil, nil
+	}
+	u, err := url.Parse(value)
+	if err != nil {
+		return "", nil, fmt.Errorf("parse socks5 proxy: %w", err)
+	}
+	if u.Scheme != "socks5" && u.Scheme != "socks5h" {
+		return "", nil, fmt.Errorf("unsupported socks5 proxy scheme %q", u.Scheme)
+	}
+	if u.Host == "" {
+		return "", nil, fmt.Errorf("socks5 proxy host is empty")
+	}
+	if u.User != nil {
+		password, _ := u.User.Password()
+		auth = &proxy.Auth{User: u.User.Username(), Password: password}
+	}
+	return u.Host, auth, nil
+}
+
 func (c *OpenRouterClient) SuggestCategory(ctx context.Context, req SuggestCategoryRequest) (*SuggestCategoryResponse, error) {
+	if c.initErr != nil {
+		return nil, c.initErr
+	}
 	if c.apiKey == "" || c.model == "" {
 		return nil, fmt.Errorf("openrouter client is not configured")
 	}

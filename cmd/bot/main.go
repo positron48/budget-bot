@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -22,9 +23,8 @@ import (
 	"budget-bot/internal/metrics"
 	"budget-bot/internal/repository"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"golang.org/x/net/proxy"
 	"go.uber.org/zap"
-	"net/url"
+	"golang.org/x/net/proxy"
 )
 
 func main() {
@@ -107,7 +107,13 @@ func main() {
 		if cfg.OpenRouter.APIKey == "" || cfg.OpenRouter.Model == "" {
 			log.Warn("openrouter enabled but API key/model is not configured; llm fallback disabled")
 		} else {
-			h.WithLLM(llm.NewOpenRouterClient(cfg.OpenRouter.BaseURL, cfg.OpenRouter.APIKey, cfg.OpenRouter.Model, cfg.OpenRouter.Timeout), true)
+			h.WithLLM(llm.NewOpenRouterClientWithSocks5Proxy(
+				cfg.OpenRouter.BaseURL,
+				cfg.OpenRouter.APIKey,
+				cfg.OpenRouter.Model,
+				cfg.OpenRouter.Timeout,
+				cfg.OpenRouter.Socks5Proxy,
+			), true)
 		}
 	}
 
@@ -239,7 +245,7 @@ func buildTelegramSocks5Transport(raw string, log *zap.Logger) (*http.Transport,
 		},
 		TLSHandshakeTimeout:   10 * time.Second,
 		ResponseHeaderTimeout: 20 * time.Second,
-		ExpectContinueTimeout:  1 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 		IdleConnTimeout:       30 * time.Second,
 		MaxIdleConns:          10,
 	}
