@@ -75,7 +75,7 @@ func newSocks5Transport(raw string) (*http.Transport, error) {
 	}
 	return &http.Transport{
 		Proxy: nil,
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+		DialContext: func(_ context.Context, network, addr string) (net.Conn, error) {
 			return dialer.Dial(network, addr)
 		},
 		TLSHandshakeTimeout:   10 * time.Second,
