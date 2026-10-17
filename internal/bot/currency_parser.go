@@ -2,64 +2,85 @@
 package bot
 
 import (
-    "regexp"
-    "strings"
+	"regexp"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // CurrencyParser validates and normalizes currency codes.
 type CurrencyParser struct {
-    symbolToCode map[string]string
-    codeToSymbol map[string]string
+	symbolToCode map[string]string
+	codeToSymbol map[string]string
 }
 
 // NewCurrencyParser constructs a CurrencyParser.
 func NewCurrencyParser() *CurrencyParser {
-    s2c := map[string]string{
-        "₽": "RUB",
-        "$": "USD",
-        "€": "EUR",
-        "£": "GBP",
-        "¥": "JPY",
-    }
-    c2s := map[string]string{
-        "RUB": "₽",
-        "USD": "$",
-        "EUR": "€",
-        "GBP": "£",
-        "JPY": "¥",
-    }
-    return &CurrencyParser{symbolToCode: s2c, codeToSymbol: c2s}
+	s2c := map[string]string{
+		"₽": "RUB",
+		"$": "USD",
+		"€": "EUR",
+		"£": "GBP",
+		"¥": "JPY",
+	}
+	c2s := map[string]string{
+		"RUB": "₽",
+		"USD": "$",
+		"EUR": "€",
+		"GBP": "£",
+		"JPY": "¥",
+	}
+	return &CurrencyParser{symbolToCode: s2c, codeToSymbol: c2s}
 }
 
-var currencyCodeRe = regexp.MustCompile(`\b(RUB|USD|EUR|GBP|JPY)\b`)
+var currencyTokenRe = regexp.MustCompile(`(?i)₽|\$|€|£|¥|rub|usd|eur|gbp|jpy|евро|доллар(?:ами|ов|а|ы|у|ом|е)?|бакс(?:ами|ов|а|ы|у|ом|е)?|рубл(?:ями|ей|я|ь|ю|ём|ем|ях)|руб\.?`)
 
-// ParseCurrency returns ISO code and the matched token, and the cleaned text without that token.
+// ParseCurrency returns a normalized ISO code. Different currencies in one
+// message are ambiguous and return the deliberately invalid CONFLICT code.
 func (cp *CurrencyParser) ParseCurrency(text string) (code string, matched string, cleaned string) {
-    t := text
-    // Look for symbols anywhere
-    for sym, c := range cp.symbolToCode {
-        if strings.Contains(t, sym) {
-            cleaned = strings.ReplaceAll(t, sym, "")
-            return c, sym, strings.TrimSpace(cleaned)
-        }
-    }
-    // Look for 3-letter codes (case-insensitive)
-    upper := strings.ToUpper(t)
-    if loc := currencyCodeRe.FindStringIndex(upper); loc != nil {
-        matched = upper[loc[0]:loc[1]]
-        cleaned = strings.TrimSpace(t[:loc[0]] + t[loc[1]:])
-        return matched, matched, cleaned
-    }
-    return "", "", t
+	indices := currencyTokenRe.FindAllStringIndex(text, -1)
+	cleaned = text
+	valid := make([][]int, 0, len(indices))
+	for _, loc := range indices {
+		token := text[loc[0]:loc[1]]
+		c := cp.symbolToCode[token]
+		if c == "" {
+			// Unicode letter boundaries, allowing currency next to a numeric amount.
+			before, _ := utf8.DecodeLastRuneInString(text[:loc[0]])
+			after, _ := utf8.DecodeRuneInString(text[loc[1]:])
+			if unicode.IsLetter(before) || unicode.IsLetter(after) || before == '_' || after == '_' {
+				continue
+			}
+			lower := strings.ToLower(token)
+			switch {
+			case lower == "евро":
+				c = "EUR"
+			case strings.HasPrefix(lower, "доллар"), strings.HasPrefix(lower, "бакс"):
+				c = "USD"
+			case strings.HasPrefix(lower, "руб"):
+				c = "RUB"
+			default:
+				c = strings.ToUpper(token)
+			}
+		}
+		if code != "" && code != c {
+			return "CONFLICT", "", text
+		}
+		code, matched = c, token
+		valid = append(valid, loc)
+	}
+	for i := len(valid) - 1; i >= 0; i-- {
+		loc := valid[i]
+		cleaned = cleaned[:loc[0]] + " " + cleaned[loc[1]:]
+	}
+	return code, matched, strings.TrimSpace(cleaned)
 }
 
 // ValidateCurrency checks if code looks like an ISO 4217 currency.
 func (cp *CurrencyParser) ValidateCurrency(code string) bool {
-    if code == "" {
-        return false
-    }
-    _, ok := cp.codeToSymbol[strings.ToUpper(code)]
-    return ok
+	if code == "" {
+		return false
+	}
+	_, ok := cp.codeToSymbol[strings.ToUpper(code)]
+	return ok
 }
-
-

@@ -70,7 +70,10 @@ func (p *MessageParser) ParseMessage(text string) (*ParsedTransaction, error) {
 	}
 
 	// DD.MM(.YYYY)
-	if m := dateDDMMYY.FindStringSubmatch(lower); len(m) > 0 {
+	// An undated decimal amount such as 12.05 EUR must not become May 12.
+	// Accept a numeric date only when another amount is present.
+	dateMatch := dateDDMMYY.FindStringSubmatchIndex(lower)
+	if m := dateDDMMYY.FindStringSubmatch(lower); len(m) > 0 && dateMatch != nil && amountRe.MatchString(lower[:dateMatch[0]]+lower[dateMatch[1]:]) {
 		day, _ := strconv.Atoi(m[1])
 		mon, _ := strconv.Atoi(m[2])
 		year := now.Year()
@@ -93,6 +96,10 @@ func (p *MessageParser) ParseMessage(text string) (*ParsedTransaction, error) {
 
 	// Currency (optional)
 	if code, _, cleaned := p.currency.ParseCurrency(lower); code != "" {
+		if code == "CONFLICT" {
+			result.Errors = append(result.Errors, "Укажите одну валюту операции / Specify one transaction currency")
+			return result, nil
+		}
 		result.Currency = code
 		lower = cleaned
 	}
@@ -119,7 +126,7 @@ func (p *MessageParser) ParseMessage(text string) (*ParsedTransaction, error) {
 				frac = frac[:2]
 			}
 			minorAbs, _ := strconv.ParseInt(frac, 10, 64)
-			amountMinor := (wholeAbs*100)+minorAbs
+			amountMinor := (wholeAbs * 100) + minorAbs
 			result.Amount = domain.NewMoney(amountMinor, result.Currency)
 		} else {
 			wholeAbs, _ := strconv.ParseInt(numericAbs, 10, 64)
@@ -168,5 +175,3 @@ func (p *MessageParser) Validate(parsed *ParsedTransaction) []ValidationError {
 	}
 	return errs
 }
-
-

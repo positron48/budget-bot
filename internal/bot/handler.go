@@ -171,12 +171,12 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 	if parsed != nil && parsed.IsValid {
 		// Default currency from preferences if missing
 		cur := parsed.Currency
-		if cur == "" && h.prefs != nil {
-			if pref, err := h.prefs.GetPreferences(ctx, update.Message.From.ID); err == nil && pref != nil && pref.DefaultCurrency != "" {
-				cur = pref.DefaultCurrency
-			}
-			if cur == "" {
-				cur = "RUB"
+		if cur == "" {
+			cur = "RUB"
+			if h.prefs != nil {
+				if pref, err := h.prefs.GetPreferences(ctx, update.Message.From.ID); err == nil && pref != nil && pref.DefaultCurrency != "" {
+					cur = pref.DefaultCurrency
+				}
 			}
 		}
 		amt := float64(parsed.Amount.AmountMinor) / 100.0

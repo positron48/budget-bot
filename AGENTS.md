@@ -34,6 +34,7 @@ Telegram‑бот для быстрого добавления транзакц�
 - `docs/agent-guides/add-transaction-flow.md` — подробный флоу добавления транзакции в боте и маппинга категории.
 
 ## Контекст для быстрого входа
+- Валютный ввод и совместимость с веб-бюджетом: `docs/multicurrency.md`.
 - Формат сообщений: `[дата] [+]сумма[валюта] описание`.
 - Команды: `/start`, `/register`, `/login`, `/stats`, `/recent`, `/export`, `/categories`, `/map` и др.
 - gRPC адрес: `GRPC_SERVER_ADDRESS` в `.env`.

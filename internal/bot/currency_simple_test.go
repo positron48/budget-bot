@@ -171,7 +171,7 @@ func TestCurrencyParser_ParseCurrency_ComplexInput(t *testing.T) {
 		{"$100.50 for dinner", "USD"},
 		{"€25.99 subscription", "EUR"},
 		{"₽5000 salary", "RUB"},
-		{"100 USD and 50 EUR", "USD"}, // First match
+		{"100 USD and 50 EUR", "CONFLICT"}, // Ambiguous currencies are rejected
 		{"No currency here", ""},
 		{"123.45", ""},
 	}
