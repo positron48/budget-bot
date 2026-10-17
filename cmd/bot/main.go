@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -51,16 +52,16 @@ func main() {
 		apiEndpoint = normalizeAPIEndpoint(cfg.Telegram.APIBaseURL)
 	}
 
-	httpClient := &http.Client{Timeout: 30 * time.Second}
+	httpClient := &http.Client{Timeout: telegramClientTimeout(cfg.Telegram.UpdatesTimeout)}
 	if cfg.Telegram.Socks5Proxy != "" {
-		tr, err := buildTelegramSocks5Transport(cfg.Telegram.Socks5Proxy, log)
+		tr, err := buildTelegramSocks5Transport(cfg.Telegram.Socks5Proxy, log, cfg.Telegram.UpdatesTimeout)
 		if err != nil {
 			log.Fatal("failed to build socks5 transport", zap.Error(err))
 		}
 		httpClient.Transport = tr
 	}
 
-	bot, err := tgbotapi.NewBotAPIWithClient(cfg.Telegram.Token, apiEndpoint, httpClient)
+	bot, err := tgbotapi.NewBotAPIWithClient(cfg.Telegram.Token, apiEndpoint, telegramHTTPClient{client: httpClient, token: cfg.Telegram.Token})
 	if err != nil {
 		log.Fatal("failed to init bot", zap.Error(err))
 	}
@@ -225,7 +226,33 @@ func normalizeAPIEndpoint(base string) string {
 	return s + "/bot%s/%s"
 }
 
-func buildTelegramSocks5Transport(raw string, log *zap.Logger) (*http.Transport, error) {
+// Telegram may hold a getUpdates request for the whole configured poll interval.
+func telegramClientTimeout(updatesTimeout int) time.Duration {
+	timeout := time.Duration(updatesTimeout)*time.Second + 30*time.Second
+	if timeout < 30*time.Second {
+		return 30 * time.Second
+	}
+	return timeout
+}
+
+type telegramHTTPClient struct {
+	client *http.Client
+	token  string
+}
+
+func (c telegramHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	response, err := c.client.Do(req)
+	var urlErr *url.Error
+	if c.token != "" && errors.As(err, &urlErr) {
+		safe := *urlErr
+		safe.URL = strings.ReplaceAll(safe.URL, c.token, "[redacted]")
+		// Keep the underlying network error available to errors.Is/errors.As.
+		err = &safe
+	}
+	return response, err
+}
+
+func buildTelegramSocks5Transport(raw string, log *zap.Logger, updatesTimeout int) (*http.Transport, error) {
 	proxyAddr, auth, err := normalizeSocks5Proxy(raw)
 	if err != nil {
 		return nil, err
@@ -244,7 +271,7 @@ func buildTelegramSocks5Transport(raw string, log *zap.Logger) (*http.Transport,
 			return dialer.Dial(network, addr)
 		},
 		TLSHandshakeTimeout:   10 * time.Second,
-		ResponseHeaderTimeout: 20 * time.Second,
+		ResponseHeaderTimeout: telegramClientTimeout(updatesTimeout) - 10*time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 		IdleConnTimeout:       30 * time.Second,
 		MaxIdleConns:          10,
