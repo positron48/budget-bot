@@ -1,3 +1,5 @@
+//go:build !withgrpc
+
 package grpc
 
 import (
