@@ -1131,9 +1131,9 @@ func (h *Handler) handleMap(ctx context.Context, update tgbotapi.Update) {
 			categoryName, err := h.nameMapper.GetCategoryNameByID(ctx, sess.TenantID, sess.AccessToken, m.CategoryID, domain.TransactionExpense, locale)
 			if err != nil || categoryName == "" {
 				// Fallback to ID if name not found
-				b.WriteString(fmt.Sprintf("%s = %s\n", m.Keyword, m.CategoryID))
+				fmt.Fprintf(&b, "%s = %s\n", m.Keyword, m.CategoryID)
 			} else {
-				b.WriteString(fmt.Sprintf("%s = %s\n", m.Keyword, categoryName))
+				fmt.Fprintf(&b, "%s = %s\n", m.Keyword, categoryName)
 			}
 		}
 		_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
@@ -1371,7 +1371,7 @@ func (h *Handler) handleTopCategories(ctx context.Context, update tgbotapi.Updat
 	var b strings.Builder
 	b.WriteString(tr(locale, "Топ категорий:\n", "Top categories:\n"))
 	for i, it := range items {
-		b.WriteString(fmt.Sprintf("%d) %s — %.2f %s\n", i+1, it.Name, float64(it.SumMinor)/100.0, it.Currency))
+		fmt.Fprintf(&b, "%d) %s — %.2f %s\n", i+1, it.Name, float64(it.SumMinor)/100.0, it.Currency)
 	}
 	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
 }
@@ -1410,7 +1410,7 @@ func (h *Handler) handleRecent(ctx context.Context, update tgbotapi.Update) {
 		}
 		amt := float64(t.GetAmount().GetMinorUnits()) / 100.0
 		curr := t.GetAmount().GetCurrencyCode()
-		b.WriteString(fmt.Sprintf("- %s%.2f %s %s\n", sign, amt, curr, t.GetComment()))
+		fmt.Fprintf(&b, "- %s%.2f %s %s\n", sign, amt, curr, t.GetComment())
 	}
 	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
 }
@@ -1470,7 +1470,7 @@ func (h *Handler) handleExport(ctx context.Context, update tgbotapi.Update) {
 		}
 		amt := float64(t.GetAmount().GetMinorUnits()) / 100.0
 		curr := t.GetAmount().GetCurrencyCode()
-		b.WriteString(fmt.Sprintf("%s,%s,%.2f,%s,%s,%s\n", dt, typ, amt, curr, t.GetCategoryId(), strings.ReplaceAll(t.GetComment(), ",", " ")))
+		fmt.Fprintf(&b, "%s,%s,%.2f,%s,%s,%s\n", dt, typ, amt, curr, t.GetCategoryId(), strings.ReplaceAll(t.GetComment(), ",", " "))
 	}
 	file := tgbotapi.FileBytes{Name: "export.csv", Bytes: []byte(b.String())}
 	msg := tgbotapi.NewDocument(update.Message.Chat.ID, file)
@@ -1485,12 +1485,12 @@ func (h *Handler) handleProfile(ctx context.Context, update tgbotapi.Update) {
 	var b strings.Builder
 	b.WriteString(tr(locale, "Профиль:\n", "Profile:\n"))
 	if sess != nil {
-		b.WriteString(fmt.Sprintf("UserID: %s\nTenantID: %s\n", sess.UserID, sess.TenantID))
+		fmt.Fprintf(&b, "UserID: %s\nTenantID: %s\n", sess.UserID, sess.TenantID)
 	} else {
 		b.WriteString(tr(locale, "Не авторизован\n", "Not authorized\n"))
 	}
 	if pref != nil {
-		b.WriteString(fmt.Sprintf("%s: %s\n%s: %s\n", tr(locale, "Язык", "Language"), pref.Language, tr(locale, "Валюта по умолчанию", "Default currency"), pref.DefaultCurrency))
+		fmt.Fprintf(&b, "%s: %s\n%s: %s\n", tr(locale, "Язык", "Language"), pref.Language, tr(locale, "Валюта по умолчанию", "Default currency"), pref.DefaultCurrency)
 	}
 	_, _ = h.bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, b.String()))
 }
