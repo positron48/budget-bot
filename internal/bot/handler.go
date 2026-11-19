@@ -368,9 +368,10 @@ func (h *Handler) HandleUpdate(ctx context.Context, update tgbotapi.Update) {
 
 			locale = h.userLocale(ctx, update.Message.From.ID)
 			label := tr(locale, "Выбрана категория", "Selected category")
-			if source == "mapping" {
+			switch source {
+			case "mapping":
 				label = tr(locale, "Применено сохраненное сопоставление", "Applied saved mapping")
-			} else if source == "llm" {
+			case "llm":
 				label = fmt.Sprintf(tr(locale, "LLM-подбор категории (уверенность %.0f%%)", "LLM category suggestion (confidence %.0f%%)"), llmProbability*100)
 			}
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("%s %s %.2f %s — %s\n%s: %s",

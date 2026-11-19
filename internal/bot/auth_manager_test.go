@@ -342,7 +342,7 @@ func TestAuthManager_GetSession_ExpiredToken(t *testing.T) {
 	// Refresh token call - should be called with the old refresh token
 	authClient.On("RefreshToken", ctx, expiredSession.RefreshToken).Return(
 		"new_access123", "new_refresh123",
-		time.Now().Add(time.Hour), time.Now().Add(24 * time.Hour), nil)
+		time.Now().Add(time.Hour), time.Now().Add(24*time.Hour), nil)
 
 	// Update tokens call
 	sessionRepo.On("UpdateTokens", ctx, telegramID, mock.AnythingOfType("*repository.TokenPair")).Return(nil)
@@ -422,8 +422,8 @@ func TestAuthManager_RefreshTokens_Success(t *testing.T) {
 	sessionRepo.On("UpdateTokens", ctx, telegramID, mock.MatchedBy(func(tokens *repository.TokenPair) bool {
 		return tokens.AccessToken == newAccessToken &&
 			tokens.RefreshToken == newRefreshToken &&
-			tokens.AccessTokenExpiresAt == newAccessExp &&
-			tokens.RefreshTokenExpiresAt == newRefreshExp
+			tokens.AccessTokenExpiresAt.Equal(newAccessExp) &&
+			tokens.RefreshTokenExpiresAt.Equal(newRefreshExp)
 	})).Return(nil)
 
 	err := am.RefreshTokens(ctx, telegramID)
@@ -560,7 +560,7 @@ func TestAuthManager_GetSession_RealWorldScenario(t *testing.T) {
 	am := NewAuthManager(authClient, sessionRepo, logger)
 
 	telegramID := int64(123)
-	
+
 	// Scenario: User has a session with expired access token but valid refresh token
 	expiredSession := &repository.UserSession{
 		TelegramID:            telegramID,
@@ -568,7 +568,7 @@ func TestAuthManager_GetSession_RealWorldScenario(t *testing.T) {
 		TenantID:              "tenant123",
 		AccessToken:           "old_access_token",
 		RefreshToken:          "valid_refresh_token",
-		AccessTokenExpiresAt:  time.Now().Add(-time.Minute), // Just expired
+		AccessTokenExpiresAt:  time.Now().Add(-time.Minute),   // Just expired
 		RefreshTokenExpiresAt: time.Now().Add(24 * time.Hour), // Still valid
 	}
 
@@ -588,7 +588,7 @@ func TestAuthManager_GetSession_RealWorldScenario(t *testing.T) {
 	// Refresh token call succeeds
 	authClient.On("RefreshToken", ctx, expiredSession.RefreshToken).Return(
 		"new_access_token", "new_refresh_token",
-		time.Now().Add(time.Hour), time.Now().Add(24 * time.Hour), nil)
+		time.Now().Add(time.Hour), time.Now().Add(24*time.Hour), nil)
 
 	// Update tokens call succeeds
 	sessionRepo.On("UpdateTokens", ctx, telegramID, mock.AnythingOfType("*repository.TokenPair")).Return(nil)
@@ -604,7 +604,7 @@ func TestAuthManager_GetSession_RealWorldScenario(t *testing.T) {
 	assert.Equal(t, "new_access_token", session.AccessToken)
 	assert.Equal(t, "new_refresh_token", session.RefreshToken)
 	assert.True(t, session.AccessTokenExpiresAt.After(time.Now()))
-	
+
 	authClient.AssertExpectations(t)
 	sessionRepo.AssertExpectations(t)
 }

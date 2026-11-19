@@ -1,4 +1,4 @@
-FROM golang:1.23.1-alpine AS builder
+FROM golang:1.26.11-alpine AS builder
 WORKDIR /src
 
 COPY go.mod go.sum ./
@@ -7,7 +7,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags withgrpc -o /out/budget-bot ./cmd/bot
 
-FROM alpine:3.20
+FROM alpine:3.24
 RUN apk add --no-cache ca-certificates tzdata wget
 
 RUN addgroup -g 1001 -S budgetbot && adduser -u 1001 -S budgetbot -G budgetbot
