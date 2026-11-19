@@ -9,7 +9,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags withgrpc -o /out/budget
 
 FROM alpine:3.24
 RUN apk upgrade --no-cache
-RUN apk add --no-cache ca-certificates tzdata wget
+RUN apk add --no-cache ca-certificates tzdata
 
 RUN addgroup -g 1001 -S budgetbot && adduser -u 1001 -S budgetbot -G budgetbot
 WORKDIR /app
@@ -22,6 +22,6 @@ USER budgetbot
 
 EXPOSE 8088 9090
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8088/healthz || exit 1
+  CMD wget -q -T 5 -O /dev/null http://127.0.0.1:8088/healthz || exit 1
 
 ENTRYPOINT ["/app/budget-bot"]
